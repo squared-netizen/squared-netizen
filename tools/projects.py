@@ -191,6 +191,11 @@ PROJECTS = [
                           "initialize are workflows, not fixed code paths.[[readme]]"),
             ("Resources", "Templates, kits, packages and assets are inert data under <code>resources/</code>; the "
                           "squared package repository and sqcart are brought in beside it.[[readme]]"),
+            ("Building (planned)", "Generated projects build with make today. The plan is for the build step to "
+                                   "go through <b>sqmake</b>, a separate library and command line that runs the "
+                                   "build itself from a short Lua build file, with no generated make, CMake or "
+                                   "Ninja files; squared-pg embeds it, and it knows nothing about squared-pg. "
+                                   "See the main page's planned projects."),
             ("Specification", "A functional specification, kept as an Obsidian vault with a decision log and open "
                               "questions, guides the design; during the initial implementation the repository is "
                               "the ground truth and the specification is amended to match.[[agents]]"),
@@ -296,7 +301,7 @@ PROJECTS = [
             ("Platform", "Android (arm64), target SDK 28"),
             ("Language", "C++23 on squared"),
             ("Shell", "zsh 5.9.2 from its own prefix; bash 5.3"),
-            ("Toolchain", "clang 23.1.5, lld, libc++ 23, built for the phone[[packages]]"),
+            ("Toolchain", "clang 23.1.5, lld, libc++ 23; clang-format, clang-scan-deps, clangd, clang-tidy, clang-doc; built for the phone[[packages]]"),
             ("Licence", "MIT[[license]]; its fonts and FreeType carry their own[[notice]]"),
             ("Repository", f'<a href="{GH}/sqterm">{OWNER}/sqterm</a>'),
         ],
@@ -335,7 +340,8 @@ PROJECTS = [
                                     "upgrade, remove and back up packages. Each package has its own key, so a change "
                                     "rebuilds only it and what depends on it.[[packages]]"),
             ("Toolchain", "clang and lld 23 as one binary, a sysroot built from AOSP's bionic rather than the NDK, and "
-                          "static libc++ 23 runtimes with the <code>import std</code> sources.[[packages]]"),
+                          "static libc++ 23 runtimes with the <code>import std</code> sources. clangd, clang-tidy and "
+                          "clang-doc come as a package of their own, so the compiler package stays small.[[packages]]"),
             ("Platform", "Running in the background through squared's foreground service, with a notification and an "
                          "optional wake lock.[[readme]]"),
         ],
@@ -347,6 +353,7 @@ PROJECTS = [
             "Its own prefix with zsh, bash, coreutils, sed, grep, gawk and make.[[packages]]",
             "<code>pkg</code>: list, install from a file (optionally deleting it), remove, back up.[[packages]]",
             "C, C++ and C++23 <code>import std</code> compiled and run on the phone, from the prefix.[[packages]]",
+            "The tools around the compiler: clang-format, clang-scan-deps (module dependencies), clangd, clang-tidy and clang-doc.[[packages]]",
         ],
         "use_cases": [
             "A shell on the phone that keeps working with the screen off.",
