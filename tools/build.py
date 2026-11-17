@@ -113,6 +113,7 @@ def index_page():
             f'<td><a href="https://github.com/{projects.OWNER}/{p["repo"]}">source</a></td></tr>')
     planned = "".join(f"<tr><td><b>{E(n)}</b></td><td>{E(k)}</td><td>{d}</td></tr>"
                       for n, k, d in projects.PLANNED)
+    packages = "".join(f"<tr><td class=\"nw\"><b>{E(n)}</b></td><td>{d}</td></tr>" for n, d in projects.PACKAGES)
     other = "".join(f'<li><a href="https://github.com/{projects.OWNER}/{r}">{E(r)}</a>: {E(d)}</li>'
                     for r, d in projects.OTHER)
     body = f"""<article class="article">
@@ -135,13 +136,49 @@ packages, and <b>sqterm</b>, a terminal for Android written on it. Everything is
 tested on a phone. A clean checkout and the vendored sources build offline; the network is
 a deliberate step of its own, never part of a build.</p>
 <nav class="toc"><b>Contents</b><ol><li><a href="#projects">Current projects</a></li>
-<li><a href="#planned">Planned projects</a></li><li><a href="#workflow">Workflow</a></li>
+<li><a href="#sdk">The squared SDK</a></li><li><a href="#planned">Planned projects</a></li><li><a href="#workflow">Workflow</a></li>
 <li><a href="#other">Other repositories</a></li></ol></nav>
 <h2 id="projects">Current projects</h2>
 <div class="scroll"><table class="wikitable">
 <tr><th>Project</th><th>Kind</th><th>Status</th><th>Summary</th><th>Repository</th></tr>
 {"".join(rows)}
 </table></div>
+<h2 id="sdk">The squared SDK</h2>
+<p>The <b>squared SDK</b> is a framework, the tools that create, manage and build what is written on it,
+and the command-line environment they run in. The names follow one rule: <b>squared</b> is the framework,
+<b>square</b> is the manager, and <b>squared-</b><i>name</i> are the framework's add-on packages.</p>
+<h3>The framework</h3>
+<p><a href="projects/squared.html">squared-core</a> is what every application is written against. Add-on
+packages extend it in one field each, and are expected to be substantial; what all or nearly all of them
+share moves into core. They are built only when something needs one, or when code added to core grows too
+large or plainly belongs in one, so for now they wait.</p>
+<div class="scroll"><table class="wikitable"><tr><th>Package</th><th>Scope</th></tr>{packages}</table></div>
+<h3>The tools</h3>
+<div class="thumb narrow">{projects.SDK_SKETCH}<div class="cap">Every tool learns what a workspace is from the
+cartridge specification. sqcart is its lowest-level user and knows nothing of workspaces; square is the
+one tool that does, and the others ask square.</div></div>
+<ul>
+<li><a href="projects/sqcart.html">sqcart</a> reads and writes cartridges (<code>.sq</code>): the
+specification's reference implementation.</li>
+<li><b>square</b> manages workspaces. A manifest question goes to square, which asks sqcart and answers in
+JSON, so no other tool reads cartridge manifests itself and a change in sqcart touches square alone. It can
+also turn a workspace that has grown to suit its developer into a template, kits and packages for the next
+project.</li>
+<li><a href="projects/squared-pg.html">sqpg</a> creates: it sets up a workspace tree and generates a
+project from the template, kits and packages it is given.</li>
+<li><b>sqmake</b> builds an application from a workspace, knowing how to build it rather than what a
+workspace is.</li>
+<li><b>sqgui</b> edits an application's UI visually, through the JSON layout files squared already
+reads; it takes in sqgen, which compiles them.</li>
+</ul>
+<h3>The workflow</h3>
+<ol>
+<li><b>Create</b> a workspace with sqpg.</li>
+<li><b>Manage</b> it with square, and with sqgui for its user interface.</li>
+<li><b>Build</b> the application from it with sqmake.</li>
+</ol>
+<p>Around them, the environment the work happens in: zsh, the whole clang toolchain, neovim and sqpeg,
+run on the phone in <a href="projects/sqterm.html">sqterm</a> or Termux.</p>
 <h2 id="planned">Planned projects</h2>
 <div class="scroll"><table class="wikitable"><tr><th>Project</th><th>Kind</th><th>Idea</th></tr>{planned}</table></div>
 <h2 id="workflow">Workflow</h2>

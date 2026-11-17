@@ -115,6 +115,14 @@ PROJECTS = [
                          "service.[[template]] Desktop Linux runs the same application code.[[readme-fw]]"),
             ("Build", "make and clang with libc++. Module interfaces and objects go through a build cache keyed by what "
                       "they read, shared between workspaces.[[history]]"),
+            ("Layouts", "Screens can be described in JSON files, <code>sq_app/layouts/</code>, which sqgen compiles into "
+                        "constant tables.[[layouts]] The planned visual editor, sqgui, will read and write the same "
+                        "files and take in sqgen."),
+            ("Packages (planned)", "squared-core stays the framework every application uses, and its "
+                                   "<code>math</code> stays small. Add-on packages, each in its own repository, will "
+                                   "extend it in one field: squared-math, -language, -physics, -chem, -bio, -game, "
+                                   "-ai and -net. They are built when something needs one, and what nearly all of "
+                                   "them share moves into core. See <a href=\"../index.html#sdk\">the squared SDK</a>."),
         ],
         "features": [
             "C++23 named modules throughout, with <code>import std</code>.[[readme-fw]]",
@@ -136,6 +144,7 @@ PROJECTS = [
             ("readme", "squared: README", f"{GH}/squared/blob/main/README.md"),
             ("license", "squared: LICENSE", f"{GH}/squared/blob/main/LICENSE"),
             ("readme-fw", "squared framework: README", f"{GH}/squared/blob/main/packages/package.squared-core/tree/squared/README.md"),
+            ("layouts", "squared: programmer's guide to layouts", f"{GH}/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/layouts.md"),
             ("stage", "squared: programmer's guide to the Stage", f"{GH}/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/stage.md"),
             ("template", "squared: the Android application template", f"{GH}/squared/tree/main/templates/template.android.cpp"),
             ("history", "squared: commit history", f"{GH}/squared/commits/main"),
@@ -191,11 +200,15 @@ PROJECTS = [
                           "initialize are workflows, not fixed code paths.[[readme]]"),
             ("Resources", "Templates, kits, packages and assets are inert data under <code>resources/</code>; the "
                           "squared package repository and sqcart are brought in beside it.[[readme]]"),
+            ("In the SDK", "sqpg is the tool that <i>creates</i>: it sets up a workspace tree and generates a "
+                           "project from a template, kits and packages, and it is installed in <code>bin</code> "
+                           "like any other tool. Managing the workspace afterwards is square's job: every question "
+                           "about a manifest goes to square, which asks sqcart. Building is sqmake's. See "
+                           "<a href=\"../index.html#sdk\">the squared SDK</a>."),
             ("Building (planned)", "Generated projects build with make today. The plan is for the build step to "
                                    "go through <b>sqmake</b>, a separate library and command line that runs the "
                                    "build itself from a short Lua build file, with no generated make, CMake or "
-                                   "Ninja files; squared-pg embeds it, and it knows nothing about squared-pg. "
-                                   "See the main page's planned projects."),
+                                   "Ninja files; it knows how to build, not what a workspace is."),
             ("Specification", "A functional specification, kept as an Obsidian vault with a decision log and open "
                               "questions, guides the design; during the initial implementation the repository is "
                               "the ground truth and the specification is amended to match.[[agents]]"),
@@ -269,6 +282,10 @@ PROJECTS = [
                          "does not know, in either direction.[[spec]]"),
             ("Embedding", "A host can supply its own miniz and yyjson (<code>SQCART_USE_EXTERNAL_MINIZ</code>, "
                           "<code>SQCART_USE_EXTERNAL_YYJSON</code>) and link the reader into its own target.[[readme]]"),
+            ("In the SDK", "sqcart is the lowest-level user of the cartridge specification and knows nothing of "
+                           "workspaces. The planned manager, square, is the tool that does: other tools ask square "
+                           "about a manifest, and square asks sqcart and answers in JSON, so a change in sqcart "
+                           "touches square alone. See <a href=\"../index.html#sdk\">the squared SDK</a>."),
         ],
         "features": [
             "One container format for templates, kits, packages, asset bundles, plugins and applications.[[readme]]",
@@ -278,6 +295,7 @@ PROJECTS = [
         ],
         "use_cases": [
             "squared-pg reading templates and kits as cartridges.",
+            "square answering the other tools' questions about a workspace's manifests.",
             "Shipping an asset bundle or plugin that a squared app opens read-only.",
             "sqterm's packages reuse the cartridge manifest envelope (kind <code>package</code>) for <code>pkg</code>.[[sqterm-pkg]]",
         ],
@@ -426,29 +444,64 @@ PROJECTS = [
 ]
 
 PLANNED = [
-    ("Manuals", "Command-line app",
-     "A command-line app for storing and managing documentation: man pages, squared's manuals and notes, "
-     "listed and searched, and filtered to the tools actually installed. Built to be embedded later in an "
-     "IDE or a game engine, not as a separate app."),
-    ("sqmake", "Build system (library and command-line tool)",
-     "A build tool that runs the build itself, with no generated make, CMake or Ninja files: make's model "
-     "(targets, prerequisites, rebuild when inputs change) with Ninja's engine (command hashes and "
-     "compiler-written header dependencies), Cargo's conventions and short manifest, Lua 5.4 as the escape "
-     "hatch, and CMake's usage requirements. A standalone library, <code>libsqmake</code>, with a thin "
-     "<code>sqmake</code> command line, like sqcart: squared-pg embeds it for its build step, and it knows "
-     "nothing about squared-pg. It owns its Lua state when run alone and uses its host's when embedded. "
-     "Offline, no daemon, commands as argument lists, C++23 modules as its interface, and "
-     "<code>--explain</code> to show the whole resolved graph."),
+    ("square", "Workspace manager",
+     "The one tool that knows what a workspace is. It manages a workspace after sqpg creates it, and answers "
+     "every manifest question for the other tools: it asks sqcart and hands them JSON, so a change in how "
+     "sqcart works touches square alone. It can also extract a template, kits and packages from a workspace "
+     "that has grown to suit its developer, so the next project starts from that layout without writing a "
+     "template by hand."),
+    ("sqmake", "Build system (library and command line)",
+     "Builds an application from a workspace, knowing how to build it rather than what a workspace is. It runs "
+     "the build itself, with no generated make, CMake or Ninja files: make's model with Ninja's engine "
+     "(command hashes, compiler-written header dependencies), Cargo's conventions, Lua 5.4 as the escape "
+     "hatch and CMake's usage requirements. A library, <code>libsqmake</code>, with a thin command line; "
+     "offline, no daemon, <code>--explain</code> to show the whole resolved graph."),
+    ("sqgui", "Visual UI editor",
+     "Edits squared's layouts visually: the JSON layout files an app's screens and panes are built from. It "
+     "takes in sqgen, the build step that compiles those files into constant tables, and asks square where "
+     "the app and its model are."),
+    ("sqpeg", "Text tool (name pending)",
+     "A pattern-matching text tool in the spirit of LPeg, to replace sed in the workflow."),
     ("Virtual Cartridge Drive (sqcart 3.0)", "Storage layer",
      "A mutable, disk-backed view over <code>.sq</code> cartridges. Reads resolve against staged changes and "
      "the mounted cartridge; writes are buffered on disk, coalesced, and committed through sqcart's "
-     "format-aware operations at chosen times (on request, at a pause, at a size or time budget, at "
-     "shutdown). sqcart stays the authority on what a valid cartridge is; the drive decides how to work "
-     "with one efficiently, in bounded memory."),
+     "format-aware operations at chosen times. sqcart stays the authority on what a valid cartridge is."),
+    ("Manuals", "Command-line app",
+     "A command-line app for storing and managing documentation: man pages, squared's manuals and notes, "
+     "listed and searched, and filtered to the tools actually installed. Built to be embedded later in an "
+     "IDE or a game engine."),
     ("apkpack", "Build tool",
      "A native replacement for aapt2, zipalign, apksigner and android.jar: an APK built and signed with no "
      "Java and no Android SDK."),
 ]
+
+# The framework's add-on packages: built only when something needs one, or
+# when code added to squared-core grows too large or plainly belongs in one.
+# Each its own repository; what nearly all of them share moves into core.
+PACKAGES = [
+    ("squared-math", "A full calculator, 3D graphics for data visualisation, discrete mathematics and "
+                     "calculus, logic, cryptography and blockchain. squared-core keeps only its small "
+                     "<code>math</code> module."),
+    ("squared-language", "Unicode, a bitmap-font packer and converter, text shaping and TrueType."),
+    ("squared-physics", "squared's own physics engine: 2D first, inspired by Box2D, then the full thing."),
+    ("squared-chem", "Chemistry as software: a working representation of chemical systems."),
+    ("squared-bio", "The same for biology."),
+    ("squared-game", "The engine of Cataclysm: Dark Days Ahead remade on squared. It takes C:DDA's licence, "
+                     "CC BY-SA 3.0; every other package is MIT."),
+    ("squared-ai", "Large language models (creating, training, a harness), genetic algorithms, a "
+                   "knowledge-based expert-system framework, and classic game AI."),
+    ("squared-net", "Talking to the internet, and distributed soft real-time systems."),
+]
+
+SDK_SKETCH = diagram(400, 290,
+    [("spec", 125, 5, 150, 44, "Cartridge spec", "what a workspace is"),
+     ("cart", 125, 80, 150, 44, "sqcart", "reads and writes .sq"),
+     ("square", 125, 155, 150, 44, "square", "manages workspaces"),
+     ("pg", 5, 240, 120, 44, "sqpg", "creates"),
+     ("make", 140, 240, 120, 44, "sqmake", "builds"),
+     ("gui", 275, 240, 120, 44, "sqgui", "edits the UI")],
+    [("spec", "cart", ""), ("cart", "square", ""), ("square", "pg", ""), ("square", "make", ""),
+     ("square", "gui", "")], soft=("spec",))
 
 OTHER = [
     ("sandbox", "not described here yet."),
