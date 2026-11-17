@@ -423,13 +423,15 @@ PLANNED = [
      "A command-line app for storing and managing documentation: man pages, squared's manuals and notes, "
      "listed and searched, and filtered to the tools actually installed. Built to be embedded later in an "
      "IDE or a game engine, not as a separate app."),
-    ("sqpg build", "Build system",
-     "squared-pg builds projects itself, with a small in-process executor driven by Lua, instead of "
-     "generating make, CMake or Ninja files. Make's model (targets, prerequisites, rebuild when inputs "
-     "change) with four borrowed ideas: Ninja's engine (command hashes and compiler-written header "
-     "dependencies), Cargo's conventions and short manifest, Lua as the escape hatch, and CMake's usage "
-     "requirements. Offline, no daemon, commands as argument lists, and <code>--explain</code> to show the "
-     "whole resolved graph."),
+    ("sqmake", "Build system (library and command-line tool)",
+     "A build tool that runs the build itself, with no generated make, CMake or Ninja files: make's model "
+     "(targets, prerequisites, rebuild when inputs change) with Ninja's engine (command hashes and "
+     "compiler-written header dependencies), Cargo's conventions and short manifest, Lua 5.4 as the escape "
+     "hatch, and CMake's usage requirements. A standalone library, <code>libsqmake</code>, with a thin "
+     "<code>sqmake</code> command line, like sqcart: squared-pg embeds it for its build step, and it knows "
+     "nothing about squared-pg. It owns its Lua state when run alone and uses its host's when embedded. "
+     "Offline, no daemon, commands as argument lists, C++23 modules as its interface, and "
+     "<code>--explain</code> to show the whole resolved graph."),
     ("Virtual Cartridge Drive (sqcart 3.0)", "Storage layer",
      "A mutable, disk-backed view over <code>.sq</code> cartridges. Reads resolve against staged changes and "
      "the mounted cartridge; writes are buffered on disk, coalesced, and committed through sqcart's "
