@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>squared-netizen</title>
+<meta name="description" content="squared-netizen&#x27;s projects, plans and sprint tracker">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">squared-netizen</a>
+  <nav><a href="index.html">Main page</a><a href="index.html#projects">Projects</a>
+  <a href="tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+</div></header>
+<main><article class="article">
+<h1>squared-netizen</h1>
+<p class="tagline">Projects, plans and the work in progress</p>
+<aside class="infobox">
+  <div class="title">squared-netizen</div>
+  <div class="figure"><svg viewBox="0 0 300 210" role="img" xmlns="http://www.w3.org/2000/svg"><defs><marker id="a" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path class="ar" d="M0,0 L8,4 L0,8 z"/></marker></defs><path class="ln" d="M70,54 L150,85" marker-end="url(#a)"/><path class="ln" d="M230,54 L150,85" marker-end="url(#a)"/><path class="ln" d="M150,129 L230,160" marker-end="url(#a)"/><path class="ln" d="M70,54 L70,160" marker-end="url(#a)"/><rect class="bx" x="10" y="10" width="120" height="44" rx="4"/><text x="70.0" y="32" text-anchor="middle" font-size="13" font-weight="600">squared</text><text class="sm" x="70.0" y="47" text-anchor="middle">framework</text><rect class="bx" x="170" y="10" width="120" height="44" rx="4"/><text x="230.0" y="32" text-anchor="middle" font-size="13" font-weight="600">sqcart</text><text class="sm" x="230.0" y="47" text-anchor="middle">.sq format</text><rect class="bx" x="90" y="85" width="120" height="44" rx="4"/><text x="150.0" y="107" text-anchor="middle" font-size="13" font-weight="600">squared-pg</text><text class="sm" x="150.0" y="122" text-anchor="middle">generator</text><rect class="bx" x="10" y="160" width="120" height="44" rx="4"/><text x="70.0" y="182" text-anchor="middle" font-size="13" font-weight="600">sqterm</text><text class="sm" x="70.0" y="197" text-anchor="middle">terminal app</text><rect class="bx" x="170" y="160" width="120" height="44" rx="4"/><text x="230.0" y="182" text-anchor="middle" font-size="13" font-weight="600">examples</text><text class="sm" x="230.0" y="197" text-anchor="middle">demo apps</text></svg><div class="cap">The squared projects and how they feed each other</div></div>
+  <table>
+    <tr><th>Works on</th><td>An Android phone, in Termux</td></tr>
+    <tr><th>Languages</th><td>C++23 (modules), C, Lua 5.4, shell</td></tr>
+    <tr><th>Focus</th><td>Offline-first tools; apps built on the phone, no Java, no Gradle</td></tr>
+    <tr><th>Priorities</th><td>RAM, API ergonomics, speed, extensibility</td></tr>
+    <tr><th>GitHub</th><td><a href="https://github.com/squared-netizen">squared-netizen</a></td></tr>
+  </table>
+</aside>
+<p><b>squared-netizen</b> builds <b>squared</b>, a C++23 framework for Linux and Android, and
+the tools around it: a project generator, a container format for its templates and
+packages, and <b>sqterm</b>, a terminal for Android written on it. Everything is built and
+tested on a phone. A clean checkout and the vendored sources build offline; the network is
+a deliberate step of its own, never part of a build.</p>
+<nav class="toc"><b>Contents</b><ol><li><a href="#projects">Current projects</a></li>
+<li><a href="#planned">Planned projects</a></li><li><a href="#workflow">Workflow</a></li>
+<li><a href="#other">Other repositories</a></li></ol></nav>
+<h2 id="projects">Current projects</h2>
+<div class="scroll"><table class="wikitable">
+<tr><th>Project</th><th>Kind</th><th>Status</th><th>Summary</th><th>Repository</th></tr>
+<tr><td><a href="projects/squared.html"><b>squared</b></a></td><td>C++ framework</td><td><span class="status s-active">Active, rewrite in progress</span></td><td>A C++23 framework for Linux and Android, built as named modules, for games, simulation software and tooling.</td><td><a href="https://github.com/squared-netizen/squared">source</a></td></tr><tr><td><a href="projects/squared-pg.html"><b>squared-pg</b></a></td><td>Project generator</td><td><span class="status s-active">Active</span></td><td>An offline-first project generator for squared: a C++20 engine sequenced by Lua 5.4 workflows, writing a workspace the developer owns.</td><td><a href="https://github.com/squared-netizen/squared-pg">source</a></td></tr><tr><td><a href="projects/sqcart.html"><b>sqcart</b></a></td><td>Container format library</td><td><span class="status s-wip">Specified; reference implementation</span></td><td>The reference implementation of the Squared Cartridge format (.sq): a container for templates, kits, packages, assets, plugins and applications.</td><td><a href="https://github.com/squared-netizen/sqcart">source</a></td></tr><tr><td><a href="projects/sqterm.html"><b>sqterm</b></a></td><td>Android terminal app</td><td><span class="status s-active">Active (Sprint 12)</span></td><td>A terminal for Android written on squared, with its own prefix of packages: zsh, bash, the GNU tools, make and clang 23.</td><td><a href="https://github.com/squared-netizen/sqterm">source</a></td></tr><tr><td><a href="projects/squared-examples.html"><b>squared-examples</b></a></td><td>Example apps</td><td><span class="status s-idle">Waiting on the generator&#x27;s rewrite</span></td><td>Complete applications built with squared and squared-pg, kept apart from both so experiments cannot change their release code.</td><td><a href="https://github.com/squared-netizen/squared-examples">source</a></td></tr>
+</table></div>
+<h2 id="planned">Planned projects</h2>
+<div class="scroll"><table class="wikitable"><tr><th>Project</th><th>Kind</th><th>Idea</th></tr><tr><td><b>Manuals</b></td><td>Android app</td><td>A manual reader for command-line tools and squared, part command library and part engine help browser: lists and search that can filter to the tools actually installed.</td></tr><tr><td><b>apkpack</b></td><td>Build tool</td><td>A native replacement for aapt2, zipalign, apksigner and android.jar: an APK built and signed with no Java and no Android SDK.</td></tr></table></div>
+<h2 id="workflow">Workflow</h2>
+<p>Work runs as sprints of small tasks. Each task is a pull request: a branch is pushed, GitHub
+Actions builds and checks it, fixes follow until it is green, and a merge closes the task. The
+<a href="tracker.html">sprint tracker</a> reads that history live from GitHub: what is in
+progress, what is blocked on a red check, what is ready, and what each sprint finished.</p>
+<h2 id="other">Other repositories</h2>
+<ul><li><a href="https://github.com/squared-netizen/sandbox">sandbox</a>: not described here yet.</li><li><a href="https://github.com/squared-netizen/learncpp-pdfs">learncpp-pdfs</a>: not described here yet.</li></ul>
+</article></main>
+<footer class="foot">Written from each repository's own documentation and, where it
+was thin or disagreed with itself, its code. Generated by <code>tools/build.py</code>
+from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

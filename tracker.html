@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint tracker</title>
+<meta name="description" content="squared-netizen's sprints: pull requests as tasks, read live from GitHub">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="index.html">squared-netizen</a>
+  <nav><a href="index.html">Main page</a><a href="index.html#projects">Projects</a>
+  <a href="tracker.html">Sprint tracker</a><a href="https://github.com/squared-netizen">GitHub</a></nav>
+</div></header>
+<main>
+<article class="article">
+<h1>Sprint tracker</h1>
+<p class="tagline">Tasks are pull requests; a merge closes one. Read live from GitHub.</p>
+<p>Every task is a pull request. A branch is pushed and GitHub Actions builds and checks it; while a
+check is red the task is <b>blocked</b>, once it is green it is <b>ready</b>, and a merge makes it
+<b>done</b>. A sprint is the milestone a pull request is filed under or, for one with none, the week
+(Monday to Sunday) it was opened or merged.</p>
+<div class="controls">
+  <label>Sprint <select id="sprint"></select></label>
+  <label>Project <select id="repo"><option value="">All</option></select></label>
+  <button id="reload" type="button">Reload</button>
+  <span class="note" id="status">Loading…</span>
+</div>
+<div class="board">
+  <section class="col"><h3>In progress <span id="n-prog"></span></h3><div id="c-prog"></div></section>
+  <section class="col"><h3>Blocked <span id="n-block"></span></h3><div id="c-block"></div></section>
+  <section class="col"><h3>Ready <span id="n-ready"></span></h3><div id="c-ready"></div></section>
+  <section class="col"><h3>Done <span id="n-done"></span></h3><div id="c-done"></div></section>
+</div>
+<h2>Builds</h2>
+<p class="note">The newest GitHub Actions run of each project.</p>
+<div class="scroll"><table class="wikitable" id="runs">
+<tr><th>Project</th><th>Workflow</th><th>Branch</th><th>Result</th><th>When</th></tr></table></div>
+<h2>Sprint history</h2>
+<div class="scroll"><table class="wikitable" id="history">
+<tr><th>Sprint</th><th>Done</th><th>Still open</th><th>Projects</th></tr></table></div>
+</article>
+</main>
+<footer class="foot">Reads GitHub's public API from your browser (60 requests an hour without a
+token; the answers are kept for five minutes). Nothing is stored anywhere else.</footer>
+<script>
+"use strict";
+const OWNER = "squared-netizen";
+const REPOS = ["squared", "squared-pg", "sqcart", "sqterm", "squared-examples"];
+const API = "https://api.github.com";
+const TTL = 5 * 60 * 1000;
+const $ = (id) => document.getElementById(id);
+
+async function get(path) {
+  const key = "gh:" + path;
+  try {
+    const hit = JSON.parse(sessionStorage.getItem(key) || "null");
+    if (hit && Date.now() - hit.at < TTL) return hit.data;
+  } catch (e) { /* storage unavailable: fetch */ }
+  const r = await fetch(API + path, { headers: { Accept: "application/vnd.github+json" } });
+  if (!r.ok) throw new Error(r.status === 403 ? "GitHub's hourly limit is reached; try again later" : `GitHub said ${r.status}`);
+  const data = await r.json();
+  try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), data })); } catch (e) { /* full */ }
+  return data;
+}
+
+function monday(iso) {
+  const d = new Date(iso);
+  const day = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+const sprintOf = (pr) => pr.milestone ? pr.milestone.title : "Week of " + monday(pr.merged_at || pr.created_at);
+const ago = (iso) => {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago";
+  return Math.round(s / 86400) + " d ago";
+};
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+async function checksOf(repo, sha) {
+  const d = await get(`/repos/${OWNER}/${repo}/commits/${sha}/check-runs?per_page=30`);
+  const runs = d.check_runs || [];
+  if (!runs.length) return "none";
+  if (runs.some((c) => c.status !== "completed")) return "running";
+  if (runs.some((c) => ["failure", "timed_out", "cancelled", "action_required"].includes(c.conclusion))) return "failed";
+  return "passed";
+}
+
+let tasks = [];
+
+async function load() {
+  $("status").textContent = "Loading…";
+  tasks = [];
+  const runsTable = $("runs");
+  runsTable.querySelectorAll("tr:not(:first-child)").forEach((r) => r.remove());
+  try {
+    for (const repo of REPOS) {
+      const prs = await get(`/repos/${OWNER}/${repo}/pulls?state=all&per_page=50&sort=created&direction=desc`);
+      for (const pr of prs) {
+        let state = pr.merged_at ? "done" : pr.state === "closed" ? "dropped" : "open";
+        let checks = "";
+        if (state === "open") {
+          checks = await checksOf(repo, pr.head.sha);
+          state = checks === "failed" ? "block" : checks === "passed" ? "ready" : "prog";
+        }
+        tasks.push({ repo, pr, state, checks, sprint: sprintOf(pr) });
+      }
+      const runs = await get(`/repos/${OWNER}/${repo}/actions/runs?per_page=1`);
+      const run = (runs.workflow_runs || [])[0];
+      const tr = document.createElement("tr");
+      tr.innerHTML = run
+        ? `<td>${esc(repo)}</td><td><a href="${esc(run.html_url)}">${esc(run.name)}</a></td><td>${esc(run.head_branch)}</td>` +
+          `<td>${esc(run.status === "completed" ? run.conclusion : run.status)}</td><td>${ago(run.updated_at)}</td>`
+        : `<td>${esc(repo)}</td><td colspan="4" class="note">no Actions runs</td>`;
+      runsTable.appendChild(tr);
+    }
+    $("status").textContent = `${tasks.length} pull requests in ${REPOS.length} projects`;
+  } catch (e) {
+    $("status").textContent = e.message;
+  }
+  fillSelectors();
+  draw();
+  history();
+}
+
+function fillSelectors() {
+  const sprints = [...new Set(tasks.map((t) => t.sprint))].sort().reverse();
+  const keep = $("sprint").value;
+  $("sprint").innerHTML = '<option value="">All open work</option>' +
+    sprints.map((s) => `<option${s === keep ? " selected" : ""}>${esc(s)}</option>`).join("");
+  if (!keep && sprints.length) $("sprint").value = sprints[0];
+  if ($("repo").options.length === 1) {
+    $("repo").innerHTML += REPOS.map((r) => `<option>${esc(r)}</option>`).join("");
+  }
+}
+
+function card(t) {
+  const cls = t.state === "done" || t.state === "ready" ? "c-ok" : t.state === "block" ? "c-bad" : "c-run";
+  const when = t.pr.merged_at ? "merged " + ago(t.pr.merged_at) : "opened " + ago(t.pr.created_at);
+  const ci = t.checks ? ` · checks ${t.checks}` : "";
+  return `<div class="card ${cls}"><a href="${esc(t.pr.html_url)}">${esc(t.pr.title)}</a>` +
+    `<div class="meta">${esc(t.repo)} #${t.pr.number} · ${when}${ci}</div></div>`;
+}
+
+function draw() {
+  const sprint = $("sprint").value, repo = $("repo").value;
+  const shown = tasks.filter((t) => (!repo || t.repo === repo) &&
+    (sprint ? t.sprint === sprint || (t.state !== "done" && t.state !== "dropped") : t.state !== "done"));
+  for (const [col, st] of [["prog", "prog"], ["block", "block"], ["ready", "ready"], ["done", "done"]]) {
+    const list = shown.filter((t) => t.state === st);
+    $("c-" + col).innerHTML = list.map(card).join("") || '<p class="note">Nothing here.</p>';
+    $("n-" + col).textContent = list.length;
+  }
+}
+
+function history() {
+  const table = $("history");
+  table.querySelectorAll("tr:not(:first-child)").forEach((r) => r.remove());
+  const by = {};
+  for (const t of tasks) {
+    const s = (by[t.sprint] ||= { done: 0, open: 0, repos: new Set() });
+    if (t.state === "done") s.done++;
+    else if (t.state !== "dropped") s.open++;
+    s.repos.add(t.repo);
+  }
+  for (const name of Object.keys(by).sort().reverse()) {
+    const s = by[name], tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(name)}</td><td>${s.done}</td><td>${s.open}</td><td>${esc([...s.repos].join(", "))}</td>`;
+    table.appendChild(tr);
+  }
+}
+
+$("sprint").addEventListener("change", draw);
+$("repo").addEventListener("change", draw);
+$("reload").addEventListener("click", () => {
+  try { Object.keys(sessionStorage).filter((k) => k.startsWith("gh:")).forEach((k) => sessionStorage.removeItem(k)); } catch (e) { /* none */ }
+  load();
+});
+load();
+</script>
+</body>
+</html>
