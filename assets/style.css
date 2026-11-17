@@ -63,6 +63,7 @@ li { margin: 3px 0; }
 
 .thumb { border: 1px solid var(--rule); background: var(--box); padding: 6px; margin: 10px 0; max-width: 660px; }
 .thumb svg { width: 100%; height: auto; display: block; }
+.thumb.narrow { max-width: 440px; }
 .thumb .cap { font-size: .82rem; color: var(--muted); padding: 6px 2px 0; }
 svg text { font-family: var(--sans); fill: var(--text); }
 svg .bx { fill: var(--page); stroke: var(--rule); stroke-width: 1.2; }
@@ -75,6 +76,7 @@ table.wikitable { border-collapse: collapse; margin: 10px 0; font-size: .9rem; w
 .wikitable th, .wikitable td { border: 1px solid var(--rule); padding: 5px 8px; text-align: left; vertical-align: top; }
 .wikitable th { background: var(--soft); }
 .scroll { overflow-x: auto; }
+.wikitable td.nw { white-space: nowrap; }
 
 sup.ref { font-size: .72em; line-height: 0; }
 .refs { font-size: .86rem; }
