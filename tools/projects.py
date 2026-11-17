@@ -419,10 +419,26 @@ PROJECTS = [
 ]
 
 PLANNED = [
-    ("Manuals", "Android app", "A manual reader for command-line tools and squared, part command library and part "
-                               "engine help browser: lists and search that can filter to the tools actually installed."),
-    ("apkpack", "Build tool", "A native replacement for aapt2, zipalign, apksigner and android.jar: an APK built and "
-                              "signed with no Java and no Android SDK."),
+    ("Manuals", "Command-line app",
+     "A command-line app for storing and managing documentation: man pages, squared's manuals and notes, "
+     "listed and searched, and filtered to the tools actually installed. Built to be embedded later in an "
+     "IDE or a game engine, not as a separate app."),
+    ("sqpg build", "Build system",
+     "squared-pg builds projects itself, with a small in-process executor driven by Lua, instead of "
+     "generating make, CMake or Ninja files. Make's model (targets, prerequisites, rebuild when inputs "
+     "change) with four borrowed ideas: Ninja's engine (command hashes and compiler-written header "
+     "dependencies), Cargo's conventions and short manifest, Lua as the escape hatch, and CMake's usage "
+     "requirements. Offline, no daemon, commands as argument lists, and <code>--explain</code> to show the "
+     "whole resolved graph."),
+    ("Virtual Cartridge Drive (sqcart 3.0)", "Storage layer",
+     "A mutable, disk-backed view over <code>.sq</code> cartridges. Reads resolve against staged changes and "
+     "the mounted cartridge; writes are buffered on disk, coalesced, and committed through sqcart's "
+     "format-aware operations at chosen times (on request, at a pause, at a size or time budget, at "
+     "shutdown). sqcart stays the authority on what a valid cartridge is; the drive decides how to work "
+     "with one efficiently, in bounded memory."),
+    ("apkpack", "Build tool",
+     "A native replacement for aapt2, zipalign, apksigner and android.jar: an APK built and signed with no "
+     "Java and no Android SDK."),
 ]
 
 OTHER = [

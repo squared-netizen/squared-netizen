@@ -110,7 +110,7 @@ def index_page():
             f'<td>{E(p["kind"])}</td><td><span class="status {p["status_class"]}">{E(p["status"])}</span></td>'
             f'<td>{E(p["lead_plain"])}</td>'
             f'<td><a href="https://github.com/{projects.OWNER}/{p["repo"]}">source</a></td></tr>')
-    planned = "".join(f"<tr><td><b>{E(n)}</b></td><td>{E(k)}</td><td>{E(d)}</td></tr>"
+    planned = "".join(f"<tr><td><b>{E(n)}</b></td><td>{E(k)}</td><td>{d}</td></tr>"
                       for n, k, d in projects.PLANNED)
     other = "".join(f'<li><a href="https://github.com/{projects.OWNER}/{r}">{E(r)}</a>: {E(d)}</li>'
                     for r, d in projects.OTHER)
