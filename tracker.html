@@ -20,7 +20,8 @@
 <p>Every task is a pull request. A branch is pushed and GitHub Actions builds and checks it; while a
 check is red the task is <b>blocked</b>, once it is green it is <b>ready</b>, and a merge makes it
 <b>done</b>. A sprint is the milestone a pull request is filed under or, for one with none, the week
-(Monday to Sunday) it was opened or merged.</p>
+(Monday to Sunday) it was opened or merged. Work that is planned and has no pull request yet waits
+under <b>To do</b>, whatever the sprint.</p>
 <div class="controls">
   <label>Sprint <select id="sprint"></select></label>
   <label>Project <select id="repo"><option value="">All</option></select></label>
@@ -28,6 +29,7 @@ check is red the task is <b>blocked</b>, once it is green it is <b>ready</b>, an
   <span class="note" id="status">Loading…</span>
 </div>
 <div class="board">
+  <section class="col"><h3>To do <span id="n-todo"></span></h3><div id="c-todo"></div></section>
   <section class="col"><h3>In progress <span id="n-prog"></span></h3><div id="c-prog"></div></section>
   <section class="col"><h3>Blocked <span id="n-block"></span></h3><div id="c-block"></div></section>
   <section class="col"><h3>Ready <span id="n-ready"></span></h3><div id="c-ready"></div></section>
@@ -47,7 +49,15 @@ token; the answers are kept for five minutes). Nothing is stored anywhere else.<
 <script>
 "use strict";
 const OWNER = "squared-netizen";
-const REPOS = ["squared", "squared-pg", "sqcart", "sqterm", "squared-examples", "squared-netizen"];
+// square has no repository yet: it shows as such until it has one.
+const REPOS = ["squared", "squared-pg", "sqcart", "sqterm", "square", "squared-examples", "squared-netizen"];
+// Work planned and not started: no pull request to read it from. A task
+// leaves this list when its first pull request is opened.
+const BACKLOG = [
+  { repo: "square", title: "square: the workspace manager",
+    note: "Answers every manifest question through sqcart, in JSON; extracts templates, kits and packages from a workspace",
+    href: "index.html#sdk" },
+];
 const API = "https://api.github.com";
 const TTL = 5 * 60 * 1000;
 const $ = (id) => document.getElementById(id);
@@ -59,7 +69,11 @@ async function get(path) {
     if (hit && Date.now() - hit.at < TTL) return hit.data;
   } catch (e) { /* storage unavailable: fetch */ }
   const r = await fetch(API + path, { headers: { Accept: "application/vnd.github+json" } });
-  if (!r.ok) throw new Error(r.status === 403 ? "GitHub's hourly limit is reached; try again later" : `GitHub said ${r.status}`);
+  if (!r.ok) {
+    const e = new Error(r.status === 403 ? "GitHub's hourly limit is reached; try again later" : `GitHub said ${r.status}`);
+    e.status = r.status;
+    throw e;
+  }
   const data = await r.json();
   try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), data })); } catch (e) { /* full */ }
   return data;
@@ -98,7 +112,16 @@ async function load() {
   runsTable.querySelectorAll("tr:not(:first-child)").forEach((r) => r.remove());
   try {
     for (const repo of REPOS) {
-      const prs = await get(`/repos/${OWNER}/${repo}/pulls?state=all&per_page=50&sort=created&direction=desc`);
+      let prs;
+      try {
+        prs = await get(`/repos/${OWNER}/${repo}/pulls?state=all&per_page=50&sort=created&direction=desc`);
+      } catch (e) {
+        if (e.status !== 404) throw e;
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${esc(repo)}</td><td colspan="4" class="note">no repository yet</td>`;
+        runsTable.appendChild(tr);
+        continue;
+      }
       for (const pr of prs) {
         let state = pr.merged_at ? "done" : pr.state === "closed" ? "dropped" : "open";
         let checks = "";
@@ -147,6 +170,11 @@ function card(t) {
 
 function draw() {
   const sprint = $("sprint").value, repo = $("repo").value;
+  const todo = BACKLOG.filter((t) => !repo || t.repo === repo);
+  $("c-todo").innerHTML = todo.map((t) =>
+    `<div class="card"><a href="${esc(t.href)}">${esc(t.title)}</a>` +
+    `<div class="meta">${esc(t.repo)} · ${esc(t.note)}</div></div>`).join("") || '<p class="note">Nothing here.</p>';
+  $("n-todo").textContent = todo.length;
   const shown = tasks.filter((t) => (!repo || t.repo === repo) &&
     (sprint ? t.sprint === sprint || (t.state !== "done" && t.state !== "dropped") : t.state !== "done"));
   for (const [col, st] of [["prog", "prog"], ["block", "block"], ["ready", "ready"], ["done", "done"]]) {

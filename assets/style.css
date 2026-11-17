@@ -88,7 +88,7 @@ sup.ref { font-size: .72em; line-height: 0; }
 .foot { max-width: 1100px; margin: 0 auto; padding: 14px 16px 30px; font-size: .78rem; color: var(--muted); }
 
 /* tracker */
-.board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
+.board { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 10px; }
 .col { background: var(--box); border: 1px solid var(--rule); padding: 8px; min-height: 80px; }
 .col h3 { margin: 0 0 6px; font-size: .95rem; display: flex; justify-content: space-between; }
 .card { background: var(--page); border: 1px solid var(--soft); border-left: 3px solid var(--rule);
