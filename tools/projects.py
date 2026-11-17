@@ -191,6 +191,11 @@ PROJECTS = [
                           "initialize are workflows, not fixed code paths.[[readme]]"),
             ("Resources", "Templates, kits, packages and assets are inert data under <code>resources/</code>; the "
                           "squared package repository and sqcart are brought in beside it.[[readme]]"),
+            ("Building (planned)", "Generated projects build with make today. The plan is for the build step to "
+                                   "go through <b>sqmake</b>, a separate library and command line that runs the "
+                                   "build itself from a short Lua build file, with no generated make, CMake or "
+                                   "Ninja files; squared-pg embeds it, and it knows nothing about squared-pg. "
+                                   "See the main page's planned projects."),
             ("Specification", "A functional specification, kept as an Obsidian vault with a decision log and open "
                               "questions, guides the design; during the initial implementation the repository is "
                               "the ground truth and the specification is amended to match.[[agents]]"),
@@ -296,7 +301,7 @@ PROJECTS = [
             ("Platform", "Android (arm64), target SDK 28"),
             ("Language", "C++23 on squared"),
             ("Shell", "zsh 5.9.2 from its own prefix; bash 5.3"),
-            ("Toolchain", "clang 23.1.5, lld, libc++ 23, built for the phone[[packages]]"),
+            ("Toolchain", "clang 23.1.5, lld, libc++ 23; clang-format, clang-scan-deps, clangd, clang-tidy, clang-doc; built for the phone[[packages]]"),
             ("Licence", "MIT[[license]]; its fonts and FreeType carry their own[[notice]]"),
             ("Repository", f'<a href="{GH}/sqterm">{OWNER}/sqterm</a>'),
         ],
@@ -335,7 +340,8 @@ PROJECTS = [
                                     "upgrade, remove and back up packages. Each package has its own key, so a change "
                                     "rebuilds only it and what depends on it.[[packages]]"),
             ("Toolchain", "clang and lld 23 as one binary, a sysroot built from AOSP's bionic rather than the NDK, and "
-                          "static libc++ 23 runtimes with the <code>import std</code> sources.[[packages]]"),
+                          "static libc++ 23 runtimes with the <code>import std</code> sources. clangd, clang-tidy and "
+                          "clang-doc come as a package of their own, so the compiler package stays small.[[packages]]"),
             ("Platform", "Running in the background through squared's foreground service, with a notification and an "
                          "optional wake lock.[[readme]]"),
         ],
@@ -347,6 +353,7 @@ PROJECTS = [
             "Its own prefix with zsh, bash, coreutils, sed, grep, gawk and make.[[packages]]",
             "<code>pkg</code>: list, install from a file (optionally deleting it), remove, back up.[[packages]]",
             "C, C++ and C++23 <code>import std</code> compiled and run on the phone, from the prefix.[[packages]]",
+            "The tools around the compiler: clang-format, clang-scan-deps (module dependencies), clangd, clang-tidy and clang-doc.[[packages]]",
         ],
         "use_cases": [
             "A shell on the phone that keeps working with the screen off.",
@@ -423,13 +430,15 @@ PLANNED = [
      "A command-line app for storing and managing documentation: man pages, squared's manuals and notes, "
      "listed and searched, and filtered to the tools actually installed. Built to be embedded later in an "
      "IDE or a game engine, not as a separate app."),
-    ("sqpg build", "Build system",
-     "squared-pg builds projects itself, with a small in-process executor driven by Lua, instead of "
-     "generating make, CMake or Ninja files. Make's model (targets, prerequisites, rebuild when inputs "
-     "change) with four borrowed ideas: Ninja's engine (command hashes and compiler-written header "
-     "dependencies), Cargo's conventions and short manifest, Lua as the escape hatch, and CMake's usage "
-     "requirements. Offline, no daemon, commands as argument lists, and <code>--explain</code> to show the "
-     "whole resolved graph."),
+    ("sqmake", "Build system (library and command-line tool)",
+     "A build tool that runs the build itself, with no generated make, CMake or Ninja files: make's model "
+     "(targets, prerequisites, rebuild when inputs change) with Ninja's engine (command hashes and "
+     "compiler-written header dependencies), Cargo's conventions and short manifest, Lua 5.4 as the escape "
+     "hatch, and CMake's usage requirements. A standalone library, <code>libsqmake</code>, with a thin "
+     "<code>sqmake</code> command line, like sqcart: squared-pg embeds it for its build step, and it knows "
+     "nothing about squared-pg. It owns its Lua state when run alone and uses its host's when embedded. "
+     "Offline, no daemon, commands as argument lists, C++23 modules as its interface, and "
+     "<code>--explain</code> to show the whole resolved graph."),
     ("Virtual Cartridge Drive (sqcart 3.0)", "Storage layer",
      "A mutable, disk-backed view over <code>.sq</code> cartridges. Reads resolve against staged changes and "
      "the mounted cartridge; writes are buffered on disk, coalesced, and committed through sqcart's "
