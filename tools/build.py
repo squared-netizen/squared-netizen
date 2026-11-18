@@ -177,7 +177,7 @@ reads; it takes in sqgen, which compiles them.</li>
 <li><b>Manage</b> it with square, and with sqgui for its user interface.</li>
 <li><b>Build</b> the application from it with sqmake.</li>
 </ol>
-<p>Around them, the environment the work happens in: zsh, the whole clang toolchain, neovim and sqpeg,
+<p>Around them, the environment the work happens in: zsh, the whole clang toolchain, neovim and sqedit,
 run on the phone in <a href="projects/sqterm.html">sqterm</a> or Termux.</p>
 <h2 id="planned">Planned projects</h2>
 <div class="scroll"><table class="wikitable"><tr><th>Project</th><th>Kind</th><th>Idea</th></tr>{planned}</table></div>

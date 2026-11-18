@@ -460,7 +460,7 @@ PLANNED = [
      "Edits squared's layouts visually: the JSON layout files an app's screens and panes are built from. It "
      "takes in sqgen, the build step that compiles those files into constant tables, and asks square where "
      "the app and its model are."),
-    ("sqpeg", "Text tool (name pending)",
+    ("sqedit", "Text tool",
      "A pattern-matching text tool in the spirit of LPeg, to replace sed in the workflow."),
     ("Virtual Cartridge Drive (sqcart 3.0)", "Storage layer",
      "A mutable, disk-backed view over <code>.sq</code> cartridges. Reads resolve against staged changes and "
