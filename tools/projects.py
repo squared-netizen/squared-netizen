@@ -307,6 +307,81 @@ PROJECTS = [
         ],
     },
     {
+        "id": "sqmake", "name": "sqmake", "repo": "sqmake", "kind": "Build system",
+        "status": "Specified (draft 0.1); not built yet", "status_class": "s-idle",
+        "lead_plain": "The squared SDK's build system: make's model with Ninja's engine, Cargo's conventions, "
+                      "CMake's usage requirements and Lua 5.4, running the build itself.",
+        "lead": "<b>sqmake</b> is the build system of the squared SDK. It keeps make's model (targets, prerequisites, "
+                "rebuild when what a target is made from changes) and drops make's syntax; it runs the build itself "
+                "and never writes make, CMake or Ninja files for another tool to run.[[spec]] It builds a workspace "
+                "without knowing what one is: it asks square what to build.[[readme]]",
+        "infobox": [
+            ("Type", "Build system: a library and a thin command line"),
+            ("Language", "C++23 modules; build files in Lua 5.4[[spec]]"),
+            ("Toolchain", "clang 23, libc++ 23 and bionic, defined once in squared[[spec]]"),
+            ("Libraries", "<code>libsqmake</code>; the <code>sqmake</code> CLI[[spec]]"),
+            ("Status", "Draft specification 0.1 (2026-11-19); nothing built yet[[readme]]"),
+            ("Licence", "MIT[[license]]"),
+            ("Repository", f'<a href="{GH}/sqmake">{OWNER}/sqmake</a>'),
+        ],
+        "sketch": diagram(270, 150,
+                          [("l", 10, 10, 115, 44, "build.lua", "a project"),
+                           ("g", 145, 10, 115, 44, "the graph", "files, commands"),
+                           ("o", 78, 96, 115, 44, "outputs", "only what is stale")],
+                          [("l", "g", ""), ("g", "o", "")]),
+        "sketch_caption": "A build file becomes a graph; only what is out of date runs",
+        "summary": "A target is rebuilt when an input is newer, when its command's hash changed, when a header its "
+                   "compile read changed, when a module it imports was rebuilt, or when the toolchain changed: the "
+                   "toolchain's fingerprint, a hash of the compiler's version, the C++ library's version, the target "
+                   "and every flag that changes a compiled module, is part of every command's hash.[[spec]] Commands "
+                   "are argument lists run without a shell, and <code>sqmake build --explain</code> prints the whole "
+                   "resolved graph and every command.[[spec]] One toolchain builds every C++ module in the SDK, so a "
+                   "compiled module never meets one made by another compiler.[[toolchain]]",
+        "concept": diagram(620, 190,
+                           [("sq", 10, 70, 120, 50, "square", "what to build"),
+                            ("mk", 170, 70, 130, 50, "libsqmake", "load, resolve, plan"),
+                            ("tc", 170, 150, 130, 36, "toolchain", "clang 23, libc++ 23"),
+                            ("run", 340, 70, 120, 50, "run", "a thread pool"),
+                            ("out", 500, 70, 110, 50, "build/", "objects, BMIs")],
+                           [("sq", "mk", ""), ("tc", "mk", ""), ("mk", "run", ""), ("run", "out", "")],
+                           soft=("out",)),
+        "concept_caption": "square says what to build; sqmake plans it with the SDK's one toolchain and runs what is stale.",
+        "architecture": [
+            ("Stages", "Load (Lua registers toolchains, rules and targets), Resolve (conventions and usage "
+                       "requirements), Plan (a graph, module dependencies included; a cycle is refused), Check (what "
+                       "is out of date), Run (a thread pool).[[spec]]"),
+            ("Modules", "<code>clang-scan-deps</code> orders the compiles; compiled modules are outputs in the graph, "
+                        "kept in a folder named by the toolchain's fingerprint, with one <code>std</code> module per "
+                        "fingerprint; a library written as modules is built from its sources by its "
+                        "consumer.[[spec]]"),
+            ("Toolchain", "Defined once, in squared (<code>build/toolchain.sh</code>): the flags that change a "
+                          "compiled module are the toolchain's, never a target's, and a target asking for another is "
+                          "refused with a plain message.[[spec]][[toolchain]]"),
+            ("Lua", "Standalone, sqmake owns its Lua state; embedded (in sqpg), it uses the host's, in its own "
+                    "<code>sqmake</code> table, and build files run sandboxed.[[spec]]"),
+            ("In the SDK", "sqpg creates a workspace, square manages it, and sqmake builds it. See "
+                           "<a href=\"../index.html#sdk\">the squared SDK</a>."),
+        ],
+        "features": [
+            "make's model without make's syntax: named inputs and outputs, explicit rules, ordinary Lua functions.[[spec]]",
+            "Rebuilds on command and toolchain changes as well as file times, and on headers the compiler reports.[[spec]]",
+            "C++23 modules ordered by <code>clang-scan-deps</code>, from sqterm's <code>llvm</code> package.[[spec]]",
+            "Offline, no daemon, one small binary; it runs on the phone in sqterm.[[spec]]",
+        ],
+        "use_cases": [
+            "Building a workspace sqpg created, from the inputs square names.",
+            "An IDE or tool embedding <code>libsqmake</code> to build and to show the graph.",
+            "Building squared and the kits with the same toolchain as applications (an open question).[[spec]]",
+        ],
+        "refs": [
+            ("readme", "sqmake: README", f"{GH}/sqmake/blob/main/README.md"),
+            ("license", "sqmake: LICENSE", f"{GH}/sqmake/blob/main/LICENSE"),
+            ("spec", "sqmake: draft specification 0.1", f"{GH}/sqmake/blob/main/docs/spec.md"),
+            ("toolchain", "squared: build/toolchain.sh (the SDK's one toolchain)",
+             f"{GH}/squared/blob/main/packages/package.squared-core/tree/squared/build/toolchain.sh"),
+        ],
+    },
+    {
         "id": "sqterm", "name": "sqterm", "repo": "sqterm", "kind": "Android terminal app",
         "status": "Active (Sprint 12)", "status_class": "s-active",
         "lead_plain": "A terminal for Android written on squared, with its own prefix of packages: zsh, bash, "
