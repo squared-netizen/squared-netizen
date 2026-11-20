@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class PaneFrame · squared</title>
+<meta name="description" content="squared: class PaneFrame">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/PaneFrame.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/PaneFrame.md">on GitHub</a></p><h1 id="class-paneframe">class PaneFrame</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L24">gui/src/detail/pane_frame.cppm:24</a></i></p>
+<p><b>brief</b> A pane's frame: the skin's window background around a table, over the screen. What the Stage opens a pane in; the Ui keeps it above the content, and a modal one takes every tap and dims what is beneath.</p>
+<p>Internal (7.7): it took the place of <code>gui::Window</code>, of which a pane used only the frame. No title, no close button, no dragging or resizing: the Stage places a pane.</p>
+<p>Inherits from Widget</p>
+<h2 id="members">Members</h2>
+<p>public static const ActorInterfaceId actor_interface_id</p>
+<h2 id="functions">Functions</h2>
+<h3 id="paneframe">PaneFrame</h3>
+<p><i>public void PaneFrame(std::string_view style)</i></p>
+<p><b>brief</b> A frame drawn with the skin's window style <code>style</code>, which must outlive it (a literal does); a style the skin lacks is its <code>default</code>.</p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public const void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L34">gui/src/detail/pane_frame.cppm:34</a></i></p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L29">gui/src/detail/pane_frame.cppm:29</a></i></p>
+<h3 id="content_table">content_table</h3>
+<p><i>public Table &amp; content_table()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L47">gui/src/detail/pane_frame.cppm:47</a></i></p>
+<p><b>brief</b> The table inside the frame: the pane's content.</p>
+<h3 id="content_table">content_table</h3>
+<p><i>public const Table &amp; content_table()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L48">gui/src/detail/pane_frame.cppm:48</a></i></p>
+<h3 id="layout">layout</h3>
+<p><i>public void layout(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> The content inside the style's insets.</p>
+<h3 id="minimum_size">minimum_size</h3>
+<p><i>public Size minimum_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> The content's, and the style's insets around it.</p>
+<h3 id="modal">modal</h3>
+<p><i>public bool modal()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L55">gui/src/detail/pane_frame.cppm:55</a></i></p>
+<h3 id="paint">paint</h3>
+<p><i>public void paint(Painter &amp; painter, const Skin &amp; skin, float x, float y)</i></p>
+<p><b>brief</b> The style's background, behind the content.</p>
+<h3 id="pointer_event">pointer_event</h3>
+<p><i>public bool pointer_event(const PointerEvent &amp; event)</i></p>
+<p><b>brief</b> A tap on the frame stays there; a modal frame takes any.</p>
+<h3 id="preferred_size">preferred_size</h3>
+<p><i>public Size preferred_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<h3 id="set_modal">set_modal</h3>
+<p><i>public void set_modal(bool modal)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L54">gui/src/detail/pane_frame.cppm:54</a></i></p>
+<p><b>brief</b> Modal: it takes every tap, and the Ui dims what is beneath it.</p>
+<h3 id="style">style</h3>
+<p><i>public std::string_view style()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/pane_frame.cppm#L51">gui/src/detail/pane_frame.cppm:51</a></i></p>
+<p><b>brief</b> The skin's window style it is drawn with.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

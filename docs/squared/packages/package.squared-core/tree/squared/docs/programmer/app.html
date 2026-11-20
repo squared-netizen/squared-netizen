@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>app · squared</title>
+<meta name="description" content="squared: app">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/app.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/app.md">on GitHub</a></p><h1 id="app">app</h1>
+<p>The platform-neutral boundary. The platform adapter owns process setup, the event pump and the soft keyboard, and drives an <code>Application</code>. Nothing above this layer names SDL or Android.</p>
+<p><b>An app does not implement <code>Application</code> any more</b> (Sprint 7.1): <code>sq::App</code> does, and an app writes <code>squared_main</code> and its model (<a href="stage.html">stage.md</a>). This page is for a platform layer, and for a program that wants the bare boundary without the App.</p>
+<p>Developer counterpart: <a href="../developer/app.html">../developer/app.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Key</code></td><td><code>squared/app/src/key.cppm</code></td><td>Portable key names; the one key type in squared, shared with the GUI</td></tr><tr><td><code>KeyModifiers</code></td><td><code>squared/app/src/key_modifiers.cppm</code></td><td>The modifier keys held: four <code>bool</code> fields in one byte</td></tr><tr><td><code>Navigation</code></td><td><code>squared/app/src/navigation.cppm</code></td><td>Semantic focus and navigation action from any supported device</td></tr><tr><td><code>Event</code></td><td><code>squared/app/event.cppm</code></td><td>Platform-neutral application event</td></tr><tr><td><code>TextInputPurpose</code></td><td><code>squared/app/src/text_input_purpose.cppm</code></td><td>Desired soft-keyboard content mode</td></tr><tr><td><code>TextInputArea</code></td><td><code>squared/app/src/text_input_area.cppm</code></td><td>Soft-keyboard target rectangle in stage/logical coordinates</td></tr><tr><td><code>TextInputRequest</code></td><td><code>squared/app/src/text_input_request.cppm</code></td><td>Request sent when platform text input starts</td></tr><tr><td><code>TextInputService</code></td><td><code>squared/app/src/text_input_service.cppm</code></td><td>Portable application-to-platform soft-keyboard boundary</td></tr><tr><td><code>Report</code></td><td><code>squared/app/src/report.cppm</code></td><td>Where an application says what went wrong: a function pointer and its context, given by the platform</td></tr><tr><td><code>Application</code></td><td><code>squared/app/application.cppm</code></td><td>The application behind a platform-neutral lifecycle; <code>sq::App</code> is the one an app uses</td></tr></tbody></table></div>
+<h2 id="aggregate-headers">Aggregate headers</h2>
+<p><code>squared/app/application.cppm</code> is both the <code>Application</code> interface and the module's aggregate header: it pulls in <code>Event</code> and the text-input types, because implementing <code>Application</code> needs all of them. <code>squared/app/src/text_input.cppm</code> aggregates the four text-input types.</p>
+<h2 id="keys-modifiers-and-navigation">Keys, modifiers and navigation</h2>
+<p>There is one of each in squared, and the GUI uses the same ones: what the platform puts in an <code>Event</code> is exactly what a widget's <code>key_down</code> receives.</p>
+<pre><code class="lang-cpp">import sq.app;
+
+if (event.type == sq::app::Event::Type::KeyDown &amp;&amp;
+    event.key == sq::app::Key::enter &amp;&amp; event.modifiers.control) {
+    submit();
+}
+
+sq::app::KeyModifiers held{.shift = true};   // build one with designated initializers
+if (held.any()) { /* ... */ }</code></pre>
+<p><code>Key</code> names the keys that do something rather than type: the arrows, Home and End, Backspace and Delete, Enter, Space, Tab, Escape, and from 12.3d the ones a terminal needs, <code>page_up</code>, <code>page_down</code>, <code>insert</code>, <code>f1</code> to <code>f12</code>. What a key types (letters, digits, punctuation) comes as <code>TextInput</code> text; with Ctrl, Alt or Meta held, as the character without them plus those modifiers in <code>event.modifiers</code> (Ctrl-C is <code>&quot;c&quot;</code> with <code>control</code>), which the GUI gives to <code>Widget::key_text</code> instead of <code>text_input</code>. A key that types something else with them held (AltGr's <code>@</code> on a German keyboard) comes as plain text.</p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Values</th></tr></thead><tbody><tr><td><code>Key</code></td><td><code>unknown</code>, <code>left</code>, <code>right</code>, <code>up</code>, <code>down</code>, <code>home</code>, <code>end</code>, <code>backspace</code>, <code>delete_key</code>, <code>enter</code>, <code>space</code>, <code>tab</code>, <code>escape</code>. A key squared doesn't name arrives as <code>unknown</code>, with the platform's code in <code>Event::input_device_id</code></td></tr><tr><td><code>KeyModifiers</code></td><td>the fields <code>shift</code>, <code>control</code>, <code>alt</code>, <code>meta</code>; <code>any()</code>; <code>==</code></td></tr><tr><td><code>Navigation</code></td><td><code>unknown</code>, <code>left</code>, <code>right</code>, <code>up</code>, <code>down</code>, <code>next</code>, <code>previous</code>, <code>activate</code>, <code>cancel</code></td></tr></tbody></table></div>
+<h2 id="implementing-an-application">Implementing an Application</h2>
+<pre><code class="lang-cpp">import sq.app;
+
+class MyGame final : public sq::app::Application {
+public:
+    bool create(sq::graphics::Context&amp; graphics) override;
+    void handle_event(const sq::app::Event&amp; event) override;
+    void update(std::chrono::nanoseconds delta) override;
+    void render(sq::graphics::Context&amp; graphics) override;
+    void dispose() override;
+    [[nodiscard]] bool quit_requested() const noexcept override
+    {
+        return quit_;
+    }
+
+private:
+    bool quit_{false};
+};</code></pre>
+<p><code>create</code>, <code>handle_event</code>, <code>update</code>, <code>render</code>, <code>dispose</code> and <code>quit_requested</code> are required. <code>pause</code>, <code>resume</code>, <code>resize</code>, <code>surface_created</code>, <code>surface_destroyed</code>, <code>set_text_input_service</code>, <code>set_clipboard_service</code>, <code>set_background_service</code>, <code>set_report</code>, <code>foreground</code>, <code>background</code>, <code>low_memory</code>, <code>set_saved_state</code>, <code>save_state</code>, <code>take_background_request</code> and <code>hides_bars</code> have empty defaults, so a desktop-only application can ignore them &amp;mdash; but on Android <code>surface_destroyed</code> and <code>surface_created</code> are where GPU resources are invalidated and restored, and ignoring them is a bug that only shows on device.</p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>When the platform makes it</th></tr></thead><tbody><tr><td><code>set_report(report)</code></td><td>before <code>create()</code>: <code>report(line)</code> says something went wrong (Android: the system log, and the Console when built in)</td></tr><tr><td><code>set_background_service(service)</code></td><td>before <code>create()</code>: the platform's way to keep running off the screen (<code>BackgroundService</code>, below), the same one for the whole process</td></tr><tr><td><code>set_clipboard_service(service)</code></td><td>after <code>create()</code>: the system clipboard (<code>ClipboardService</code>, below), or nullptr where the platform has none; nullptr again in <code>dispose()</code> (<code>sq::App</code> clears its Stage's)</td></tr><tr><td><code>foreground()</code></td><td>the app is visible again (Android's start); not before the first <code>create()</code></td></tr><tr><td><code>background()</code></td><td>the app is no longer visible (Android's stop): it may never come back, so state is made safe here</td></tr><tr><td><code>low_memory()</code></td><td>the system is short of memory</td></tr><tr><td><code>set_saved_state(bytes)</code></td><td>before each <code>create()</code>: what Android kept for the activity (its saved instance state), valid until <code>create()</code> returns. Empty for a new launch: after a swipe from the recent apps, a finish, a force stop or a reboot; Android keeps it only when it ended the process itself or made the activity again</td></tr><tr><td><code>save_state(out)</code></td><td>Android asks what to keep with the activity: write at most <code>Application::saved_state_bytes</code> (8 KB) into <code>out</code>, and return how many; 0 for nothing</td></tr><tr><td><code>take_background_request()</code></td><td>each loop turn: true, once, when the application asked to go to the background (<code>sq::App</code>: back at its root screen); the platform moves its task back, as Home does</td></tr><tr><td><code>hides_bars()</code></td><td>each frame: whether the status and navigation bars should be hidden (immersive); the platform hides or shows them when the answer changes, and again after each focus</td></tr></tbody></table></div>
+<h2 id="feeding-the-gui">Feeding the GUI</h2>
+<p><code>sq::App</code> is the <code>Application</code> an app uses: it hands each event to its Stage, which routes it to the widgets, and gives the <code>TextInputService*</code> it receives to them, so a focused text field raises the soft keyboard. The widgets' host it uses (<code>gui::Ui</code>) is internal since 7.7. The <code>ClipboardService*</code> it receives goes to its Stage, where a widget reaches it (<code>stage.clipboard()</code>, <a href="stage.html#the-clipboard">stage.md</a>).</p>
+<h2 id="the-clipboard">The clipboard</h2>
+<p><code>sq::app::ClipboardService</code> (<code>squared/app/src/clipboard_service.cppm</code>) is the system clipboard's text, implemented by the platform (Android: the template's <code>sq_android::Clipboard</code>, ClipboardManager through JNI). Called on the application thread.</p>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>Does</th></tr></thead><tbody><tr><td><code>text(out)</code></td><td>the clipboard's text as UTF-8 into <code>out</code>: whole characters, in order, until one does not fit. Returns the bytes the whole text takes, whatever <code>out</code> holds; 0 when it holds no text</td></tr><tr><td><code>set_text(utf8)</code></td><td>the clipboard holds <code>utf8</code> now; false when the platform refused</td></tr></tbody></table></div>
+<pre><code class="lang-cpp">if( sq::app::ClipboardService *clipboard = stage.clipboard() ) {
+    std::string text( clipboard-&gt;text( {} ), &#x27;\0&#x27; ); // the size
+    clipboard-&gt;text( text );                          // then the text
+    clipboard-&gt;set_text( &quot;copied&quot; );
+}</code></pre>
+<p>Failure modes: nullptr for no clipboard (a host build, a platform without one); 0 from <code>text</code> for no text; false from <code>set_text</code>. Not bound to Lua.</p>
+<h2 id="running-in-the-background">Running in the background</h2>
+<p><code>sq::app::BackgroundService</code> (<code>squared/app/src/background_service.cppm</code>) keeps the process running with the app off the screen (Android: the template's <code>sq_android::Background</code>, a foreground service with a notification). An app using <code>sq::App</code> calls <code>app.keep_running(...)</code> (<a href="stage.html#running-in-the-background">stage.md</a>); this is the platform's side.</p>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>Does</th></tr></thead><tbody><tr><td><code>available()</code></td><td>the app declared it and the platform can do it (Android: <code>BACKGROUND=1</code>)</td></tr><tr><td><code>keep_running(title, text)</code></td><td>keep running, the notification titled <code>title</code> saying <code>text</code> (each at most 63 bytes); again to change the text; false when not available</td></tr><tr><td><code>stop_running()</code></td><td>stop: the notification goes, and the wake lock; idempotent</td></tr></tbody></table></div>
+<p>Exit in the notification reaches the application as <code>Event::Type::QuitRequested</code>.</p>
+<h2 id="the-safe-area">The safe area</h2>
+<p>Android draws the application edge to edge, so the status bar, the navigation bar and a camera cut-out sit on top of it. The platform layer measures how far they reach and tells you:</p>
+<pre><code class="lang-cpp">void MyGame::safe_area_changed(const sq::app::SafeArea&amp; area)
+{
+    // pixels: area.left, area.top, area.right, area.bottom
+    // (sq::App passes it to its Stage, which keeps screens and panes inside it)
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>SafeArea</code></td><td><code>squared/app/safe_area.cppm</code></td><td>Four 16-bit pixel counts: how far something covers each edge of the drawable</td></tr></tbody></table></div>
+<p><code>safe_area_changed()</code> is optional (the default ignores it) and is called after <code>create()</code> once the bars are known, then whenever they change &amp;mdash; rotation, the bars hidden or shown (they are hidden by default: <code>hides_bars()</code>), the keyboard. On Android it is measured on those events only, never on a timer (since 7.8; it was twice a second). The first call can come a fraction of a second after the first frame, because Android has not laid the window out before then. A platform with nothing covering the window never calls it.</p>
+<p>Values are in drawable pixels, like <code>resize()</code>. Convert to your logical unit the same way you convert pointer positions.</p>
+<p>Lua: not bound.</p>
+<h2 id="the-runtime">The runtime</h2>
+<p><code>create()</code> receives a <code>sq::app::Runtime</code> &amp;mdash; the three services only the platform layer can build:</p>
+<pre><code class="lang-cpp">bool MyGame::create(sq::app::Runtime&amp; runtime)
+{
+    graphics_ = &amp;runtime.graphics;
+    files_    = &amp;runtime.files;
+    assets_   = &amp;runtime.assets;
+
+    auto atlas = runtime.files.internal(&quot;skins/default/skin/uiskin.atlas&quot;);
+    return atlas.exists();
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>What it is</th></tr></thead><tbody><tr><td><code>graphics</code></td><td>the rendering context; survives surface loss</td></tr><tr><td><code>files</code></td><td>storage: <code>internal</code> is the read-only APK bundle, <code>local</code> is private writable storage, <code>external</code> is shared</td></tr><tr><td><code>assets</code></td><td>the typed asset cache, reading through <code>files</code></td></tr></tbody></table></div>
+<p>Keep references to what you use. Every member refers to an object that lives for the whole process.</p>
+<p>Only <code>create()</code> gets the runtime. <code>render()</code> still takes the context alone, because a frame should not be reaching into the file system or the asset cache sixty times a second.</p>
+<h3 id="on-android-the-storage-names-cross">On Android, the storage names cross</h3>
+<div class="tablewrap"><table><thead><tr><th>squared</th><th>Android calls it</th><th></th></tr></thead><tbody><tr><td><code>internal</code></td><td>the APK's <code>assets/</code></td><td>read-only, ships with the app</td></tr><tr><td><code>local</code></td><td><b>internal storage</b></td><td>writable, private, no permission, gone on uninstall</td></tr><tr><td><code>external</code></td><td>external storage</td><td>may be unmounted, so may be empty</td></tr></tbody></table></div>
+<p>Save games, settings and caches go in <code>local</code>. It needs no permission and is removed with the app.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

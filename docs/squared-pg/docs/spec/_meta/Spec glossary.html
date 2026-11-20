@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec glossary · squared-pg</title>
+<meta name="description" content="squared-pg: Spec glossary">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/Spec glossary.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/Spec glossary.md">on GitHub</a></p><hr>
+<p>title: Spec glossary tags: [spec, meta]</p>
+<hr>
+<h1 id="spec-glossary">Spec glossary</h1>
+<p>Back to [[Specification Index]].</p>
+<p>Terms with fixed meaning. Drift between these is a defect.</p>
+<h2 id="project-and-workspace">Project and workspace</h2>
+<div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Workspace</b></td><td>The complete generated directory tree. Synonymous with <i>generated project</i>.</td></tr><tr><td><b>Generated project</b></td><td>Same as workspace. Preferred when contrasting with the generator.</td></tr><tr><td><b>Working directory</b></td><td>The subtree the user authors application code in. Reference convention <code>sq_app/</code>.</td></tr><tr><td><b><code>SquaredProject</code></b></td><td>The engine's in-memory project model (a C++ type).</td></tr><tr><td><b>Squared project</b></td><td>The generated artifact, not the model.</td></tr></tbody></table></div>
+<h2 id="resources">Resources</h2>
+<div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Resource</b></td><td>Any generator-owned, manifest-identified unit: template, kit, package, or asset.</td></tr><tr><td><b>Template</b></td><td>Defines the project foundation — <i>what kind of project</i>.</td></tr><tr><td><b>Kit</b></td><td>Bridges Squared to an external framework or platform.</td></tr><tr><td><b>Package</b></td><td>Reusable Squared framework functionality.</td></tr><tr><td><b>Asset</b></td><td>Data consumed by the generated application.</td></tr><tr><td><b>Manifest</b></td><td><code>manifest.json</code> at a resource root; gives the resource its identity and metadata.</td></tr><tr><td><b>Resource identity</b></td><td>The manifest-declared identifier. Never a filesystem path.</td></tr><tr><td><b>Resource index</b></td><td>The immutable identity→manifest map built during engine initialization.</td></tr></tbody></table></div>
+<h2 id="engine">Engine</h2>
+<div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Capability</b></td><td>Something the engine can do. Provided, never decided.</td></tr><tr><td><b>Orchestration</b></td><td>Deciding which capabilities run, when, in what order. Lua's job.</td></tr><tr><td><b>Service</b></td><td>A registered, persistent engine capability provider.</td></tr><tr><td><b>Operation</b></td><td>A named, typed, coordinated action composed from services.</td></tr><tr><td><b>Control surface</b></td><td>The public engine API. Preferred term; "public API" is a synonym.</td></tr><tr><td><b>Engine capability token</b></td><td>A declared, versioned engine feature a manifest may require.</td></tr></tbody></table></div>
+<h2 id="generation">Generation</h2>
+<div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Resolution</b></td><td>Identifying and validating a resource without writing anything.</td></tr><tr><td><b>Materialization</b></td><td>Writing a resolved resource's content into the workspace.</td></tr><tr><td><b>Instantiation</b></td><td>Converting a resolved template into workspace structure.</td></tr><tr><td><b>Generation plan</b></td><td>The complete ordered operation and path list, produced without mutation.</td></tr><tr><td><b>Provenance</b></td><td>The recorded relationship between a generated path and the resource that produced it.</td></tr><tr><td><b>Ownership class</b></td><td>The regeneration policy attached to a generated path.</td></tr><tr><td><b>Finalization</b></td><td>The commit point at which workspace ownership transfers to the user.</td></tr><tr><td><b>Regeneration</b></td><td>Applying generator operations to an existing workspace.</td></tr><tr><td><b>Journal</b></td><td>The on-disk record enabling crash recovery of an interrupted transaction.</td></tr></tbody></table></div>
+<h2 id="ownership-classes">Ownership classes</h2>
+<p>Defined normatively in [[2.7 Project generation model]].</p>
+<p><code>generated</code> · <code>seeded</code> · <code>user</code> · <code>metadata</code> · <code>merged</code> <i>(reserved, not implemented in v1)</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

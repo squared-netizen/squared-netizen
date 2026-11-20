@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>assets · squared</title>
+<meta name="description" content="squared: assets">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/assets.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/assets.md">on GitHub</a></p><h1 id="assets">assets</h1>
+<p>One place to ask for an asset. The manager loads it once, hands out shared immutable references, records what each asset pulled in, and drops the lot on unload.</p>
+<p>Developer counterpart: <a href="../developer/assets.html">../developer/assets.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>AssetManager</code></td><td><code>squared/assets/asset_manager.cppm</code></td><td>Typed asset cache over one file system</td></tr><tr><td><code>AssetManagerOptions</code></td><td><code>squared/assets/src/asset_manager_options.cppm</code></td><td>Resource limits fixed for one AssetManager</td></tr><tr><td><code>AssetHandle</code></td><td><code>squared/assets/src/asset_handle.cppm</code></td><td>Shared immutable reference to one loaded asset</td></tr><tr><td><code>AssetLoader</code></td><td><code>squared/assets/src/asset_loader.cppm</code></td><td>Callback that turns a path into one asset of type T</td></tr><tr><td><code>AssetLoadContext</code></td><td><code>squared/assets/src/asset_load_context.cppm</code></td><td>The restricted view of the manager a loader is given</td></tr><tr><td><code>AssetLoadResult</code></td><td><code>squared/assets/src/asset_load_result.cppm</code></td><td>One loaded asset, or the failure that prevented loading it</td></tr><tr><td><code>AssetTypeId</code></td><td><code>squared/assets/src/asset_type_id.cppm</code></td><td>Stable per-type identifier used to key the loader and cache tables</td></tr><tr><td><code>AssetError</code></td><td><code>squared/assets/src/asset_error.cppm</code></td><td>Structured asset loading failure information</td></tr><tr><td><code>AssetErrorCode</code></td><td><code>squared/assets/src/asset_error_code.cppm</code></td><td>Stable error categories produced by asset loading</td></tr></tbody></table></div>
+<h2 id="the-shortest-call-site">The shortest call site</h2>
+<pre><code class="lang-cpp">sq::assets::AssetManager manager{file_system};
+
+if (auto error = manager.register_loader&lt;Texture&gt;(load_texture)) {
+    report(error);
+}
+
+if (auto texture = manager.load&lt;Texture&gt;(&quot;art/hero.png&quot;)) {
+    draw(*texture.asset);
+}</code></pre>
+<p>A second <code>load</code> of the same path and type returns the cached handle without calling the loader again.</p>
+<h2 id="writing-a-loader">Writing a loader</h2>
+<p>A loader gets an <code>AssetLoadContext</code>, not the manager. It can read bytes and ask for typed dependencies, and nothing else:</p>
+<pre><code class="lang-cpp">auto load_skin = [](sq::assets::AssetLoadContext&amp; context,
+                    std::string_view path) {
+    auto atlas = context.load&lt;TextureAtlas&gt;(&quot;skins/default.atlas&quot;);
+    if (!atlas) {
+        return sq::assets::AssetLoadResult&lt;Skin&gt;{
+            .asset = {}, .error = std::move(atlas.error)};
+    }
+
+    auto bytes = context.read_bytes(path);
+    if (!bytes) { ... }
+
+    return sq::assets::AssetLoadResult&lt;Skin&gt;{
+        .asset = std::make_shared&lt;const Skin&gt;(build(bytes.bytes, atlas.asset)),
+        .error = {}};
+};</code></pre>
+<p>Every dependency asked for through the context is recorded, so unloading the skin drops the atlas with it.</p>
+<p>One loader per type. Registering a second for the same type returns <code>LoaderAlreadyRegistered</code> rather than replacing it.</p>
+<h2 id="reload-and-unload">Reload and unload</h2>
+<pre><code class="lang-cpp">manager.reload&lt;Skin&gt;(&quot;skins/default.json&quot;);   // re-reads the source
+manager.unload&lt;Skin&gt;(&quot;skins/default.json&quot;);   // drops it and its dependencies
+manager.clear();                              // drops everything, keeps loaders</code></pre>
+<p><b>Reload does not disturb handles already handed out.</b> They keep pointing at the old asset until their last holder drops them, which is what makes reload safe to call while a frame is in flight.</p>
+<p><b>Unload cascades</b> to the dependencies the loader recorded. Anything still held elsewhere &amp;mdash; by another asset or by you &amp;mdash; stays alive through its handle; only the cache entry goes.</p>
+<h2 id="limits">Limits</h2>
+<pre><code class="lang-cpp">sq::assets::AssetManager manager{file_system, {
+    .maximum_cached_assets = 512,
+    .maximum_asset_bytes = 16U * 1024U * 1024U,
+    .maximum_dependency_depth = 32
+}};</code></pre>
+<p>Every limit is a precondition: zero is a programmer error and is asserted, not reported. Exceeding one at run time is an ordinary failure &amp;mdash; <code>CacheFull</code>, <code>SourceTooLarge</code>, <code>DependencyTooDeep</code> &amp;mdash; and comes back in the result.</p>
+<p>An asset that depends on itself, directly or through a chain, returns <code>DependencyCycle</code> rather than recursing until the stack runs out.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

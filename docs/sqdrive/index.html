@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqdrive · sqdrive</title>
+<meta name="description" content="sqdrive: sqdrive">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../index.html">squared-netizen</a>
+  <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
+  <a href="../../docs/index.html">Docs</a>
+  <a href="../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqdrive</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqdrive/blob/main/README.md">on GitHub</a></p><h1 id="sqdrive">sqdrive</h1>
+<p>The Virtual Cartridge Drive: the big-file interface for squared apps. Mount a <a href="https://github.com/squared-netizen/sqcart">Squared Cartridge 3.0</a> and read (and, from phase 3, write) files of any size by range. sqcart is the only thing that writes the format; the Drive builds on it and owns staging, caching, commit policy and recovery.</p>
+<ul><li><code>sq.drive</code>: the C++23 module apps link (<code>import sq.drive;</code>).</li><li><code>sqdrive</code>: the command-line tool.</li></ul>
+<pre><code class="lang-cpp">import std;
+import sq.drive;
+using namespace sq::drive;
+
+auto drive = Drive::mount(&quot;world.sq&quot;, {.access = Access::read_write, .staging = app_dir / &quot;drive&quot;});
+if (!drive) { std::println(std::cerr, &quot;{}&quot;, drive.error().message); return 1; }
+auto map = drive-&gt;open(&quot;world/map.bin&quot;, mode::write);
+auto tile = map-&gt;read(offset, 4096);     // verified; only the chunks it covers
+map-&gt;write(offset, patch);               // staged in memory: 1 MiB chunks
+map-&gt;sync();                             // in the journal, flushed: survives a crash
+drive-&gt;rename(&quot;world/map.bin&quot;, &quot;maps/world.bin&quot;);  // nothing copied
+drive-&gt;commit();                         // one sqcart commit of everything
+drive-&gt;unmount();                        // commits (or syncs) as the policy says</code></pre>
+<p>A <code>Drive</code> is thread-safe, and the <code>File</code>s it opens outlive it. Reads go through a cache of decoded chunks (1 MiB each, or a whole entry that is not chunked), least recently used first out, bounded in bytes and keyed by content, so an unchanged chunk stays cached across commits.</p>
+<p><b>Writing.</b> A read-write mount holds sqcart's writer lock until it unmounts (a second one gets <code>Code::busy</code>). Writes change 1 MiB chunks in memory; <code>sync()</code> appends what changed to the journal in the staging folder (one per cartridge, never beside it) and flushes it, and the synced chunks leave memory: they are read back from the journal. Past <code>memory_bytes</code> a write syncs first, so memory stays bounded however much is staged. Entries without the <code>w</code> flag are not changed (§4.2).</p>
+<p><b>Committing.</b> A commit freezes what is staged, starts a new journal segment for the writes that go on meanwhile, and hands the frozen changes to sqcart as one commit, naming again every chunk no write touched; only a write to a path being committed waits for it. With the <code>budget</code> policy (the default) commits run on a thread of their own, past <code>commit_bytes</code> or once the oldest change is <code>commit_after</code> old, and at unmount; with <code>explicit_only</code> only on <code>commit()</code>; with <code>on_unmount</code> also at unmount. Past <code>staging_bytes</code> a write waits for a commit (<code>budget</code>) or gets <code>Code::limit</code>. Files the Drive makes are stored chunked, so later commits write only the chunks they change. After a commit with nothing else staged, the Drive compacts the cartridge (§10.4) when <code>compact_min_bytes</code> and <code>compact_at</code> of it are unreachable; writers wait meanwhile, readers do not. <code>wait()</code> waits for background commits and reports one that failed.</p>
+<p><b>After a crash</b>, the next read-write mount reads each journal segment up to its last sync whose checksum passes (a torn tail is dropped) and:</p>
+<div class="tablewrap"><table><thead><tr><th>The cartridge is</th><th>The Drive</th></tr></thead><tbody><tr><td>at the segments' commit</td><td>replays them all; it commits as the policy says</td></tr><tr><td>one commit on, with the time a segment wrote down before committing</td><td>knows that commit landed: drops that segment and those before it, replays the ones after</td></tr><tr><td>anywhere else (another writer committed)</td><td>refuses with <code>Code::conflict</code>, or, with <code>discard_journal</code>, sets the segments aside as <code>journal.conflict-&lt;time&gt;.&lt;n&gt;</code></td></tr></tbody></table></div>
+<pre><code class="lang-sh">sqdrive ls CART [PREFIX]
+sqdrive stat CART PATH
+sqdrive cat CART PATH [OFFSET [N]]
+sqdrive bench CART PATH
+sqdrive write CART PATH [OFFSET] [--keep]     # stdin into a file
+sqdrive truncate CART PATH SIZE [--keep]
+sqdrive rm CART PATH [--keep]
+sqdrive mv CART FROM TO [--keep]
+sqdrive commit CART                            # what --keep left in the journal
+sqdrive recover CART --discard</code></pre>
+<h2 id="on-android-and-in-sqterm">On Android, and in sqterm</h2>
+<p><b>An app.</b> Android stops an app that leaves the screen, and may end its process without another word. squared already says when: the platform calls <code>Application::background()</code> on Android's stop (<code>sq::App</code> gives its model a turn there to save). That is where a Drive's changes are made safe:</p>
+<pre><code class="lang-cpp">void background() override {
+    drive.sync();    // in the journal, flushed: they survive what follows
+}</code></pre>
+<p><code>sync()</code> is quick (an append and a flush), and what it wrote is replayed at the next mount if the process is ended before a commit. A <code>budget</code> Drive commits it on its own in the meantime; nothing more is needed. Mount with <code>.staging</code> in the app's private storage (squared's <code>FileSystem::local</code> folder), not shared storage.</p>
+<p><b>sqterm.</b> <code>pkg install sqdrive</code> (sqterm's <code>packages/sqdrive</code>, built from a tag of this repository with clang 23 against sqterm's sysroot and runtimes packages). Its journals go in <code>~/.local/state/sqdrive</code>, or <code>$SQDRIVE_STAGING</code>.</p>
+<h2 id="building">Building</h2>
+<pre><code class="lang-sh">make test
+make CXX=/usr/lib/llvm-23/bin/clang++ test</code></pre>
+<p>Needs clang and libc++ with <code>import std;</code>; 23 is what sqterm and CI use. Offline: sqcart's library and what it builds with are vendored in <code>third_party/sqcart</code> (<code>tools/vendor_sqcart.sh ../sqcart</code> copies it again, with its <code>PINNED</code>), and built first into <code>build/sqcart</code>.</p>
+<h2 id="where-it-stands">Where it stands</h2>
+<p>The phases of the design:</p>
+<ol><li><b>sqcart additions</b> (sqcart #8): renames, resizes, many ranges per commit, streamed puts, compaction under the writer's lock. Done.</li><li><b>Read-only Drive</b> (sqdrive #1). On a 200 MB chunked file on a container's disk: sequential reads about 200 MiB/s; a random 4 KiB read that misses the cache costs about 3 ms, most of it SHA-256 over the 1 MiB chunk it verifies (a faster SHA-256 is the next thing to win).</li><li><b>Writing and the journal</b> (sqdrive #2).</li><li><b>Background commits and bounds</b> (sqdrive #3). A 256 MiB file streamed in 256 KiB writes at <code>staging_bytes</code> 24 MiB and <code>memory_bytes</code> 4 MiB keeps both under their bounds, committing 8 MiB at a time as it goes (the design's 2 GiB gate, scaled for CI). A commit reads the chunks it writes from the journal (sqcart's <code>put_range_file</code>), so while it runs it holds none of them in memory.</li><li><b>Hosts</b>: sqterm's <code>packages/sqdrive</code> recipe (<code>pkg install sqdrive</code>), and Android's stop: squared's <code>Application::background()</code> already carries it, so an app syncs its Drive there (above); no new hook.</li></ol>
+<h2 id="licence">Licence</h2>
+<p>MIT. Security issues: see <a href="https://github.com/squared-netizen/sqdrive/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

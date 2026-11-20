@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engine architecture · squared-pg</title>
+<meta name="description" content="squared-pg: Engine architecture">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/engine/architecture.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/engine/architecture.md">on GitHub</a></p><h1 id="engine-architecture">Engine architecture</h1>
+<p>How the pieces fit. Programmer counterpart: <a href="../../programmer/engine/control-surface.html">control surface</a>.</p>
+<h2 id="shape">Shape</h2>
+<pre><code class="lang-text">              host (sqpg, or an embedder)
+                        |
+                 Lua binding layer          engine/lua/
+                        |
+                 Engine  (facade)           engine/src/engine.cpp
+                        |
+        +---------------+---------------+
+        |                               |
+  operation registry              service locator
+  (Command)                       (10 core services)
+                                        |
+                        +---------------+---------------+
+                        |               |               |
+                   Resource        Template/Kit/     Transaction
+                   Service         Package/Asset      Service
+                        |
+                    sqcart  (cartridge reader)
+                        |
+              resources/  (inert data)</code></pre>
+<p>Dependencies run one way: <code>third-party/</code> ← <code>engine/</code> ← <code>lua/</code> ← hosts (D-026). <code>resources/</code> is inert data with no outgoing dependencies. Generated projects are sinks — nothing in the repository depends on them.</p>
+<h2 id="layers-and-what-each-may-know">Layers, and what each may know</h2>
+<div class="tablewrap"><table><thead><tr><th>Layer</th><th>Knows about</th><th>Must not know about</th></tr></thead><tbody><tr><td>Host (<code>app/</code>)</td><td>engine lifecycle, Lua state</td><td>templates, kits, argument grammar</td></tr><tr><td>Binding (<code>engine/lua/</code>)</td><td><code>Value</code>, the operation registry</td><td>what any operation means</td></tr><tr><td><code>Engine</code></td><td>services, the registry</td><td>Lua, argv, terminals</td></tr><tr><td>Services</td><td>each other, <code>sqcart</code></td><td>operations, workflows</td></tr><tr><td><code>sqcart</code></td><td>the container format</td><td>templates, generation, workflows</td></tr></tbody></table></div>
+<p>The row that gets violated first is the binding. §2.6.2 forbids it from becoming a workflow layer, and the pressure to add "just one convenience" there is constant. The test is whether the addition could have been a Lua function; if it could, it belongs in <code>lua/</code>.</p>
+<h2 id="the-one-way-rule">The one-way rule</h2>
+<p>Capability lives below, policy lives above. The engine can <code>apply_kit</code>; only Lua decides <i>which</i> kit. Concretely, the engine never:</p>
+<ul><li>selects a template, kit, package or asset;</li><li>substitutes an alternative when resolution fails;</li><li>prompts, or reads a switch;</li><li>decides an order beyond what §2.7.9 fixes as the reference.</li></ul>
+<p>Every one of those is a compile-free rule, which is why they are also asserted in <code>engine/tests/test_generate.cpp</code> rather than left to review.</p>
+<h2 id="why-sqcart-reads-the-manifests">Why sqcart reads the manifests</h2>
+<p>The engine does not parse resource manifests itself. <code>ResourceService</code> opens every resource through <code>sqcart::Cartridge</code>, which already enforces the container profile, path safety, resource limits and the manifest envelope, and which is linked from vendored in-tree source regardless.</p>
+<p>A second manifest reader would be a second chance to disagree about what a manifest means — and disagreement between the tool that packs cartridges and the tool that consumes them is the failure mode with the worst symptoms.</p>
+<p>The cost is a schema divergence from §2.8.3, documented in <a href="../resources/manifests.html">resources/manifests.md</a>.</p>
+<h2 id="where-state-lives">Where state lives</h2>
+<p>An engine instance owns everything: services, the resource index, opened payloads, the last result. There are no globals and no statics with mutable state, which is what makes §2.4.12's "several instances may coexist" true.</p>
+<p>The resource index is built once during initialization and never changes (D-011). Payloads are opened lazily and cached in <code>ResourceService</code>. The <i>set</i> of resources is fixed up front; only retrieval is deferred — which is what makes hybrid loading deterministic rather than merely lazy.</p>
+<h2 id="threading">Threading</h2>
+<p>Not thread-safe, thread-affine, one <code>lua_State</code> per engine, one writer per workspace (§2.4.12, D-015). No mutex appears anywhere in the engine, and that is a decision rather than an omission: adding one would suggest a guarantee the rest of the design does not make.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

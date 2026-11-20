@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Ui · squared</title>
+<meta name="description" content="squared: class Ui">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Ui.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Ui.md">on GitHub</a></p><h1 id="class-ui">class Ui</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L35">gui/src/detail/ui.cppm:35</a></i></p>
+<p><b>brief</b> Owns one widget tree and consumes the framework application event type.</p>
+<p>The Ui owns the actor root, one content widget, and the panes open over it. All input enters through event(), pointer(), and the key/text entry points. Not thread-safe; one thread must drive it.</p>
+<p>Internal (7.7): the Stage holds one per window; an app reaches widgets through <code>sq::Stage</code>.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="ui">Ui</h3>
+<p><i>public void Ui(float width, float height, Skin skin)</i></p>
+<p><b>brief</b> Construct a user interface.</p>
+<p><b>width</b> Initial virtual width in logical pixels.</p>
+<p><b>height</b> Initial virtual height in logical pixels.</p>
+<p><b>skin</b> Skin styling every widget; copied into the Ui.</p>
+<h3 id="clear_focus">clear_focus</h3>
+<p><i>public void clear_focus()</i></p>
+<p><b>brief</b> Clear keyboard focus to no widget.</p>
+<h3 id="close_pane">close_pane</h3>
+<p><i>public void close_pane(PaneFrame &amp; pane)</i></p>
+<p><b>brief</b> Close a pane now, freeing it and its widgets; the focus goes back to where it was before the pane took it.</p>
+<p><b>pane</b> Pane currently shown by this Ui.</p>
+<h3 id="content">content</h3>
+<p><i>public Widget * content()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L79">gui/src/detail/ui.cppm:79</a></i></p>
+<p><b>brief</b> Access the content widget.</p>
+<p><b>return</b> Pointer to the content widget, or null when unset.</p>
+<h3 id="content">content</h3>
+<p><i>public const Widget * content()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L85">gui/src/detail/ui.cppm:85</a></i></p>
+<p><b>brief</b> Access the content widget, read-only.</p>
+<p><b>return</b> Pointer to the content widget, or null when unset.</p>
+<h3 id="event">event</h3>
+<p><i>public bool event(const app::Event &amp; event)</i></p>
+<p><b>brief</b> Consume one framework application event.</p>
+<p><b>event</b> Event to translate and dispatch.</p>
+<p><b>return</b> true when the Ui handled the event.</p>
+<h3 id="focused">focused</h3>
+<p><i>public Widget * focused()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L223">gui/src/detail/ui.cppm:223</a></i></p>
+<p><b>brief</b> Read the focused widget.</p>
+<p><b>return</b> Focused widget, or null when none is focused.</p>
+<h3 id="key_down">key_down</h3>
+<p><i>public bool key_down(app::Key key, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> Dispatch a key-down event.</p>
+<p><b>key</b> Portable key name.</p>
+<p><b>modifiers</b> Modifier state at the time of the event.</p>
+<p><b>return</b> true when the focused widget handled the key.</p>
+<h3 id="key_up">key_up</h3>
+<p><i>public bool key_up(app::Key key, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> Dispatch a key-up event.</p>
+<p><b>key</b> Portable key name.</p>
+<p><b>modifiers</b> Modifier state at the time of the event.</p>
+<p><b>return</b> true when the focused widget handled the key.</p>
+<h3 id="layout">layout</h3>
+<p><i>public void layout(Painter &amp; painter)</i></p>
+<p><b>brief</b> Validate layout of every visible widget.</p>
+<p><b>painter</b> Painter used for measurement.</p>
+<h3 id="navigation">navigation</h3>
+<p><i>public bool navigation(app::Navigation navigation, std::int32_t input_device_id)</i></p>
+<p><b>brief</b> Dispatch a navigation action, including focus moves.</p>
+<p><b>navigation</b> Semantic navigation action.</p>
+<p><b>input_device_id</b> Source device identifier.</p>
+<p><b>return</b> true when the navigation was handled.</p>
+<h3 id="paint">paint</h3>
+<p><i>public void paint(Painter &amp; painter)</i></p>
+<p><b>brief</b> Paint the content and every open overlay.</p>
+<p><b>painter</b> Painter receiving all drawing.</p>
+<h3 id="pane_count">pane_count</h3>
+<p><i>public std::size_t pane_count()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L73">gui/src/detail/ui.cppm:73</a></i></p>
+<p><b>brief</b> Count the panes shown.</p>
+<p><b>return</b> Number of open panes.</p>
+<h3 id="pinch">pinch</h3>
+<p><i>public bool pinch(const PinchEvent &amp; event)</i></p>
+<p><b>brief</b> Offer a two-finger pinch to the widgets (the Stage recognises it). At <code>begin</code>, to the enabled widget under the middle, then to its parents, until one's <code>Widget::pinch</code> takes it; the rest of the pinch goes to that one, its middle made local to it.</p>
+<p><b>event</b> The pinch, its middle in logical units from the top left.</p>
+<p><b>return</b> true when a widget has the pinch (at <code>end</code>: had it).</p>
+<h3 id="pointer">pointer</h3>
+<p><i>public bool pointer(PointerAction action, float x, float y, int button, std::int64_t pointer_id)</i></p>
+<p><b>brief</b> Inject a pointer input.</p>
+<p><b>action</b> Pointer action being reported.</p>
+<p><b>x</b> Horizontal position in logical pixels.</p>
+<p><b>y</b> Vertical position in logical pixels.</p>
+<p><b>button</b> Button index; zero for the primary button.</p>
+<p><b>pointer_id</b> Stable identifier for the pointer contact.</p>
+<p><b>return</b> true when some widget handled the event.</p>
+<h3 id="resize">resize</h3>
+<p><i>public void resize(float width, float height)</i></p>
+<p><b>brief</b> Resize the virtual viewport.</p>
+<p><b>width</b> New width in logical pixels.</p>
+<p><b>height</b> New height in logical pixels.</p>
+<h3 id="safe_area">safe_area</h3>
+<p><i>public Insets safe_area()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L107">gui/src/detail/ui.cppm:107</a></i></p>
+<p><b>brief</b> Report the insets last given to set_safe_area().</p>
+<p><b>return</b> The sanitized insets; all zero until one is set.</p>
+<h3 id="set_content">set_content</h3>
+<p><i>public Widget &amp; set_content(std::unique_ptr&lt;Widget&gt; content)</i></p>
+<p><b>brief</b> Replace the full-screen content widget.</p>
+<p><b>content</b> Widget to adopt; ownership transfers to the Ui.</p>
+<p><b>return</b> Reference to the adopted content widget.</p>
+<h3 id="set_safe_area">set_safe_area</h3>
+<p><i>public void set_safe_area(Insets insets)</i></p>
+<p><b>brief</b> Keep the content inside the part of the screen the user can see.</p>
+<p>A phone draws the interface edge to edge, so the status bar, the navigation bar and a camera cut-out sit on top of it. Insets move the content's rectangle in from each edge; panes are placed by their owner, who reads the insets too.</p>
+<p><b>insets</b> Distance to keep clear on each side, in logical units. Negative or non-finite values count as zero, and insets larger than the viewport leave the content empty rather than inverted.</p>
+<p><b>note</b> Survives resize() and set_content(); call it again only when the bars change.</p>
+<h3 id="set_text_input_service">set_text_input_service</h3>
+<p><i>public void set_text_input_service(app::TextInputService * service)</i></p>
+<p><b>brief</b> Install the platform text-input boundary.</p>
+<p><b>service</b> Non-owning service; may be null to disable. Must outlive the Ui while set.</p>
+<h3 id="set_tooltip_config">set_tooltip_config</h3>
+<p><i>public void set_tooltip_config(TooltipConfig config)</i></p>
+<p><b>brief</b> Replace tooltip timing and placement policy.</p>
+<p><b>config</b> Finite, non-negative delays and distances.</p>
+<p><b>throws</b>when any value is negative or non-finite.</p>
+<h3 id="show_pane">show_pane</h3>
+<p><i>public PaneFrame &amp; show_pane(std::unique_ptr&lt;PaneFrame&gt; pane)</i></p>
+<p><b>brief</b> Show a pane over the content, above the panes already shown. Its owner places it (<code>set_bounds</code>); one with no size takes its preferred size at the next layout. A modal one takes the focus.</p>
+<p><b>pane</b> Pane to adopt; ownership transfers to the Ui.</p>
+<p><b>return</b> Reference to the shown pane.</p>
+<h3 id="skin">skin</h3>
+<p><i>public Skin &amp; skin()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L273">gui/src/detail/ui.cppm:273</a></i></p>
+<p><b>brief</b> Access the skin for mutation.</p>
+<p><b>return</b> Reference to the Ui's skin.</p>
+<h3 id="skin">skin</h3>
+<p><i>public const Skin &amp; skin()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L267">gui/src/detail/ui.cppm:267</a></i></p>
+<p><b>brief</b> Access the skin, read-only.</p>
+<p><b>return</b> Reference to the Ui's skin.</p>
+<h3 id="text_editing">text_editing</h3>
+<p><i>public bool text_editing(std::string_view text, int start, int length)</i></p>
+<p><b>brief</b> Forward composition updates to the focused widget.</p>
+<p><b>text</b> Current composition text.</p>
+<p><b>start</b> Start offset of the composition span.</p>
+<p><b>length</b> Length of the composition span.</p>
+<p><b>return</b> true when the focused widget handled the composition.</p>
+<h3 id="text_input">text_input</h3>
+<p><i>public bool text_input(std::string_view text, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> Forward committed text to the focused widget: as <code>Widget::text_input</code>, or with Ctrl, Alt or Meta held as <code>Widget::key_text</code>.</p>
+<p><b>text</b> Committed UTF-8 text.</p>
+<p><b>modifiers</b> The modifiers held when a key typed it.</p>
+<p><b>return</b> true when the focused widget handled the text.</p>
+<h3 id="tooltip_bounds">tooltip_bounds</h3>
+<p><i>public std::optional&lt;Rectangle&gt; tooltip_bounds()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L254">gui/src/detail/ui.cppm:254</a></i></p>
+<p><b>brief</b> Return the visible tooltip rectangle in root coordinates.</p>
+<p><b>return</b> Bounds after layout, or no value when no tooltip is attached.</p>
+<h3 id="tooltip_config">tooltip_config</h3>
+<p><i>public const TooltipConfig &amp; tooltip_config()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L235">gui/src/detail/ui.cppm:235</a></i></p>
+<p><b>brief</b> Return the active tooltip policy.</p>
+<p><b>return</b> Reference valid for the lifetime of this Ui.</p>
+<h3 id="tooltip_owner">tooltip_owner</h3>
+<p><i>public const Widget * tooltip_owner()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L248">gui/src/detail/ui.cppm:248</a></i></p>
+<p><b>brief</b> Return the widget whose tooltip is visible, or null.</p>
+<p><b>return</b> Non-owning pointer invalidated when its owning tree is removed.</p>
+<h3 id="tooltip_visible">tooltip_visible</h3>
+<p><i>public bool tooltip_visible()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/detail/ui.cppm#L243">gui/src/detail/ui.cppm:243</a></i></p>
+<p><b>brief</b> Return true while a tooltip subtree is attached to the root.</p>
+<p><b>return</b> true between materialization and dismissal.</p>
+<h3 id="update">update</h3>
+<p><i>public void update(double delta_seconds)</i></p>
+<p><b>brief</b> Advance time-based state: actors' <code>act</code>, tooltips.</p>
+<p><b>delta_seconds</b> Elapsed time in seconds; non-negative.</p>
+<p><b>throws</b>exception raised by a tooltip factory, or std::invalid_argument when a factory returns a parented widget.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

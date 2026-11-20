@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vendoring third-party libraries · squared-pg</title>
+<meta name="description" content="squared-pg: Vendoring third-party libraries">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/design/vendoring.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/design/vendoring.md">on GitHub</a></p><hr>
+<p>title: Vendoring third-party libraries tags: [developer, design, vendoring]</p>
+<hr>
+<h1 id="vendoring-third-party-libraries">Vendoring third-party libraries</h1>
+<p>Decision: D-068 · Open: Q-34, Q-35 Worked example: [[developer/resources/sfml-android]]</p>
+<p>How a third-party library that a kit needs gets from upstream into a generated workspace.</p>
+<h2 id="the-constraint-that-shapes-everything">The constraint that shapes everything</h2>
+<p><b>Resources are inert data.</b> §2.13.2 gives <code>resources/</code> no outgoing dependencies, and §2.13.6 lists a file-type check over resource roots as an enforcement mechanism. Source trees and built archives are exactly what that check exists to catch.</p>
+<p>So a vendored library cannot live under <code>resources/</code>, however convenient the adjacency to the kit that consumes it would be.</p>
+<h2 id="the-shape">The shape</h2>
+<pre><code>third-party/&lt;library&gt;/       upstream source, trimmed. Committed.
+third-party/&lt;library&gt;-deps/  its own dependencies. Committed.
+        |
+        |  tools/build-&lt;library&gt;.sh
+        v
+build/&lt;library&gt;-stage/       headers + archives. Gitignored.
+        |
+        |  --install (alpha)          |  release step (CI)
+        v                             v
+resources/kits/kit.X/tree/sq_kit/     the shipped .sq cartridge
+   (gitignored)</code></pre>
+<p>Source at the repository root beside miniz and yyjson. Artifacts never in git — they are platform-specific, and a repository whose CI runs on macOS and Linux has no use for aarch64 archives.</p>
+<h2 id="why-generation-stays-a-file-copy">Why generation stays a file copy</h2>
+<p>The engine's capabilities are copy, substitute, plan, generate, index, archive and rename. <b>Nothing builds.</b> Adding a build step would mean a new capability, a new failure mode inside a transaction, and a toolchain dependency at generation time.</p>
+<p>It is not needed. The compile happens in tooling — the same place <code>bootstrap.sh</code> lives, and for the same reason: assembling the tree is not the engine's job.</p>
+<p>The consequence is that a workspace receives finished artifacts and stays self-contained, which keeps the smoke suite's "the generated project does not depend on the generator" check honest.</p>
+<h2 id="alpha-versus-release">Alpha versus release</h2>
+<p>During alpha the archives are built on-device and installed into the kit payload with <code>--install</code>, gitignored. At release CI runs the same script and the artifacts reach users inside the cartridge.</p>
+<p>The middle ground is deliberate: <code>--install</code> gives a fast iteration loop while a kit is being debugged, and the default output path keeps binaries out of the resource tree when nobody asked for them. The <code>.gitignore</code> entries are the only thing standing between the two, so the build script prints them and tells you to check <code>git status</code>.</p>
+<h2 id="trimming">Trimming</h2>
+<p>Upstream trees carry test corpora, documentation and platform directories the build never reads. Trim aggressively when the numbers are large and not at all when they are small — every <code>rm</code> is a chance to remove something a build reaches for.</p>
+<p>For SFML's dependencies the split was 147M to 34M, almost all of it two directories: harfbuzz's font fixtures (87M) and SheenBidi's Unicode Character Database (19M). Verify before removing: SheenBidi's <code>Tools/</code> sits behind <code>BUILD_GENERATOR</code>/<code>BUILD_TESTS</code>, which is checkable in its <code>CMakeLists.txt</code>.</p>
+<p><b>Record what was removed.</b> Someone re-fetching from the pinned tag gets the full tree and will wonder what is missing. <code>third-party/README.md</code> is the place.</p>
+<h2 id="choosing-versions">Choosing versions</h2>
+<p>Take the upstream project's own pins where they exist. SFML's <code>FetchContent_Declare</code> blocks name exact tags for freetype, harfbuzz, SheenBidi, ogg, flac and vorbis; using those rather than choosing independently means the combination is one upstream tests.</p>
+<p>Record that this is what happened, or a later reader will assume the versions were chosen deliberately and be reluctant to move them.</p>
+<h2 id="where-this-is-not-settled">Where this is not settled</h2>
+<ul><li><b>The release path has never run.</b> CI building these artifacts is the intended shape, not an exercised one.</li><li><b>Multi-ABI.</b> One archive set per kit build, and nothing reads the ABI it was built for (Q-35).</li><li><b>Whether a second vendored library would follow this shape.</b> SFML is the only worked example, and some of what looks like a pattern here may be SFML's particulars.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

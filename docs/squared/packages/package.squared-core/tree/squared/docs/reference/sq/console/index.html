@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace console · squared</title>
+<meta name="description" content="squared: namespace console">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/console/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/console/index.md">on GitHub</a></p><h1 id="namespace-console">namespace console</h1>
+<h2 id="namespaces">Namespaces</h2>
+<ul><li><a href="bridge_protocol/index.html">bridge_protocol</a></li><li><a href="detail/index.html">detail</a></li></ul>
+<h2 id="records">Records</h2>
+<ul><li><a href="Args.html">Args</a></li><li><a href="BridgeConfig.html">BridgeConfig</a></li><li><a href="BridgeHandlers.html">BridgeHandlers</a></li><li><a href="Bridge.html">Bridge</a></li><li><a href="ClipboardWriter.html">ClipboardWriter</a></li><li><a href="Command.html">Command</a></li><li><a href="Commands.html">Commands</a></li><li><a href="Console.html">Console</a></li><li><a href="Frame.html">Frame</a></li><li><a href="GridSize.html">GridSize</a></li><li><a href="GroupLine.html">GroupLine</a></li><li><a href="Groups.html">Groups</a></li><li><a href="InputLine.html">InputLine</a></li><li><a href="Line.html">Line</a></li><li><a href="Quad.html">Quad</a></li><li><a href="Renderer.html">Renderer</a></li><li><a href="Scrollback.html">Scrollback</a></li><li><a href="TelegraphTools.html">TelegraphTools</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="add_copy_command">add_copy_command</h3>
+<p><i>Commands::AddResult add_copy_command(Console &amp; console, const ClipboardWriter &amp; writer)</i></p>
+<p><b>brief</b> Add the <code>copy</code> command, which writes lines of the scrollback to <code>writer</code>, one per line, separated by newlines:</p>
+<p>| Typed | Copies | |---|---| | <code>copy</code> | every line | | <code>copy errors</code> | the error lines only | | <code>copy 20</code> | the last 20 lines |</p>
+<p>The command's own echo (<code>&gt; copy</code>) is not copied. It prints how many lines and bytes it copied, or that the clipboard is not available. <code>writer</code> is kept by address: it must outlive the Console. Nothing is allocated.</p>
+<h3 id="add_crash_command">add_crash_command</h3>
+<p><i>Commands::AddResult add_crash_command(Console &amp; console, const char * previous_path)</i></p>
+<p><b>brief</b> Add the <code>crash</code> command: the report kept at <code>previous_path</code>, again; <code>crash segv</code> and <code>crash abort</code> crash the process on purpose, to see a report made. <code>previous_path</code> is kept, not copied: it must outlive the Console.</p>
+<h3 id="add_file_commands">add_file_commands</h3>
+<p><i>std::size_t add_file_commands(Console &amp; console, const char * home, Bridge * bridge)</i></p>
+<p><b>brief</b> Add the commands for the app's own files:</p>
+<p>| Command | Does | |---|---| | <code>ls [path]</code> | the entries of a directory: type, size, name | | <code>pull &lt;path&gt;</code> | send a file to Termux through <code>bridge</code> (<code>make console</code> saves it) | | <code>push</code> | how to send one the other way (it is <code>make console</code>'s: <code>push &lt;file&gt; [name]</code>) |</p>
+<p>A relative path starts at <code>home</code> (the Android template: the app's data directory, so <code>files/crash.txt</code>, <code>cache/</code>, <code>lib/</code>); an absolute one is used as it is; <code>apk</code> is the installed APK. Everything the app may read, and only that: these run as the app.</p>
+<p><code>home</code> and <code>bridge</code> are kept, not copied; <code>bridge</code> may be null, and then <code>pull</code> says it needs one. Nothing allocates.</p>
+<p><b>return</b> How many did not fit in the table (0 when all did).</p>
+<h3 id="add_gl_command">add_gl_command</h3>
+<p><i>Commands::AddResult add_gl_command(Console &amp; console)</i></p>
+<p><b>brief</b> Add the <code>gl</code> command: the driver's vendor, renderer, version and shading language, and the limits that decide what a program can draw (texture and renderbuffer size, viewport, vertex attributes, texture units), plus the extension count. Built with the gles backend, like the Renderer; it must run where the context is current, as commands typed into the Console do.</p>
+<h3 id="add_log_command">add_log_command</h3>
+<p><i>Commands::AddResult add_log_command(Console &amp; console, const char * previous_path)</i></p>
+<p><b>brief</b> Add the <code>log</code> command: <code>log previous</code> shows the end of the last run's log, kept at <code>previous_path</code> by keep_previous_log(). <code>previous_path</code> is kept, not copied: it must outlive the Console.</p>
+<h3 id="add_system_commands">add_system_commands</h3>
+<p><i>std::size_t add_system_commands(Console &amp; console)</i></p>
+<p><b>brief</b> Add the built-in commands that read the running system, through Linux interfaces that work on Android too:</p>
+<p>| Command | Prints | |---|---| | <code>mem</code> | resident and peak memory (<code>/proc/self/status</code>), and what the system has available (<code>/proc/meminfo</code>) | | <code>heap</code> | the allocator's in-use, free and mapped bytes (<code>mallinfo</code>) | | <code>threads</code> | the process's thread count | | <code>fds</code> | the open file descriptors | | <code>device</code> | maker, model, Android version, API level and ABI (system properties), and the kernel (<code>uname</code>) | | <code>smaps</code> | memory by kind (this program, native heap, GPU driver, Java runtime, stacks, other libraries, files, anonymous): PSS, RSS and private dirty, from <code>/proc/self/smaps</code> | | <code>libs</code> | every shared library the process has mapped, with the address space it takes (<code>/proc/self/maps</code>) |</p>
+<p>Each reads into the stack and prints through the Console: nothing is allocated, nothing is kept. Two groups for <code>dump</code> come with them: <code>sys</code> (all seven) and <code>memory</code> (<code>mem</code>, <code>heap</code>, <code>smaps</code>).</p>
+<p><b>return</b> How many did not fit in the command or group tables: 0 when all were added.</p>
+<h3 id="build_atlas">build_atlas</h3>
+<p><i>void build_atlas(std::span&lt;std::uint8_t, atlas_bytes&gt; out)</i></p>
+<p><b>brief</b> Expand the font into <code>out</code>, 255 where a glyph has a pixel and 0 elsewhere; glyph <code>g</code> at column <code>g % 16</code>, row <code>g / 16</code>; solid_glyph filled.</p>
+<h3 id="for_each_line">for_each_line</h3>
+<p><i>void for_each_line(int fd, std::span&lt;char&gt; buffer, Line line)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/line_reader.cppm#L19">console/line_reader.cppm:19</a></i></p>
+<p><b>brief</b> Read <code>fd</code> to its end through <code>buffer</code>, calling <code>line( text )</code> for each line, without its newline; the last line counts even with no newline after it. A line longer than the buffer arrives in buffer-sized pieces. Nothing is allocated: the buffer is the caller's, usually a few KB on the stack.</p>
+<h3 id="grid">grid</h3>
+<p><i>GridSize grid(const Frame &amp; frame)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/layout.cppm#L39">console/layout.cppm:39</a></i></p>
+<p><b>brief</b> The character grid of <code>frame</code>; zero when the cell size is not positive.</p>
+<h3 id="install_crash_file">install_crash_file</h3>
+<p><i>bool install_crash_file(const char * path, const Console * console, std::size_t log_lines)</i></p>
+<p><b>brief</b> Write a report to <code>path</code> when the process dies of a fatal signal (SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL, SIGTRAP): the crash trace (<code>sq::dev::write_crash_trace</code>), then the newest <code>log_lines</code> lines of <code>console</code>'s scrollback, so the report says what led up to it.</p>
+<pre><code class="lang-text">
+ The file is created at the crash, never before, so an existing report is left alone until then; read it first (show_crash_file). The signal is then handed on to whatever handled it before (the dev log&#x27;s, in a dev build, then Android&#x27;s own crash report), so nothing else is lost. The handler allocates nothing and takes no lock; it runs on an alternate stack on this thread, so a stack overflow here is reported too.
+
+ `path` is copied (at most 511 bytes); `console` must stay alive until remove_crash_file() or the end of the process. One installation at a time.
+
+
+
+**return** false if `path` is too long or a handler could not be installed.
+
+### keep_previous_log
+
+*bool keep_previous_log(const char * path, const char * previous_path)*
+
+
+
+**brief** Move the log the last run saved at `path` to `previous_path`, at start, before this run saves its own over it.
+
+**return** true if there was one.
+
+### layout
+
+*void layout(const Console &amp; console, const Frame &amp; frame, Emit emit)*
+
+*Defined at [console/layout.cppm:127](../../../../console/layout.cppm#L127)*
+
+
+
+**brief** Where every character of the console goes, with no drawing.
+
+ Calls `emit( Quad )` for each rectangle, back to front: the background, the title row with its close button `[x]`, the newest lines that fit (wrapped, newest at the bottom, moved back by `frame.scroll` rows), then the input row with its prompt and cursor. A renderer batches the quads; a test collects them. Nothing is allocated; it walks the scrollback twice.
+
+ Characters outside ASCII are drawn as `?`: the font has 128 glyphs.
+</code></pre>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(const Iterator &amp; a, const Iterator &amp; b)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/scrollback.cppm#L81">console/scrollback.cppm:81</a></i></p>
+<h3 id="remove_crash_file">remove_crash_file</h3>
+<p><i>void remove_crash_file()</i></p>
+<p>Put back the handlers install_crash_file() replaced. Before the Console goes away.</p>
+<h3 id="run_program">run_program</h3>
+<p><i>bool run_program(Console &amp; console, const char *const * argv, std::size_t max_lines)</i></p>
+<p><b>brief</b> Run a program and print what it writes (stdout and stderr), a line at a time, at most <code>max_lines</code> of them; then how many more there were. Waits for it to end, so for programs that do (<code>logcat -d</code>, not <code>logcat</code>).</p>
+<p><code>argv</code> is the program's path, then its arguments, then nullptr; nothing is searched for on a PATH. It runs as this process does, so it reads what the app may read (on Android, logcat shows only the app's own lines). fork and exec, a pipe, a 2 KB buffer on the stack: nothing is allocated here.</p>
+<pre><code class="lang-cpp">
+
+
+**return** false when it could not run (no such program, no process).
+
+### save_log
+
+*bool save_log(const Console &amp; console, const char * path, std::size_t count)*
+
+
+
+**brief** Write the newest `count` lines of `console`&#x27;s scrollback to `path`, one per line, so the next run can show how this one ended.
+
+ Written to `path` with `.tmp` added, then renamed over `path`, so a reader never finds half a file and a crash while writing leaves the last good one. Allocates nothing: the lines go straight from the scrollback to the file. Call it when the app may be about to go (paused, stopped, quitting); it costs one small file write.
+</code></pre>
+<p><b>return</b> false if the file could not be written (the old one is kept), or <code>path</code> is longer than 500 bytes.</p>
+<h3 id="scroll_limit">scroll_limit</h3>
+<p><i>int scroll_limit(const Console &amp; console, const Frame &amp; frame)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/layout.cppm#L70">console/layout.cppm:70</a></i></p>
+<p><b>brief</b> The largest useful <code>frame.scroll</code>: how many wrapped rows of lines there are beyond those the frame shows. A view scrolled further shows the oldest rows all the same; a caller keeping its own scroll clamps to this, so scrolling back down takes effect at once. O(scrollback), allocates nothing.</p>
+<h3 id="show_crash_file">show_crash_file</h3>
+<p><i>bool show_crash_file(Console &amp; console, const char * path, const char * previous_path)</i></p>
+<p><b>brief</b> Print the report an earlier run left at <code>path</code> into <code>console</code>, a line at a time as errors, then move it to <code>previous_path</code> so it is shown once.</p>
+<p><b>return</b> true if there was a report.</p>
+<h3 id="show_log">show_log</h3>
+<p><i>bool show_log(Console &amp; console, const char * path, std::string_view title)</i></p>
+<p><b>brief</b> Print the file at <code>path</code> into <code>console</code>, a line at a time, after a <code>title</code> line.</p>
+<p><b>return</b> false, printing nothing, if there is no such file.</p>
+<h3 id="touches_close">touches_close</h3>
+<p><i>bool touches_close(const Frame &amp; frame, int x, int y)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/layout.cppm#L48">console/layout.cppm:48</a></i></p>
+<p><b>brief</b> True when the point (pixels) is on the close button, the last three cells of the title row.</p>
+<h2 id="enums">Enums</h2>
+<p>| enum class BridgeStatus |</p>
+<p>--</p>
+<p>| listening | | already_open | | bad_secret | | refused |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/bridge.cppm#L26">console/bridge.cppm:26</a></i></p>
+<p><b>brief</b> What open() did.</p>
+<p>| enum class Colour |</p>
+<p>--</p>
+<p>| text | | warning | | error | | dim | | background | | cursor | | title |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/src/colour.cppm#L9">console/src/colour.cppm:9</a></i></p>
+<p><b>brief</b> What a console quad is drawn in: an index into the renderer's palette.</p>
+<p>| enum class Level |</p>
+<p>--</p>
+<p>| info | | warning | | error |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/src/level.cppm#L9">console/src/level.cppm:9</a></i></p>
+<p><b>brief</b> How a console line is shown and filtered: <code>copy errors</code> keeps only <code>error</code>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

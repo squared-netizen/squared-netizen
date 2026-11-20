@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.4 Engine lifecycle · squared-pg</title>
+<meta name="description" content="squared-pg: 2.4 Engine lifecycle">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.4 Engine lifecycle.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.4 Engine lifecycle.md">on GitHub</a></p><hr>
+<p>section: "2.4" title: Engine lifecycle status: review tags: [spec, architecture, engine, lifecycle]</p>
+<hr>
+<h1 id="24-engine-lifecycle">2.4 Engine lifecycle</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.3 Generation pipeline]] · Next: [[2.5 Lua control layer]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines how the engine is created, initialized, operated, and destroyed, and who owns what at each stage.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; 2.4.1 Engine creation</li><li>&#9745; 2.4.2 Initialization sequence</li><li>&#9745; 2.4.3 Service registration</li><li>&#9745; 2.4.4 Resource loading</li><li>&#9745; 2.4.5 API exposure</li><li>&#9745; 2.4.6 Operation execution</li><li>&#9745; 2.4.7 Result handling</li><li>&#9745; 2.4.8 Error handling</li><li>&#9745; 2.4.9 Cleanup and shutdown</li><li>&#9745; 2.4.10 Resource ownership</li><li>&#9745; 2.4.11 Lifecycle states and legality matrix</li><li>&#9745; 2.4.12 Concurrency model</li><li>&#9745; 2.4.13 Lifecycle invariants</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="241-engine-creation">2.4.1 Engine creation</h3>
+<p>The engine MUST be an explicit runtime object with a well-defined ownership boundary. The instance represents the active <code>squared-pg</code> execution environment.</p>
+<p>Creation MUST:</p>
+<ul><li>allocate the engine instance;</li><li>initialize internal state containers;</li><li>establish default configuration state;</li><li>prepare service registration;</li><li>prepare resource management;</li><li>prepare error reporting.</li></ul>
+<p>Creation MUST NOT parse arguments, read user configuration, select resources, generate files, modify the filesystem, or execute workflows.</p>
+<p>The component creating the engine MUST also be responsible for initiating shutdown, directly or through a controlled ownership mechanism.</p>
+<p><i>Implementation note: the engine instance is created through a factory returning <code>std::unique_ptr</code>; there is no global instance and no singleton.</i></p>
+<h3 id="242-initialization-sequence">2.4.2 Initialization sequence</h3>
+<p>Initialization is explicit and separate from creation. It MUST be deterministic: given the same configuration, resource set, and dependency versions, it MUST produce the same runtime state.</p>
+<p>Order:</p>
+<ol><li>Validate engine startup configuration.</li><li>Initialize internal subsystems.</li><li>Register engine services.</li><li>Build the resource index.</li><li>Initialize Squared project model support.</li><li>Initialize template, kit, package, and asset systems.</li><li>Expose the control surface.</li><li>Mark the engine Ready.</li></ol>
+<p>Initialization MUST NOT select a template, modify a project directory, apply a kit, install packages, materialize assets, or execute workflow logic.</p>
+<p>If initialization fails the engine MUST NOT enter the operational state, and MUST remain in a state where cleanup can be performed safely.</p>
+<h3 id="243-service-registration">2.4.3 Service registration</h3>
+<p>Services are the capabilities exposed by the control surface. Each MUST have a well-defined API with explicit ownership, lifecycle, and error behaviour.</p>
+<p>Core services, all registered during initialization:</p>
+<div class="tablewrap"><table><thead><tr><th>Service</th><th>Responsibility</th></tr></thead><tbody><tr><td>Filesystem</td><td>controlled filesystem operations, workspace management</td></tr><tr><td>Resource</td><td>discovery, indexing, manifest loading, integrity</td></tr><tr><td>Template</td><td>template resolution, validation, instantiation</td></tr><tr><td>Kit</td><td>kit resolution, compatibility, integration</td></tr><tr><td>Package</td><td>package resolution, dependency graph, materialization</td></tr><tr><td>Asset</td><td>asset indexing, resolution, transformation, materialization</td></tr><tr><td>Project</td><td><code>SquaredProject</code> model creation and management</td></tr><tr><td>Validation</td><td>configuration, resource, and workspace validation</td></tr><tr><td>Transaction</td><td>staging, journaling, commit, rollback, recovery</td></tr><tr><td>Metadata</td><td>workspace metadata and provenance</td></tr></tbody></table></div>
+<p>A missing required core service MUST prevent the engine from entering Ready.</p>
+<p>Extension services are optional and are defined in [[2.14 Extensibility model]]. A missing optional extension MUST be reported but MUST NOT prevent operation unless an active workflow requires it.</p>
+<p>Service registration MUST be deterministic. The registry MUST remain independent from Lua workflow logic: Lua selects and sequences services, it does not define them.</p>
+<p><i>Pattern: Service Locator, scoped to the engine instance rather than global.</i></p>
+<h3 id="244-resource-loading">2.4.4 Resource loading</h3>
+<blockquote><p>[!note] Resolution of Q-11 (D-011) Initialization builds an <b>immutable resource index</b> mapping identity to manifest, version, and location. Lazy loading may only fetch payloads for already-indexed identities. The index MUST NOT change during a session.</p></blockquote>
+<p>Eager, at initialization:</p>
+<ul><li>resource discovery and indexing;</li><li>manifest loading and envelope validation;</li><li>identity, version, dependency, and compatibility metadata;</li><li>integrity information.</li></ul>
+<p>Lazy, on demand:</p>
+<ul><li>template file trees;</li><li>package contents;</li><li>asset payloads;</li><li>archives;</li><li>platform-specific resources.</li></ul>
+<p>This is what makes hybrid loading deterministic: the <i>set</i> of resources is fixed at initialization; only payload retrieval is deferred. A resource failure discovered during lazy loading MUST be reported through the same error system as an initialization failure.</p>
+<blockquote><p>[!note] Resolution of Q-12 (D-012) The Resource Service validates the manifest <b>envelope</b> — well-formedness, identity syntax, version syntax, integrity. The owning typed service validates the <b>type block</b> — what a template, kit, package, or asset manifest means.</p></blockquote>
+<p>Resource identity is manifest-based. Filesystem paths are never canonical identity:</p>
+<pre><code class="lang-text">template.android.cpp                 (identity)
+resources/templates/android-cpp/     (implementation detail)</code></pre>
+<p>Lua MAY request resources by identity. Lua MUST NOT scan resource directories, modify manifests, bypass validation, or access internal resource storage.</p>
+<p>Development repositories MAY use predictable layouts for maintainer convenience, but those layouts MUST NOT become part of the public contract.</p>
+<h3 id="245-api-exposure">2.4.5 API exposure</h3>
+<p>The control surface has two layers.</p>
+<p><b>Service layer</b> — low-level reusable capabilities. This is the fundamental control surface.</p>
+<p><b>Operation layer</b> — named, coordinated actions built from services.</p>
+<blockquote><p>[!note] Resolution of Q-08 (D-008) Operations MUST be documented compositions of service calls. <b>No capability may exist only at the operation layer.</b> The operation layer exists for convenience, consistency, and reduced boilerplate — never as a second source of truth.</p></blockquote>
+<p>Service APIs MUST have documented contracts, defined ownership and lifetime rules, deterministic behaviour, and structured error reporting.</p>
+<p>Lua workflows MAY use either level:</p>
+<pre><code class="lang-lua">-- service level
+local template = engine.template.resolve(&quot;template.android.cpp&quot;)
+local kit      = engine.kit.resolve(&quot;kit.sdl3&quot;)
+local project  = engine.project.create(config)
+
+-- operation level
+local result = engine.project.generate(config)</code></pre>
+<p>The choice of abstraction belongs to the workflow author.</p>
+<p>The API boundary MUST prevent direct access to internal engine state. Internal implementation details remain private unless intentionally promoted.</p>
+<pre><code class="lang-text">                 Lua / Embedded Tool
+                         |
+                  Engine Public API
+                         |
+        +----------------+----------------+
+        |                                 |
+        v                                 v
+   Core Services                  High-level Operations
+        |                                 |
+        +----------------+----------------+
+                         |
+                         v
+                  Engine Internals</code></pre>
+<h3 id="246-operation-execution">2.4.6 Operation execution</h3>
+<blockquote><p>[!note] Resolution of Q-07 and Q-09 (D-007, D-009) The earlier draft carried two competing models. Unified here: <b>execution is synchronous</b>, and <b>a typed C++ operation registry is canonical</b>. The Lua table form is binding sugar over that registry. An optional job wrapper MAY exist but MUST NOT change the contract.</p></blockquote>
+<h4 id="registry">Registry</h4>
+<p>Every operation is registered with:</p>
+<ul><li>operation identity (a stable dotted name, e.g. <code>project.generate</code>);</li><li>a typed parameter structure;</li><li>a typed result structure;</li><li>required services;</li><li>required engine capabilities;</li><li>transaction requirements;</li><li>possible error codes.</li></ul>
+<p>The registry is compiled in and enumerable through the control surface, which is what allows Lua, tooling, and documentation generation to discover operations without hardcoding them.</p>
+<p><i>Pattern: Command. Operations are reified, which is what makes the generation plan in §2.7.9 possible.</i></p>
+<h4 id="synchronous-execution">Synchronous execution</h4>
+<p>The default and normative execution model is synchronous. A synchronous operation:</p>
+<ol><li>receives a complete request;</li><li>validates operation availability against lifecycle state;</li><li>validates inputs;</li><li>acquires required services;</li><li>establishes transaction boundaries if required;</li><li>executes;</li><li>commits or rolls back;</li><li>returns a result or error.</li></ol>
+<p>An operation MUST NOT return before its state changes are complete.</p>
+<p>This gives deterministic behaviour, simple ownership, predictable Lua integration, easier testing, reliable CLI behaviour, and suitability for lightweight environments such as Termux.</p>
+<h4 id="invocation-forms">Invocation forms</h4>
+<pre><code class="lang-lua">-- sugar
+local result = engine.project.generate(config)
+
+-- explicit, equivalent
+local result = engine.execute({
+    operation  = &quot;project.generate&quot;,
+    parameters = config
+})</code></pre>
+<p>Both MUST map to the same registry entry and produce identical behaviour.</p>
+<h4 id="operation-context">Operation context</h4>
+<p>Each operation executes within an explicit context containing the engine instance, registered services, the resource index, resolved resources, the filesystem abstraction, transaction state where applicable, and diagnostic facilities.</p>
+<p>Operations MUST NOT depend on global mutable state, hidden filesystem paths, environment-specific assumptions, or undeclared external resources.</p>
+<h4 id="rejection">Rejection</h4>
+<p>The engine MUST reject operation requests when initialization has not completed, required services are unavailable, shutdown has started, the lifecycle state forbids the operation, or prerequisites are unsatisfied.</p>
+<p>Invalid operations MUST fail before performing any partial modification.</p>
+<h4 id="service-boundaries">Service boundaries</h4>
+<p>Operations MUST NOT bypass service boundaries. An operation requiring template access MUST use the Template Service; one requiring filesystem modification MUST use the Filesystem and Transaction Services.</p>
+<p>The engine MUST NOT expose internal service sequencing as part of the public contract. <code>project.generate</code> may internally perform template expansion, kit application, package installation, asset materialization, and file generation, but callers depend only on the documented operation contract.</p>
+<h4 id="optional-job-wrapper">Optional job wrapper</h4>
+<p>The synchronous model MAY be wrapped by a job layer providing progress reporting, cancellation, background execution, and integration with graphical or remote tools.</p>
+<pre><code class="lang-text">Job system
+    |
+    v
+Operation
+    |
+    v
+Synchronous engine execution</code></pre>
+<p>The wrapper MUST NOT change the operation contract. The same operation MUST behave identically whether executed directly or through a job.</p>
+<h3 id="247-result-handling">2.4.7 Result handling</h3>
+<p>All operations MUST return a structured result. Results MUST NOT rely on implicit global state, filesystem inspection, parsing console output, or undocumented side effects.</p>
+<pre><code class="lang-text">OperationResult {
+    status        success | warning | failure | cancelled
+    data          operation-specific payload
+    diagnostics   informational messages
+    warnings      non-fatal issues
+    errors        structured errors
+    metadata      affected objects and resources
+}</code></pre>
+<p>The engine owns creation and lifetime of results. Lua receives a representation across the boundary. The engine MUST ensure returned data remains valid during Lua access and that ownership and memory lifetime rules are explicit. Lua MUST NOT manage internal engine memory.</p>
+<p>Results MUST be machine-readable and usable by non-interactive consumers. The presentation format belongs to the consumer; the engine provides information, not user interface policy.</p>
+<p>New result fields MAY be added without breaking existing workflows. Existing fields MUST NOT change meaning without a documented compatibility change.</p>
+<h3 id="248-error-handling">2.4.8 Error handling</h3>
+<p>Errors are part of the result system. The engine reports failures; Lua decides policy.</p>
+<p>The engine MUST NOT terminate the host process because of an operation failure, report errors only as console output, hide failures behind partial success, or allow exceptions to cross the Lua boundary.</p>
+<p>Internal C++ exceptions MAY exist but MUST be converted into structured errors before crossing the boundary.</p>
+<p>A failed operation MUST leave the engine in a valid state with resources correctly owned, transactions resolved, cleanup possible, and error information available.</p>
+<p>Full error taxonomy, categories, codes, and transaction interaction are defined in [[2.15 Error and transaction model]].</p>
+<h3 id="249-cleanup-and-shutdown">2.4.9 Cleanup and shutdown</h3>
+<p>Shutdown is the controlled transition from an active instance to a released, invalid one. The engine MUST support shutdown after successful execution, failed execution, interrupted workflows, cancellation, and partial initialization failure.</p>
+<p>The engine MUST NOT rely on host process termination to release resources.</p>
+<p>Order:</p>
+<ol><li>Stop accepting new operations.</li><li>Complete or cancel active operations.</li><li>Commit or roll back pending transactions.</li><li>Release temporary operation state.</li><li>Release extension services.</li><li>Release core services.</li><li>Release loaded resources and the resource index.</li><li>Release the workspace lock if held.</li><li>Destroy the engine instance.</li></ol>
+<p>A failed initialization MUST still permit cleanup; the engine MUST track partially initialized state.</p>
+<p>Extension shutdown failures MUST be reported but MUST NOT leave the engine undefined, and MUST NOT prevent core cleanup.</p>
+<p>Lua MAY request shutdown explicitly. Operations attempted after shutdown MUST be rejected.</p>
+<p>A host application MUST be able to create an engine, execute workflows, destroy the engine, and continue running. The engine MUST NOT assume ownership of the host process.</p>
+<h3 id="2410-resource-ownership">2.4.10 Resource ownership</h3>
+<pre><code class="lang-text">Host application
+    |
+    +--&gt; Engine instance
+    |        +--&gt; core services
+    |        +--&gt; extension services
+    |        +--&gt; resource index and loaded payloads
+    |        +--&gt; operation state
+    |        +--&gt; transaction and staging state
+    |
+    +--&gt; Lua
+             +--&gt; workflow state
+             +--&gt; user configuration
+             +--&gt; operation decisions
+
+Generated project
+    +--&gt; user-owned project files</code></pre>
+<p>The engine owns service instances, resource managers, loaded metadata, resolution state, validation state, transaction state, temporary generation resources, and internal caches. It MUST release all of them during shutdown.</p>
+<p>Lua owns command-line arguments, user input, workflow state, selected options, script state, and workflow-scoped temporary data. Lua MUST NOT own or manipulate internal engine resources.</p>
+<p>Ownership MUST NOT be transferred implicitly, MUST NOT depend on execution order, MUST NOT depend on filesystem location, and MUST NOT depend on process termination. Cleanup MUST occur in reverse dependency order, and a resource MUST NOT be destroyed while an active consumer depends on it.</p>
+<p>Generated projects become user-owned at finalization (see [[2.7 Project generation model]] §2.7.12).</p>
+<h3 id="2411-lifecycle-states-and-legality-matrix">2.4.11 Lifecycle states and legality matrix</h3>
+<p>The engine MUST always be in exactly one defined state.</p>
+<div class="tablewrap"><table><thead><tr><th>State</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Created</code></td><td>object exists, not initialized</td></tr><tr><td><code>Initializing</code></td><td>startup sequence executing</td></tr><tr><td><code>Ready</code></td><td>control surface available, no operation running</td></tr><tr><td><code>Operating</code></td><td>an operation is executing</td></tr><tr><td><code>Failed</code></td><td>initialization or operation failure requiring shutdown</td></tr><tr><td><code>Shutdown</code></td><td>releasing resources</td></tr><tr><td><code>Destroyed</code></td><td>resources released, instance unusable</td></tr></tbody></table></div>
+<p>Legality:</p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Created</th><th>Initializing</th><th>Ready</th><th>Operating</th><th>Failed</th><th>Shutdown</th><th>Destroyed</th></tr></thead><tbody><tr><td><code>initialize</code></td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td><td>no</td><td>no</td></tr><tr><td>enumerate capabilities</td><td>no</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>no</td><td>no</td></tr><tr><td>resolve resource</td><td>no</td><td>no</td><td>yes</td><td>yes</td><td>no</td><td>no</td><td>no</td></tr><tr><td>execute operation</td><td>no</td><td>no</td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td></tr><tr><td>produce plan</td><td>no</td><td>no</td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td></tr><tr><td>inspect last result</td><td>no</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>yes</td><td>no</td></tr><tr><td><code>shutdown</code></td><td>yes</td><td>no</td><td>yes</td><td>no</td><td>yes</td><td>no</td><td>no</td></tr></tbody></table></div>
+<p>Rules:</p>
+<ul><li>Operations MUST NOT execute before initialization.</li><li>Initialization MUST NOT occur after shutdown.</li><li>Shutdown MUST be safe from any valid state.</li><li>A destroyed instance MUST NOT be reused.</li><li>Nested operation execution MUST be rejected: an engine in <code>Operating</code> accepts no new operation.</li></ul>
+<p><i>Pattern: State. Transitions are explicit and centrally enforced rather than scattered across service entry points.</i></p>
+<h3 id="2412-concurrency-model">2.4.12 Concurrency model</h3>
+<blockquote><p>[!note] Resolution of Q-15 (D-015)</p></blockquote>
+<ul><li>An engine instance is <b>not thread-safe</b> and has affinity to the thread that created it. All control surface calls MUST occur on that thread.</li><li>Multiple engine instances MAY coexist in one process, provided no two target the same workspace.</li><li>Exactly one <code>lua_State</code> per engine instance. Lua state MUST NOT be shared between instances.</li><li>Exactly one writer per workspace, enforced by an advisory lock (see [[2.15 Error and transaction model]]).</li><li>The optional job wrapper MAY execute an operation on a worker thread, but only one operation per engine executes at a time, and results MUST be marshalled back to the owning thread before Lua observes them.</li></ul>
+<p>Any future relaxation MUST be an explicit, documented compatibility change.</p>
+<h3 id="2413-lifecycle-invariants">2.4.13 Lifecycle invariants</h3>
+<ul><li>The engine is always in a defined state, and invalid operations are rejected.</li><li>Initialization is deterministic and free of hidden global state, machine paths, and undocumented external resources.</li><li>Every engine-owned resource has a defined owner, lifetime, and cleanup responsibility.</li><li>Boundaries between engine internals, public API, Lua, and generated projects remain explicit.</li><li>The engine provides capability; Lua provides orchestration.</li><li>Resource identity is stable and independent of filesystem layout.</li><li>Operations behave identically regardless of caller.</li><li>Failure leaves the engine valid, resolvable, and cleanable.</li><li>Shutdown is deterministic from any valid state.</li><li>The whole lifecycle works offline from a clean checkout.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.2 Engine responsibility and role]] · [[2.6 Engine-Lua boundary]] · [[2.15 Error and transaction model]] · [[2.14 Extensibility model]] · [[2.7 Project generation model]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>packages: sqterm&#x27;s prefix · sqterm</title>
+<meta name="description" content="sqterm: packages: sqterm&#x27;s prefix">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqterm</a> · <code>packages/README.md</code> · <a href="https://github.com/squared-netizen/sqterm/blob/main/packages/README.md">on GitHub</a></p><h1 id="packages-sqterms-prefix">packages: sqterm's prefix</h1>
+<p>sqterm runs its programs from its own folder, <code>/data/data/dev.squared.sqterm/files/usr</code> (<code>$PREFIX</code> in its shell), as Termux runs its own. What is in it comes from packages built here, carried in the APK (<code>sq_android/assets/packages/</code>), and unpacked by the app the first time it starts. Decided in Sprint 12 (the plan's 12.0 and 12.5): squared's own recipes, each tool's latest stable release, only the tools in use, C, C++ or Lua only. GitHub Actions builds them with the same script (<code>.github/workflows/packages.yml</code>, decided 2026-11-04) and publishes them as a release.</p>
+<p><b>Offline.</b> No build makes a network request: <code>make packages</code> and <code>packages/build.sh</code> work from what is already on disk. The one step that downloads is <code>tools/fetch_packages.sh</code>, run on purpose: CI's packages, or the sources to build them here.</p>
+<pre><code class="lang-text">build.sh          checks the sources, builds and packs every recipe, writes the
+                  index; offline
+../tools/fetch_packages.sh  the download step: CI&#x27;s packages, or --sources
+sources.lock      sha256s of the sources that publish none, from their first download
+ncurses/recipe.sh ncurses 6.6: the terminal database (sqterm&#x27;s entry in it), tic, tput
+zsh/recipe.sh     zsh 5.9.2: the shell, static, its modules linked in
+zsh/zshrc         $PREFIX/etc/zshrc: keys, history, completion, a prompt; then
+                  what fish does out of the box (colours for files, completion
+                  that ignores case and takes part of a name, Up and Down
+                  searching the history by what is typed, a prompt with the
+                  failed status and the git branch) and the two plugins below
+                  when installed. SQTERM_PLAIN=1 in ~/.zshenv: none of that
+zsh-autosuggestions/, zsh-syntax-highlighting/
+                  zsh scripts (0.7.1, MIT; 0.8.0, BSD), git sources: the rest
+                  of a line offered in grey as it is typed, and the line
+                  coloured (a command that does not exist in red)
+pkg/recipe.sh     pkg (sq_app/pkg/pkg.cpp): list, files, update, upgrade,
+                  search, install (from the release, or a file), remove,
+                  backup; sqterm&#x27;s own, built from this repository (no
+                  download)
+mbedtls/, curl/   Mbed TLS 4.3.0 (Apache-2.0; static, for building) and curl
+                  8.23.0 (curl licence; HTTPS, in the APK): pkg&#x27;s downloads
+bash/ coreutils/ sed/ grep/ gawk/ make/
+                  GNU (GPLv3): bash 5.3, coreutils 9.8 (one binary, symbolic
+                  links), sed 4.9, grep 3.12, gawk 5.3.2
+                  (awk), make 4.4.1 (recipes run under /system/bin/sh). No findutils:
+                  its gnulib wants mktime_z (bionic: API 35); Android&#x27;s own
+                  find and xargs (toybox, /system/bin) serve
+sqdrive/          sqdrive 0.4.0 (MIT): the Virtual Cartridge Drive&#x27;s tool, a
+                  cartridge&#x27;s files read and written by range; C++23 modules,
+                  built by clang 23 against the sysroot and runtimes packages
+                  (not in the APK: pkg install sqdrive)</code></pre>
+<h2 id="as-cartridges-from-2026-11-19">As cartridges (from 2026-11-19)</h2>
+<p>Each package is also a squared cartridge, 3.0 (sqcart's spec, Appendix B.2: kind <code>package</code>), packed from the same install by <code>tools/pack_cartridges.sh</code> into <code>build/packages/cartridges/&lt;name&gt;-&lt;version&gt;.sq</code> (offline; not in any key). Its packer, <code>tools/cartridge</code> (<code>sqterm-pack</code>), is built for the build machine with sqcart's library (<code>third_party/sqcart</code>, copied by <code>tools/vendor_sqcart.sh</code>) and clang 23:</p>
+<ul><li>a file is an entry, flags <code>r</code>, and <code>x</code> when it was executable;</li><li>a symbolic link is no entry: the manifest's <code>consumers.sqterm.links</code> names it and its target, for pkg to make (a cartridge holds no link);</li><li>the manifest is <code>format_version</code> 3, and <code>case_sensitive: true</code> when two paths collide under case folding (the sysroot's Linux headers: a package unpacks to <code>$PREFIX</code>, which does not fold case);</li><li>many small files are compressed with a zstd dictionary trained on them.</li></ul>
+<p>CI publishes both forms, <code>&lt;name&gt;-&lt;version&gt;-&lt;key&gt;.tar.zst</code> and <code>.sq</code>, and two indexes: <code>index</code> (the tarballs, for the pkg already on phones) and <code>index-3</code> (the cartridges). pkg reads <code>index-3</code> first, and installs a <code>.sq</code> through sqcart's reader (<code>sq_app/src/unpack_cartridge.cpp</code>): each file verified as it is read, mode 0755 where its flags have <code>x</code>, the manifest's links made last, none that would leave the prefix. It still installs a tarball (<code>index</code>, the packages folder's index, <code>pkg backup</code>'s <code>.tar</code>). The tarballs stop once that pkg is everywhere. All the bundled packages come to about 16% more as cartridges than as tarballs (each file compressed alone, against a tarball's one stream): 12.0 MB against 10.3 MB, without llvm and lldb.</p>
+<h2 id="getting-them">Getting them</h2>
+<p>On the phone, in Termux, from sqterm's folder. Either CI's packages:</p>
+<pre><code class="lang-sh">pkg install curl                  # once
+tools/fetch_packages.sh           # the network step: CI&#x27;s release for these recipes
+make dev                          # offline: the APK, with them</code></pre>
+<p>or the sources, built here (a recipe changed here has no release until CI builds it from <code>main</code>):</p>
+<pre><code class="lang-sh">pkg install curl xz-utils zstd    # once
+tools/fetch_packages.sh --sources # the network step: the recipes&#x27; sources
+make packages                     # offline; or: bash packages/build.sh [name...]
+make dev</code></pre>
+<p><b>One key a package.</b> <code>bash packages/build.sh --keys</code> prints each package's name, version and key: 16 hex digits of a sha256 over its recipe folder (not the READMEs), the files outside it the recipe names in <code>inputs</code> (ncurses: <code>terminfo/sqterm.ti</code>), <code>build.sh</code>, its line in <code>sources.lock</code>, the API level, and the keys of what it depends on. A recipe changed changes that package's key and the keys of what depends on it, nothing else.</p>
+<p><code>tools/fetch_packages.sh</code> downloads <code>&lt;name&gt;-&lt;version&gt;-&lt;key&gt;.tar.zst</code> for each recipe as it is in this folder, from the GitHub release named <code>packages</code>, checks each against the <code>.sha256</code> beside it, and only once all have arrived and matched replaces what was in <code>sq_android/assets/packages/</code> (not kept in git; the APK build packs it) and writes the index. The repository is public: no token. Those sha256s guard against a broken download; they come from the same release, so they are not a signature. <code>--dry-run</code> says what it would download.</p>
+<p>CI builds only the packages whose archive the release lacks, when a change to <code>packages/</code> or <code>terminfo/sqterm.ti</code> reaches <code>main</code>, or when started by hand, and adds them to the release. Finished builds are kept in the Actions cache, and <code>build.sh</code> skips a package whose key, archive and install are already there (here as on CI), so an up-to-date package is not built again for one that depends on it. A pull request builds too, and keeps the result as a workflow artifact without publishing it. CI runs the same two steps: the sources first, then the offline build.</p>
+<p>The first build here takes several minutes (ncurses, then zsh). Commit <code>packages/sources.lock</code> when it changes: ncurses publishes a signature but no sha256, so <code>fetch_packages.sh --sources</code> records its first download there and the build checks every later one against it. CI never records one (<code>SQ_LOCKED=1</code>): a new source without a published sha256 is fetched on the phone once first.</p>
+<p><code>bash packages/build.sh --host-test</code> builds the same recipes for the machine it runs on, into <code>build/packages/host/</code> (nothing goes into the APK): a check of a recipe where there is no NDK. <code>SQ_HOST_PREFIX=&lt;dir&gt;</code> builds them for where they will be unpacked, if that is elsewhere (sqterm's host test harness).</p>
+<p><b>A cross build.</b> On CI's x86 Linux nothing built for Android can run. <code>build.sh</code> says so to the recipes (<code>SQ_CROSS=1</code>; 0 on an arm64 Android), and they give configure the answers it cannot find (zsh's cache values) and build what they must run for the build machine with <code>CC_FOR_BUILD</code> (ncurses: its build helpers, and a second <code>tic</code> that compiles the terminfo entries).</p>
+<p><b>No hard links.</b> Android refuses them in an app's files, Termux's home included (the first <code>make packages</code> on the phone, 2026-11-04: ncurses' tic, "cannot link l/lpr to p/printer"). A recipe makes symbolic links instead: ncurses is configured <code>--enable-symlinks</code>, zsh installs with <code>LN=cp</code>. A host test can be made to refuse them the same way, with a preloaded <code>link</code>/<code>linkat</code> that fail.</p>
+<h2 id="large-packages-bundledno">Large packages (bundled=no)</h2>
+<p>A recipe with <code>bundled=no</code> (llvm: clang and lld, LLVM 23.1.5) is built and published like the others but not carried in the APK: its archive goes to <code>build/packages/extra/</code>, the index leaves it out, and <code>tools/fetch_packages.sh</code> skips it. Get it on purpose and install it with pkg, so it is never stored twice:</p>
+<pre><code class="lang-sh">pkg install llvm                            # in sqterm: from the release (below)</code></pre>
+<p>or, without the network in sqterm, through Termux and the packages folder:</p>
+<pre><code class="lang-sh">tools/fetch_packages.sh --get llvm          # Termux: llvm, and what it needs, into /sdcard/sqterm/packages
+pkg install llvm                            # in sqterm: found there by name, offline</code></pre>
+<p>llvm is built on CI only (hours on a phone): CMake and Ninja, the NDK's CMake toolchain, LLVM's tablegen built for the build machine first (<code>CXX_FOR_BUILD</code>), ccache kept between runs.</p>
+<p><b>sysroot</b> (<code>bundled=no</code>) is what that clang compiles and links against: bionic's headers and the kernel's, libc, libm and libdl as link-time stubs for API 28, and the crt objects, all from AOSP's bionic (a git source, <code>git=</code> and <code>tag=</code> in the recipe, its commit in <code>sources.lock</code>), not from the NDK. <code>stubgen.awk</code> turns bionic's symbol lists into the stubs. It also installs <code>bin/clang.cfg</code> and <code>bin/clang++.cfg</code>, so plain <code>clang</code> uses it.</p>
+<p><b>runtimes</b> (<code>bundled=no</code>): compiler-rt's builtins, libunwind, libc++abi and libc++ 23, static, with libc++'s module sources (<code>import std</code>), built from the same LLVM sources against the sysroot by a clang 23 for the build machine (apt.llvm.org's on CI). With llvm and sysroot, clang in sqterm compiles, links and runs C and C++ programs, modules included. Also one shared library, <code>libc++_shared.so</code> (linked in <code>lib/</code> too), for a program and the shared libraries it loads: plain <code>clang++</code> still links libc++ in statically, and <code>-nostdlib++ -lc++_shared</code> asks for the shared one.</p>
+<p><b>llvm-tools</b> (<code>bundled=no</code>): clangd, clang-tidy and clang-doc, static binaries, built as llvm is.</p>
+<p><b>lldb</b> (<code>bundled=no</code>): lldb, lldb-server, lldb-dap (for an editor) and lldb-argdumper, front ends to <code>liblldb.so</code>; all of them use the runtimes' <code>libc++_shared.so</code>, found through a RUNPATH of <code>$PREFIX/lib</code>, so install runtimes first. Built as runtimes are (clang 23 for the build machine, the sysroot, no NDK), with CMake told the system is Android. No Python or Lua scripting, line editing or curses GUI yet: each is a library to build first.</p>
+<p><b>mbedtls</b> (<code>bundled=no</code>): Mbed TLS 4.3.0, TLS and X.509, static libraries and headers, built with CMake. curl links it in; nothing runs it.</p>
+<p><b>curl</b> (in the APK): curl 8.23.0, HTTP/1.1 and HTTPS through mbedtls, with Android's own trust store (<code>/system/etc/security/cacerts</code>, or the updatable one in <code>/apex/com.android.conscrypt/cacerts</code>, which the shell names in <code>SSL_CERT_DIR</code>). What pkg downloads with.</p>
+<h2 id="the-manifest-and-pkg">The manifest, and pkg</h2>
+<p>Every package carries <code>SQ-INF/manifest.json</code>, written by <code>build.sh</code>: the squared-cartridge envelope (sqcart's spec, kind <code>package</code>: <code>id</code>, <code>version</code>, <code>license</code>), and under <code>consumers.sqterm</code> the package's <code>key</code>, <code>api</code>, <code>built_with</code> and <code>files</code> (every file and link it installs, not directories). The app's first start and <code>pkg install</code> unpack it to <code>$PREFIX/var/lib/sqterm/pkg/&lt;name&gt;/manifest.json</code>, so packages never write over each other's.</p>
+<p><code>pkg</code> reads those records:</p>
+<pre><code class="lang-sh">pkg list                          # installed: name, version, key (and the index&#x27;s, if it differs)
+pkg files zsh                     # what zsh installed
+pkg update                        # settle the index: what there is, what differs here
+pkg upgrade                       # every installed package whose key differs, and missing needs
+pkg upgrade runtimes lldb         # or only those
+pkg search llvm                   # what there is, what it needs, which are installed
+pkg install lldb                  # by name: runtimes first (lldb needs it), then lldb
+pkg install ./zsh-5.9.2.tar       # or a file (what it needs, too, if an index knows it)
+pkg remove runtimes               # refused while lldb is installed (--force to insist)
+pkg backup zsh /sdcard/Download   # zsh-5.9.2.tar: its files as a package again
+pkg clean                         # empty the internal archive
+pkg info lldb                     # version, key, size, licence, needs, needed by, where its archive is
+pkg owns clang                    # which package installed bin/clang (or any path in the prefix)
+pkg install lldb --from sqterm    # one source only: archive, sqterm (the packages folder) or repo
+pkg upgrade --from repo           # the release&#x27;s index and fresh downloads, whatever is here</code></pre>
+<p><b>One source: <code>--from</code>.</b> <code>install</code>, <code>upgrade</code>, <code>update</code> and <code>search</code> look everywhere in turn unless told otherwise. <code>--from archive</code> uses only the internal archive and the index last settled on, <code>--from sqterm</code> only the packages folder and its index (neither touches the network), and <code>--from repo</code> only the release, downloading every archive afresh. Only a plain or <code>--from repo</code> run keeps the index it settles on.</p>
+<p><b>Names, not file names.</b> Every package is installed, upgraded and removed by its name. The keys and sha256s in archive names are pkg's to match, never anyone's to type.</p>
+<p><b>The index.</b> CI publishes, beside the archives, an <code>index</code>: <code>sqterm release index 2</code>, then a line a package, <code>name version key bundled sha256 needs</code>, for what main's recipes ask for, in build order (rewritten on every run on main). <code>needs</code> is what the package needs at run time, from <a href="https://github.com/squared-netizen/sqterm/blob/main/packages/needs"><code>needs</code></a> (comma-separated, or <code>-</code>). <code>tools/fetch_packages.sh --get</code> writes an index of the same form into the packages folder for what it fetched. <code>pkg update</code> (and upgrade, install NAME and search, which start with it) settles one: the release's, through curl, with what only the packages folder's index names after it; offline, the packages folder's (or the last one settled on, whichever is newer). It keeps it in <code>$PREFIX/var/lib/sqterm/release-index</code>. pkg also reads index version 1 (no needs).</p>
+<p><b>Where the archives are.</b> For each package it installs, pkg looks for that very archive (by its name, checked against the index's sha256) in:</p>
+<div class="tablewrap"><table><thead><tr><th>Folder</th><th>What it is</th></tr></thead><tbody><tr><td><code>$PREFIX/var/cache/sqterm/archive</code></td><td>the internal archive: what pkg downloaded, kept, one archive a package (<code>pkg clean</code> empties it)</td></tr><tr><td><code>/sdcard/sqterm/packages</code> (<code>$PKG_DIR</code>)</td><td>the packages folder: Termux writes it (<code>fetch_packages.sh --get</code>), and it survives the app</td></tr><tr><td><code>/sdcard/Download</code></td><td>a browser's</td></tr></tbody></table></div>
+<p>and only then downloads it from the release, into the internal archive. So <code>update</code> and <code>upgrade</code> work offline from the packages folder, a package reinstalled needs no network, and nothing is downloaded twice. A name no index knows is installed from the newest archive of it in the packages folder, then Download, unchecked.</p>
+<p>A package is compared by key, not by version: two builds of <code>runtimes 23.1.5</code> are two keys (2026-11-18: an old runtimes without <code>libc++_shared.so</code> read as up to date). <code>SQ_PACKAGES_URL</code> points pkg at a mirror (<code>&lt;url&gt;/packages/&lt;file&gt;</code>), as it does fetch_packages.sh.</p>
+<p>The sha256s guard against a broken or mixed-up file, and HTTPS the way there; they are not signatures. Packages the APK carries and pkg has upgraded are put back to the APK's own when an update of the app brings a different set.</p>
+<p>An upgrade (<code>pkg install</code> of a newer version) deletes the files the old version had and the new one has not, and the folders left empty. <code>--consume</code> deletes the file once it is installed, so a large package is not kept twice. <code>backup</code> writes a plain tar (<code>pkg install</code> takes it as it takes a .tar.zst). Reading shared storage needs the Files permission, granted once: Settings, Apps, sqterm, Permissions, Files.</p>
+<h2 id="what-a-recipe-is">What a recipe is</h2>
+<p><code>packages/&lt;name&gt;/recipe.sh</code>, sourced by <code>build.sh</code>:</p>
+<div class="tablewrap"><table><thead><tr><th>Variable or function</th><th>What</th></tr></thead><tbody><tr><td><code>version</code>, <code>file</code>, <code>url</code>, <code>mirrors</code></td><td>the source, and where else to find it</td></tr><tr><td><code>sha256</code></td><td>the source's, as published; empty: <code>sources.lock</code></td></tr><tr><td><code>top</code></td><td>the folder the source unpacks into</td></tr><tr><td><code>depends</code></td><td>recipes built first, whose headers and libraries it uses</td></tr><tr><td><code>keep</code></td><td>what the package carries, relative to the prefix</td></tr><tr><td><code>license</code></td><td>the package's licence, for its manifest</td></tr><tr><td><code>inputs</code></td><td>files outside the recipe folder that decide what is built (in its key)</td></tr><tr><td><code>recipe_patch</code></td><td>in the source: changes for Android (paths)</td></tr><tr><td><code>recipe_build</code></td><td>configure, make, <code>make install DESTDIR=&quot;$dest&quot;</code></td></tr><tr><td><code>recipe_after</code></td><td>in what was installed: the last touches (links, files of ours)</td></tr></tbody></table></div>
+<p>It is given <code>SQ_PREFIX</code> (the prefix), <code>SQ_HOST_TRIPLE</code> (<code>aarch64-linux-android</code>, empty in a host test), <code>SQ_CROSS</code> (1 when what it builds cannot run here), <code>CC</code> and the flags (the NDK's sysroot for API 28, 16 KB pages), <code>CC_FOR_BUILD</code>, <code>JOBS</code>, <code>ROOT</code> (sqterm's folder), <code>src</code> and <code>dest</code>.</p>
+<p><b>API 28.</b> The packages are built for Android 9 and later (2026-11-15: the Android 5.1 tablet is no longer a target). 28 is also sqterm's target SDK, which it keeps so it may run programs from its own files.</p>
+<h2 id="the-packages">The packages</h2>
+<p>Each is a ustar archive compressed with zstd (a 1 MB window: what the app's decoder holds while it unpacks), its files' paths relative to the prefix, sorted and dated at the epoch, so two builds of the same source give the same bytes. Executables are stripped. The index, <code>sqterm packages 1</code> and a line a package (<code>name version file sha</code>), is what the app compares with the one it last installed: when they differ, it unpacks them all again.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

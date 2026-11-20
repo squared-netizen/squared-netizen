@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control surface · squared-pg</title>
+<meta name="description" content="squared-pg: Control surface">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/engine/control-surface.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/engine/control-surface.md">on GitHub</a></p><h1 id="control-surface">Control surface</h1>
+<p>The <code>Engine</code> class. Developer counterpart: <a href="../../developer/engine/lifecycle.html">lifecycle</a>, <a href="../../developer/engine/architecture.html">architecture</a>.</p>
+<pre><code class="lang-cpp">#include &lt;squared/pg/engine.hpp&gt;</code></pre>
+<h2 id="engineconfig"><code>EngineConfig</code></h2>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Meaning</th></tr></thead><tbody><tr><td><code>resource_roots</code></td><td><code>vector&lt;path&gt;</code></td><td>directories scanned for resources, <b>in this order</b></td></tr><tr><td><code>engine_version</code></td><td><code>Version</code></td><td>reported to manifests; defaults to this build's version</td></tr><tr><td><code>strict_roots</code></td><td><code>bool</code></td><td>fail initialization when a root is absent (default <code>false</code>)</td></tr><tr><td><code>fast_durability</code></td><td><code>bool</code></td><td>relax fsync to journal transitions only (default <code>false</code>)</td></tr></tbody></table></div>
+<p>Root order matters: it decides which of two conflicting resources is reported first. Everything else about resource location is an implementation detail you should not depend on.</p>
+<h2 id="enginecreate"><code>Engine::create</code></h2>
+<pre><code class="lang-cpp">static std::unique_ptr&lt;Engine&gt; create(EngineConfig config);</code></pre>
+<p>Returns an uninitialized engine in state <code>created</code>. Never fails, never touches the filesystem, never reads configuration.</p>
+<p><b>You must shut down what you create.</b> The destructor will do it if you forget, but relying on that means you never see the result.</p>
+<h2 id="engineinitialize"><code>Engine::initialize</code></h2>
+<pre><code class="lang-cpp">[[nodiscard]] OperationResult initialize();</code></pre>
+<p>Registers services, builds the resource index, exposes the control surface.</p>
+<p><b>Precondition:</b> state is <code>created</code>. <b>Postcondition:</b> <code>ready</code> on success, <code>failed</code> on failure. <b>Errors:</b> <code>resource.identity.duplicate</code>, <code>resource.root.missing</code> (only with <code>strict_roots</code>), <code>internal.service.missing</code>.</p>
+<p>Warnings are normal here. A malformed third-party resource is reported and skipped, so check <code>warnings()</code> even on success.</p>
+<pre><code class="lang-cpp">auto engine = Engine::create(std::move(config));
+const auto started = engine-&gt;initialize();
+if (!started.succeeded()) {
+    for (const auto&amp; e : started.errors()) log(e.code, e.message);
+    return 1;
+}
+for (const auto&amp; w : started.warnings()) log(w.message);</code></pre>
+<h2 id="engineexecute"><code>Engine::execute</code></h2>
+<pre><code class="lang-cpp">[[nodiscard]] OperationResult execute(std::string_view operation, const Value&amp; parameters);</code></pre>
+<p>Synchronous. Does not return before its state changes are complete.</p>
+<p><b>Precondition:</b> state is <code>ready</code>. Calling from inside an operation is rejected — the engine is <code>operating</code> then, not <code>ready</code>.</p>
+<p><b>Errors:</b> <code>lifecycle.invalid_state</code>, <code>validation.operation.unknown</code>, <code>validation.parameter.invalid</code>, plus whatever the operation itself may return (listed per operation in <a href="operations.html">operations</a>, and in the descriptor's <code>error_codes</code>).</p>
+<p>Never throws. Never terminates the process. Every failure is a value.</p>
+<h2 id="introspection">Introspection</h2>
+<pre><code class="lang-cpp">std::span&lt;const OperationDescriptor&gt; operations() const noexcept;
+std::span&lt;const Capability&gt;          capabilities() const noexcept;
+const ResourceIndex&amp;                 resources() const noexcept;
+const OperationResult&amp;               last_result() const noexcept;
+Version                              version() const noexcept;
+LifecycleState                       state() const noexcept;</code></pre>
+<p><code>operations()</code> is the whole callable surface. Enumerate it rather than hardcoding names — this is how the Lua binding and the CLI both work, and it is why they never fall out of date.</p>
+<p><code>last_result()</code> is readable in states where <code>execute</code> is not, including <code>failed</code> and <code>shutdown</code>.</p>
+<h2 id="engineshutdown"><code>Engine::shutdown</code></h2>
+<pre><code class="lang-cpp">[[nodiscard]] OperationResult shutdown();</code></pre>
+<p>Safe from any valid state, including partial initialization failure. Releases services in reverse dependency order.</p>
+<p>After shutdown the instance is <code>destroyed</code> and must not be reused. Your process may carry on — the engine never assumes ownership of it.</p>
+<h2 id="lifecycle-at-a-glance">Lifecycle at a glance</h2>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>created</th><th>initializing</th><th>ready</th><th>operating</th><th>failed</th><th>shutdown</th><th>destroyed</th></tr></thead><tbody><tr><td><code>initialize</code></td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td><td>no</td><td>no</td></tr><tr><td><code>operations</code>/<code>capabilities</code></td><td>no</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>no</td><td>no</td></tr><tr><td><code>execute</code></td><td>no</td><td>no</td><td>yes</td><td>no</td><td>no</td><td>no</td><td>no</td></tr><tr><td><code>last_result</code></td><td>no</td><td>no</td><td>yes</td><td>yes</td><td>yes</td><td>yes</td><td>no</td></tr><tr><td><code>shutdown</code></td><td>yes</td><td>no</td><td>yes</td><td>no</td><td>yes</td><td>no</td><td>no</td></tr></tbody></table></div>
+<h2 id="threading">Threading</h2>
+<p>An instance is <b>not thread-safe</b> and belongs to the thread that created it. Several instances may coexist in one process provided no two target the same workspace.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

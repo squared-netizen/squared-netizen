@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace app · squared</title>
+<meta name="description" content="squared: namespace app">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/app/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/app/index.md">on GitHub</a></p><h1 id="namespace-app">namespace app</h1>
+<h2 id="records">Records</h2>
+<ul><li><a href="Application.html">Application</a></li><li><a href="BackgroundService.html">BackgroundService</a></li><li><a href="ClipboardService.html">ClipboardService</a></li><li><a href="Event.html">Event</a></li><li><a href="KeyModifiers.html">KeyModifiers</a></li><li><a href="Report.html">Report</a></li><li><a href="Runtime.html">Runtime</a></li><li><a href="SafeArea.html">SafeArea</a></li><li><a href="TextInputArea.html">TextInputArea</a></li><li><a href="TextInputRequest.html">TextInputRequest</a></li><li><a href="TextInputService.html">TextInputService</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(KeyModifiers , KeyModifiers )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/src/key_modifiers.cppm#L33">app/src/key_modifiers.cppm:33</a></i></p>
+<p><b>brief</b> Equal when the same modifiers are held.</p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(const SafeArea &amp; , const SafeArea &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/safe_area.cppm#L30">app/safe_area.cppm:30</a></i></p>
+<h2 id="enums">Enums</h2>
+<p>| enum class Key |</p>
+<p>--</p>
+<p>| unknown | | left | | right | | up | | down | | home | | end | | backspace | | delete_key | | enter | | space | | tab | | escape | | page_up | | page_down | | insert | | f1 | | f2 | | f3 | | f4 | | f5 | | f6 | | f7 | | f8 | | f9 | | f10 | | f11 | | f12 |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/src/key.cppm#L19">app/src/key.cppm:19</a></i></p>
+<p><b>brief</b> Portable key names for key events.</p>
+<p>The one key vocabulary in squared: the platform layer produces it in an Event, and the GUI routes it to the focused widget unchanged. A key squared does not name arrives as <code>unknown</code>, and nothing routes it.</p>
+<p>Letters and digits are not keys here: what a key types arrives as text (<code>Event::Type::TextInput</code>), with Ctrl and Alt in the event's modifiers. From <code>page_up</code> on (12.3d): the keys a terminal needs that a form does not.</p>
+<p>| enum class Navigation |</p>
+<p>--</p>
+<p>| unknown | | left | | right | | up | | down | | next | | previous | | activate | | cancel |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/src/navigation.cppm#L14">app/src/navigation.cppm:14</a></i></p>
+<p><b>brief</b> Semantic focus and navigation action, from any supported device.</p>
+<p>A D-pad, a gamepad and a keyboard's arrow and Tab keys all produce these. The GUI routes one to the focused widget first, then moves focus with it.</p>
+<p>| enum class TextInputPurpose |</p>
+<p>--</p>
+<p>| normal | | number | | email | | password |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/src/text_input_purpose.cppm#L13">app/src/text_input_purpose.cppm:13</a></i></p>
+<p><b>brief</b> Desired soft-keyboard content mode.</p>
+<p><b>sa</b> TextInputRequest::purpose</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

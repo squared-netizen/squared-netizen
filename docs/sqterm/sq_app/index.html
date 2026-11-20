@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sq_app: sqterm&#x27;s code · sqterm</title>
+<meta name="description" content="sqterm: sq_app: sqterm&#x27;s code">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqterm</a> · <code>sq_app/README.md</code> · <a href="https://github.com/squared-netizen/sqterm/blob/main/sq_app/README.md">on GitHub</a></p><h1 id="sq_app-sqterms-code">sq_app: sqterm's code</h1>
+<p>Everything here is sqterm's; the generator does not write here again. No layouts and no names.json: one screen, written in C++, holding one custom widget, and the addresses written by hand (<code>src/sqterm.hpp</code>).</p>
+<pre><code class="lang-text">src/sqterm.hpp         what the files share: the addresses, Shell, Glyphs, TerminalView
+src/main.cpp           squared_main: the model, the widget, the screen
+src/shell.cpp          the model: the shell in a pty, on the model&#x27;s thread
+src/terminal_view.cpp  the widget: the screen drawn, keys sent
+src/glyphs.cpp         the fonts, mapped from the APK; the glyph atlas and its texture
+src/prefix.cpp         the prefix: the APK&#x27;s packages copied out, unpacked (tar + zstd)
+third_party/zstd/      zstd&#x27;s decoder (one C file) and its headers</code></pre>
+<h2 id="how-it-fits-together">How it fits together</h2>
+<pre><code class="lang-text"> UI thread                         Telegraph                 model thread
+ TerminalView  -- do term.input  (keys, typed text) --&gt;     Shell -&gt; Pty -&gt; sh
+               -- do term.size   (columns, rows)    --&gt;       |  (watched: wakes
+               -- do term.scroll (lines back)       --&gt;       |   when sh writes)
+               &lt;-- snapshot term.screen (the whole screen) -- Terminal + ScreenPublisher
+               &lt;-- state term.completed (the shell ended) --
+               -- do term.copy   (two places)       --&gt;       Terminal::copy_text
+               &lt;-- snapshot term.copied (the text, for the clipboard) --</code></pre>
+<ul><li><b>Shell</b> (the model) watches the pty's descriptor (<code>Telegraph::watch</code>): it sleeps until the shell writes, a key comes, or Android's lifecycle reaches it. What the shell writes is fed to a <code>sq::term::Terminal</code>, and the screen is published whole (<code>sq::term::ScreenPublisher</code>). When the shell exits, the terminal says so as Termux does (`[Process completed (code N) - press Enter]<code>, or </code>(signal N)`), sets the state <code>term.completed</code>, and drops what is typed after.</li><li><b>TerminalView</b> (a custom node, <code>Stage::custom</code>) reads the newest screen each frame, puts the glyphs it shows into the atlas, and paints: backgrounds, then glyphs, then underlines. Named keys go through <code>sq::term::key_bytes</code>, Ctrl and Alt with a character through <code>key_text_bytes</code>, typed text as it is. A vertical drag scrolls back. Once <code>term.completed</code> is true, Enter calls <code>quit_app()</code> (the App kept by <code>squared_main</code>): the model stops, Android closes the activity, and the next launch starts a new shell.</li><li><b>Selecting</b> (12.4, in TerminalView): a long press (0.45 s, within 10 units) selects the word under the finger, and the finger still down moves its end; on blank space it shows the bar with Paste alone. The ends are <code>sq::term::TextPoint</code>s, the terminal's line numbers (the snapshot's <code>top_line</code> plus the row), so they stay on their text as more scrolls in. Two handles hang below the ends; a finger within 40 units takes one, and held at the top or bottom edge it scrolls a line each 60 ms. The bar (Copy, Paste) sits above the selection's first line, or below it at the top. Copy sends <code>do term.copy</code> ("from_line from_column to_line to_column"); the Shell answers with <code>Terminal::copy_text</code> in the snapshot <code>term.copied</code>, and the widget gives it to <code>stage.clipboard()</code>. Paste reads the clipboard whole, makes it <code>sq::term::paste_text</code>, and sends it as <code>term.input</code> in pieces of 1 KB as the rings take them, a frame at a time (the paste's buffer, about twice its size, is freed when it is sent). A tap elsewhere, or a key, puts the selection away.</li><li><b>Pinch zoom</b> (12.6b, in TerminalView): squared's Stage offers a two-finger pinch to the widget under it before it zooms the UI, and the terminal takes it (<code>TerminalView::pinch</code>): the font's size, in percent of 20 units, is the size at the pinch's start times its scale, to a step of 5 from 50 to 300. Each step makes the glyphs again at the new pixel size (the atlas cleared, the texture uploaded whole) and sends the new grid as <code>term.size</code>; between steps nothing happens. The size is the process's (a rotation makes the widget again), read from the app's files (<code>terminal.font</code>, the percent and a newline) at the first fit and written as the fingers lift.</li><li><b>The prefix</b> (12.5, <code>prefix.cpp</code>): <code>squared_main</code> makes <code>files/home</code> and <code>files/usr/tmp</code>, and calls <code>stage_packages</code>: the APK's <code>assets/packages/index</code> against <code>usr/var/lib/sqterm/packages</code>, the one last installed. When they differ, each archive is copied out of the APK (mapped: they are stored uncompressed) into <code>usr/var/cache/sqterm/</code>, so the model's thread reads plain files whatever happens to the activity. The Shell's <code>start</code> unpacks them into <code>files/usr</code> before the shell (the terminal says <code>[sqterm: unpacking zsh 5.9.2]</code> for each), removes the copies, and records the index. The reader takes ustar (files, directories, symbolic links, hard links as copies, the 155-byte prefix field), unlinks before it writes (a running program cannot be written over), and refuses a name or a link with <code>..</code> or a leading <code>/</code>. Then the shell is the prefix's zsh, as a login shell (<code>-l</code>), or Android's sh when there is none. Its environment: <code>TERM=sqterm</code>, <code>COLORTERM</code>, <code>LANG</code>, <code>HOME</code>, <code>TMPDIR</code> (<code>$PREFIX/tmp</code>, where zsh puts here-documents), <code>PREFIX</code>, <code>PATH</code> (<code>$PREFIX/bin</code> first, then <code>/system/bin</code>), <code>SHELL</code>, <code>SQTERM</code>, and Android's <code>ANDROID_DATA</code> and <code>ANDROID_ROOT</code>.</li><li><b>Running in the background</b> (12.6, <code>main.cpp</code>): <code>app.keep_running({.title = &quot;sqterm&quot;, .text = &quot;1 session&quot;})</code> once the Shell runs, with <code>BACKGROUND=1</code> in the Makefile: squared's foreground service keeps the process (and the shell) alive with sqterm off the screen. Exit in the notification is a quit (the shell ends); a quit, Enter after the shell ended included, stops the service.</li><li><b>Glyphs</b> (one for the process): JetBrains Mono NL regular and bold, mapped from the APK (stored uncompressed), Android's fonts for what they lack; a 1024 x 1024 coverage atlas and its alpha texture, which takes only the rectangle that changed. The Stage's surface hook (<code>Stage::on_surface</code>) brings the texture back after Android takes the surface away.</li></ul>
+<h2 id="memory">Memory</h2>
+<p>The model: the Terminal (two 80 x 24 grids to start, then the screen's size, and a 1 MB scrollback), a 16 KB read buffer, the three snapshot buffers (the screen, 12 bytes a cell).</p>
+<p>The prefix, while it unpacks (the first start, and after an update with new packages): zstd's decoder (about 100 KB) and its window (1 MB), 64 KB of input and 128 KB of output, freed when it is done; the archives' copies on disk until each is unpacked. Nothing after.</p>
+<p>The UI: the atlas's 1 MB image and its 1 MB texture on the GPU (the same at every font size: bigger glyphs fill it sooner), FreeType's faces (about 100 KB each), the fonts' mapped pages (clean, only what is read).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

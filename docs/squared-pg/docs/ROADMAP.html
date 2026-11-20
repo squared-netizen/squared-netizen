@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap · squared-pg</title>
+<meta name="description" content="squared-pg: Roadmap">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">squared-pg</a> · <code>docs/ROADMAP.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/ROADMAP.md">on GitHub</a></p><h1 id="roadmap">Roadmap</h1>
+<p>Where squared-pg stands after the 0.1.0-alpha.1 work, and what the next moves are in the order they make sense.</p>
+<p>Status is honest rather than optimistic: everything listed as done has been run on a device, and everything listed as missing is missing rather than partial.</p>
+<hr>
+<h2 id="where-it-stands">Where it stands</h2>
+<p><b>Working, tested on Termux/aarch64 and Linux/x86_64.</b> Engine lifecycle, service layer, operation registry, resource index over sqcart, plan production, transactional new-workspace generation with provenance. The Lua control layer and its generated binding. Two templates, four kits. Both build systems, seven engine suites, an end-to-end smoke test, and now CI.</p>
+<p><b>The Android path is proven end to end</b>: generate → build → package → sign → install → run, on a phone, with no Gradle and no Java.</p>
+<hr>
+<h2 id="0-done-since-this-was-written">0. Done since this was written</h2>
+<ul><li><b>Tooling ported to bash</b> (D-044). <code>release.sh</code>, <code>clang-check.sh</code>, <code>lua-check.sh</code>. The fish versions had two bugs that only appeared when run, and could not be run where they were written. The bash form is testable by whoever writes it, which is the whole point.</li></ul>
+<h2 id="1-close-the-books-on-the-alpha">1. Close the books on the alpha</h2>
+<p><i>Small, and everything else is easier afterwards.</i></p>
+<ul><li><b>Commit and tag.</b> <code>tools/release.fish tag</code>, then <code>publish</code>. CI drafts the release; nothing is public until the draft is published.</li><li><b>Watch the first CI run.</b> macOS has never been tested — the executable-path lookup has a Darwin branch nobody has executed. CI will say.</li></ul>
+<h2 id="2-pay-down-the-specification-debt">2. Pay down the specification debt</h2>
+<p><i>This is the item most likely to be skipped and most expensive to skip.</i></p>
+<p>Sixteen decisions — <b>D-029 through D-044</b> — are recorded in <code>docs/spec/_meta/Spec decisions.md</code>, and most of them end with "amend §X". None of the amendments has been made. The specification and the implementation now disagree in fifteen documented places, which means the spec has stopped being the thing you can read to understand the system.</p>
+<p>The largest is <b>D-030</b>: §2.8.1–2.8.3 describe a manifest envelope the engine does not implement, because the engine reads cartridges instead. §2.8 needs rewriting to say that generator resources <i>are</i> cartridges.</p>
+<p><code>docs/spec/_meta/spec-audit-01.md</code> was prepared for exactly this and has never been run. It is a two-phase plan — read-only audit, then edit mode applying only approved findings — and it predates all fifteen decisions.</p>
+<p><b>Open questions still unanswered:</b> Q-21 (template composition), Q-22 (build emission model), Q-23 (framework acquisition), Q-24 (metadata migration), Q-25 (invariant testability), Q-26 (sandboxed trust), Q-27 (identifier grammar), Q-28 (framework version default), Q-29 (requiring a kit by capability).</p>
+<h2 id="3-kitsfml-then-q-23">3. <code>kit.sfml</code>, then Q-23</h2>
+<p><i>Every template declares <code>requires.framework: &quot;&gt;=1.0.0 &lt;2.0.0&quot;</code>. There is no Squared framework, and nothing acquires one — but the order in which to fix that is now clear.</i></p>
+<h3 id="what-the-framework-is">What the framework is</h3>
+<p>From the project author, and worth recording because it settles the layering:</p>
+<p>Squared is a cross-platform framework of <b>high-level abstractions</b>. Not a thin portability shim over a backend — a stack:</p>
+<pre><code class="lang-text">application code                     sq_app/
+  └─ components                      text editor pane, debugger frontend,
+     │                               spreadsheet, markdown presentation pane,
+     │                               3D graphing pane
+     └─ primitives                   windows, screens, toolbars
+        └─ kit                       kit.sfml, kit.sdl3, kit.ncurses
+           └─ platform               Android, Linux, Termux</code></pre>
+<p>Components compose primitives the way Java Beans compose widgets. <code>squared-holodisk</code> — a fully virtual sqcart reader/writer that models a disk drive behind a high-level file abstraction — is a framework module rather than a generator concern.</p>
+<p>Two consequences follow immediately.</p>
+<p><b>The framework sits above kits, not beside them.</b> A Squared GUI that can run on SFML <i>or</i> SDL3 needs a backend to sit on, which is why <code>kit.sfml</code> has to work before the framework can be designed against it. The author's instinct to hold Q-23 until then is right, and this is the reason.</p>
+<p><b>So the framework is a package, not a vendored blob.</b> It is versioned, shared across projects, and independent of any one template — which is exactly what §2.7.6's package resource is for, and what makes <code>requires.framework</code> mean something. Vendoring it per template would fork it per project.</p>
+<p><b>And <code>squared-holodisk</code> is a second sqcart consumer.</b> The standing decision was that sqcart stays in-tree until one appears, with <code>git subtree split</code> as the path. One is now on the horizon.</p>
+<h3 id="the-order">The order</h3>
+<ol><li><b><code>kit.sfml</code>.</b> Also the first real test of <code>render.backend</code> — the single-arity conflict detection and the <code>__has_include</code> guard have one implementation behind them, and a design with one implementation is a hypothesis.</li><li><b>Q-23 proper</b>, against a working backend: how a project acquires the framework offline, what <code>sq_framework/</code> looks like in a workspace, and whether the build emission model (Q-22) needs to change to link it.</li><li>**Package materialisation (§2.7.6). Now implemented, and its first real consumer picked it up as a first real test.** <code>package.squared-core</code> lands through the shared payload helper (D-076), contributes <code>mk/pkg_squared_core.mk</code> as <code>generated</code>, uses the <code>shared</code> ownership class (D-077), and its payload is recorded in metadata packages + provenance (D-079) after passing the override/collision rules (D-078). The asset half of §2.7.6/§2.7.7 remains unimplemented — there are no asset bundles yet, and the framework only exercises the package half.</li></ol>
+<h2 id="4-regeneration--the-biggest-missing-engine-capability">4. Regeneration — the biggest missing engine capability</h2>
+<p><i>A generator's second day is more important than its first.</i></p>
+<p><code>project.generate</code> refuses an existing workspace. So today squared-pg can create a project and can never touch it again: no adding a kit, no updating a template, no fixing a generated build fragment. That is the capability people actually want from a generator once they have used it once.</p>
+<p>Nearly everything for it exists:</p>
+<div class="tablewrap"><table><thead><tr><th>Have</th><th>Need</th></tr></thead><tbody><tr><td>provenance hashes on every generated path</td><td>the write-ahead journal (§2.15.9)</td></tr><tr><td>a reified plan — an update plan is the same type</td><td>per-file staging under <code>.squared/staging/</code></td></tr><tr><td>ownership classes, enforced</td><td>crash recovery across the four journal states</td></tr><tr><td>metadata that reads back</td><td>the <code>damaged</code> terminal state (§2.15.13)</td></tr><tr><td></td><td>workspace locking (§2.15.12)</td></tr></tbody></table></div>
+<p>The reason it was deferred is still valid: a half-implemented journal corrupts user work in exactly the cases the journal exists to protect. But it is the right next <i>engine</i> project.</p>
+<h2 id="5-a-third-template-and-a-second-rendering-kit">5. A third template, and a second rendering kit</h2>
+<p><i>Both validate designs that currently have one implementation each.</i></p>
+<p>The vision names four project types: headless, terminal, ncurses TUI, and Android C++. Two exist.</p>
+<p><b><code>template.ncurses.cpp</code></b> would force Q-21. Two templates already share <code>sq_app/</code>, the Makefile-plus-fragment split, <code>.gitignore</code> and <code>.clang-format</code>, and a fix applied to one does not reach the other. At three templates that duplication stops being tolerable, which is exactly when composition becomes worth designing rather than speculating about.</p>
+<p><b><code>kit.sfml</code> or <code>kit.ncurses</code></b> would be the first real test of <code>render.backend</code>. The single-arity conflict detection, the <code>__has_include</code> guard and the swappable-renderer design all have exactly one implementation behind them, and a design with one implementation is a hypothesis.</p>
+<h2 id="6-smaller-worth-doing-when-convenient">6. Smaller, worth doing when convenient</h2>
+<ul><li><b>Q-26, sandboxed workflows.</b> Currently <i>refused</i> rather than enforced, which is honest but not useful. Needs a restricted <code>_ENV</code>, a whitelisted <code>require</code>, and a host-provided I/O channel — which ripples, because <code>squaredpg.report</code> writes to <code>io.stderr</code> directly.</li><li><b><code>sqpg doctor</code>.</b> The probe scripts report host capability for the <i>Android</i> toolchain; nothing reports it for the generator itself. A new user who hits a problem currently reads <code>BUILDING.md</code> and guesses.</li><li><b>Package and asset materialisation.</b> Blocked behind Q-23 in practice — there is nothing to materialise until the framework question is answered.</li><li><b>macOS.</b> Unverified until CI runs.</li><li><b>Release tarball size.</b> 26 MB, mostly <code>third-party/</code> documentation and test data that the build never touches. <code>export-ignore</code> in <code>.gitattributes</code> would slim it, but the existing <code>.gitattributes</code> protects byte-exact fixtures and is worth being careful around.</li></ul>
+<hr>
+<h2 id="suggested-order">Suggested order</h2>
+<ol><li>Tag the alpha, watch CI. <i>(hours)</i></li><li><b><code>kit.sfml</code></b> — validates <code>render.backend</code>, and gives the framework a backend to be designed against.</li><li>Run the spec audit and apply D-029…D-044. *(a focused pass; cheap in code, expensive to postpone)*</li><li><b>Q-23</b> against a working SFML backend: how a project acquires the framework offline, and what that makes of package materialisation.</li><li>Regeneration and the journal. *(the big engine project — and by then it knows what content model it is updating)*</li></ol>
+<p>Step 3 is worth slotting in wherever there is a gap; it does not depend on the others and the debt compounds. Step 5 is what makes squared-pg a tool people keep using rather than one they run once, and it is deliberately last because building an update path before knowing what a framework looks like in a workspace means building it twice.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

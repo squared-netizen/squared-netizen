@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limitations · squared-pg</title>
+<meta name="description" content="squared-pg: Limitations">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/engine/limitations.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/engine/limitations.md">on GitHub</a></p><h1 id="limitations">Limitations</h1>
+<p>What this build does not do. Everything here is a deliberate omission with a stated reason, not an oversight — and each is refused with a structured error rather than approximated.</p>
+<h2 id="regeneration-and-update-2711">Regeneration and update (§2.7.11)</h2>
+<p><b>Not implemented.</b> <code>project.generate</code> refuses an existing workspace with <code>filesystem.workspace.exists</code>.</p>
+<p>Needs the write-ahead journal (§2.15.9), per-file staging, crash recovery across the four journal states, and the <code>damaged</code> terminal state (§2.15.13). A half-implemented journal would corrupt user work in exactly the situations the journal exists to protect, so refusing is the correct failure.</p>
+<p>Already in place: provenance hashes on every generation, a reified plan, and enforced ownership classes. Missing: the journal and the apply-in-place loop.</p>
+<h2 id="workspace-locking-21512">Workspace locking (§2.15.12)</h2>
+<p><b>Not implemented.</b> No <code>.squared/lock</code>.</p>
+<p>Only meaningful once a second process could be mutating the same workspace, which requires regeneration to exist first.</p>
+<h2 id="package-materialization-276--packages-yes-assets-not-yet">Package materialization (§2.7.6) — packages yes, assets not yet</h2>
+<p><b>Packages materialize; assets do not.</b> <code>package.materialize</code> now writes payload through the shared <code>detail::payload_prefix()</code> helper (D-076), so the payload root follows D-031's exactly the way templates and kits do, with <code>shared</code> ownership defaulting to the glob table for <code>sq_app/</code> and <code>mk/</code> (D-077). Verified by §6 smoke: <code>package.squared-core</code> lands its full tree plus <code>mk/pkg_squared_core.mk</code>, 329 ownership rows in provenance, <code>override</code> of a template-owned path works, and an empty payload warns instead of failing (D-079).</p>
+<p><b>What is still missing is the journal, not the payload.</b> The regeneration half of §2.7.6 — an existing workspace that has <i>us</i>, the <code>shared</code> absorb/<code>regenerate</code> write-back through a journal — stays refused (<code>filesystem.workspace.exists</code>), exactly as §2.15.9's write-ahead journal would require. That deferral is recorded in D-077 and this file's [[ROADMAP item 3]] note. <code>shared</code> under materialization is also where the missing <code>merged</code>/absorb semantics show up; ownership hashes (D-077) and diagnostic names carry the load.</p>
+<p><b>Assets (§2.7.7) not.</b> The asset service resolves and validates, but does not write payload into the workspace — there are no assets to write yet.</p>
+<h2 id="template-composition-289-q-21">Template composition (§2.8.9, Q-21)</h2>
+<p><b>Not implemented.</b> A template provides its complete workspace foundation directly, which §2.8.9 explicitly permits.</p>
+<p>Two templates now exist, and they do share structure: <code>sq_app/</code>, the Makefile-plus-generated-fragment split, <code>.gitignore</code>, <code>.clang-format</code>. That is the first real evidence for composition, and the first real risk of drift — a fix applied to one template's Makefile does not reach the other. Worth revisiting once a third template exists, which is when the duplication stops being tolerable.</p>
+<h2 id="asset-transformation-2105">Asset transformation (§2.10.5)</h2>
+<p><b>Not implemented.</b> Only the identity transformation would apply, and there are no assets.</p>
+<h2 id="job-wrapper-246">Job wrapper (§2.4.6)</h2>
+<p><b>Not implemented.</b> Optional in the specification. Synchronous execution is the normative model and the only consumer today is a CLI that has nothing to do while it waits.</p>
+<h2 id="extension-services-and-plugins-2142">Extension services and plugins (§2.14.2)</h2>
+<p><b>Not implemented.</b> The capability registry exists and is enumerable; registering <i>additional</i> tokens from an extension does not. No plugin exists to register any.</p>
+<h2 id="sandboxed-workflow-trust-tier-2144">Sandboxed workflow trust tier (§2.14.4)</h2>
+<p><b>Declared, not enforced — and therefore refused.</b> Workflows declare <code>trust</code> in <code>workflow.json</code>. The host reads it and, for <code>sandboxed</code>, <b>refuses to run the workflow at all</b> (exit 3) rather than granting it the full standard library.</p>
+<p>Enforcement needs three things: a restricted <code>_ENV</code> (base library minus <code>load</code>, <code>loadfile</code> and <code>dofile</code>; no <code>debug</code>; <code>os</code> reduced to the clock functions; no <code>io</code>; no <code>package</code>), a whitelist-backed replacement for <code>require</code> since <code>package.path</code> is directory traversal with extra steps, and a host-provided I/O channel — which ripples, because <code>squaredpg.report</code> writes to <code>io.stderr</code> directly and could not run sandboxed as written.</p>
+<p>Refusing is the honest interim state. A tier that is declared but silently unenforced is worse than no tier at all: it invites exactly the assumption it fails to justify. Tracked as Q-26.</p>
+<h2 id="manifest-schema-divergence">Manifest schema divergence</h2>
+<p>The engine reads the <i>cartridge</i> manifest schema, not §2.8.3's envelope. See <a href="../resources/manifests.html">resources/manifests.md</a>. Recorded as D-030.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

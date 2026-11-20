@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.8 Templates · squared-pg</title>
+<meta name="description" content="squared-pg: 2.8 Templates">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.8 Templates.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.8 Templates.md">on GitHub</a></p><hr>
+<p>section: "2.8" title: Templates status: review tags: [spec, architecture, resources, templates]</p>
+<hr>
+<h1 id="28-templates">2.8 Templates</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.7 Project generation model]] · Next: [[2.9 Kits]]</p></blockquote>
+<blockquote><p>[!abstract] Scope This section defines <b>what a template is</b> and, because it is the first resource section, the <b>manifest envelope and identity grammar shared by all resource types</b>. How a template is composed into a project is [[2.7 Project generation model]] §2.7.4.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines the template resource: manifest, identity, parameters, processing, composition, and validation — plus the resource conventions all four resource types share.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; resource identifier grammar (shared)</li><li>&#9745; version and constraint grammar (shared)</li><li>&#9745; manifest envelope (shared)</li><li>&#9745; manifest location and discovery (shared)</li><li>&#9745; what a template represents</li><li>&#9745; template manifest block</li><li>&#9745; workspace structure and layer declaration</li><li>&#9745; working directory declaration</li><li>&#9745; parameter declaration</li><li>&#9745; ownership class declaration</li><li>&#9745; template processors and substitution syntax</li><li>&#9745; composition rules</li><li>&#9745; validation</li><li>&#9745; reference template set</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="281-resource-identifier-grammar">2.8.1 Resource identifier grammar</h3>
+<blockquote><p>[!note] Resolution of Q-04 (D-022)</p></blockquote>
+<pre><code class="lang-text">identifier   = type &quot;.&quot; segment { &quot;.&quot; segment }
+type         = &quot;template&quot; | &quot;kit&quot; | &quot;package&quot; | &quot;asset&quot;
+segment      = lower { lower | digit | &quot;-&quot; lower | &quot;-&quot; digit }
+lower        = &quot;a&quot;..&quot;z&quot;
+digit        = &quot;0&quot;..&quot;9&quot;</code></pre>
+<p>Rules:</p>
+<ul><li>Identifiers are lowercase. Case is significant and uppercase is invalid.</li><li>A segment MUST start with a letter. Hyphens MAY appear inside a segment but MUST NOT start or end it, and MUST NOT be doubled.</li><li>An identifier MUST have at least one segment after the type and MUST NOT exceed 128 characters.</li><li>Identifiers MUST be unique within their type across the active resource environment. A duplicate identity is an initialization failure, not a silent override.</li></ul>
+<p><code>template.android.cpp</code> is therefore valid: type <code>template</code>, segments <code>android</code> and <code>cpp</code>. Dots separate segments; they do not appear inside one.</p>
+<p>Reserved namespaces:</p>
+<ul><li><code>package.squared.*</code> — first-party Squared framework packages.</li><li><code>*.squared-pg.*</code> — reserved for generator-internal use.</li></ul>
+<p>Third-party resources SHOULD use a vendor segment, for example <code>kit.acme.raylib</code>.</p>
+<h4 id="an-identity-names-the-artifact-not-the-host">An identity names the artifact, not the host</h4>
+<p>A resource identity MUST describe <b>what the resource is or produces</b>, never where it happens to run or be built. Platform applicability belongs in <code>platforms</code>, which is data a resolver can act on; an identity is a name and a resolver cannot reason about it.</p>
+<p><code>template.termux.cpp</code> was renamed <code>template.terminal.cpp</code> for this reason: it produces a terminal application, and that Termux is a convenient place to build one is a property of the host, not of the artifact. Nothing about the template is Termux-specific, and the name was the only thing claiming otherwise.</p>
+<p><code>template.android.cpp</code> keeps its name under the same rule. Android is what it <i>produces</i> — an APK, a NativeActivity, a specific packaging model — not where it is built.</p>
+<p><code>kit.termux</code> is likewise correct: the thing it wraps is the Termux:API toolset. A kit that wraps a platform's facilities may name that platform, because the platform is its subject.</p>
+<h3 id="282-version-and-constraint-grammar">2.8.2 Version and constraint grammar</h3>
+<p>Versions are <b>SemVer 2.0.0</b>. Pre-release and build metadata are permitted; build metadata is ignored for ordering.</p>
+<p>A resource is referenced as <code>identity</code> or <code>identity@constraint</code>:</p>
+<div class="tablewrap"><table><thead><tr><th>Constraint</th><th>Meaning</th></tr></thead><tbody><tr><td><code>1.2.3</code></td><td>exactly 1.2.3</td></tr><tr><td><code>^1.2.3</code></td><td><code>&gt;=1.2.3 &lt;2.0.0</code></td></tr><tr><td><code>~1.2.3</code></td><td><code>&gt;=1.2.3 &lt;1.3.0</code></td></tr><tr><td><code>&gt;=1.2 &lt;2.0</code></td><td>explicit range</td></tr><tr><td><code>*</code> or omitted</td><td>any available version</td></tr></tbody></table></div>
+<p>Selection policy, which MUST be deterministic:</p>
+<ol><li>Collect all indexed versions of the identity.</li><li>Discard versions failing any accumulated constraint.</li><li>Sort descending by SemVer precedence.</li><li>Select the highest remaining version.</li><li>If none remain, fail with <code>*.version.unsatisfiable</code>.</li></ol>
+<p>Where dependency resolution requires backtracking, candidates MUST be visited in that same descending order, so that resolution is reproducible.</p>
+<p>Pre-release versions MUST NOT be selected unless explicitly requested by a constraint naming a pre-release.</p>
+<h4 id="partial-operands">Partial operands</h4>
+<p>A range operand MAY omit trailing components. <code>^1.0</code>, <code>&gt;=0.1</code> and <code>~1.2</code> are all legal and pad with zeros to three components: <code>^1.0.0</code>, <code>&gt;=0.1.0</code>, <code>~1.2.0</code>.</p>
+<p>A manifest's own <code>version</code> is <b>not</b> padded. An identity is exact and a resource that cannot say which version it is has a defect, not a default.</p>
+<p>The padding is not a convenience. Callers write:</p>
+<pre><code class="lang-cpp">if (range &amp;&amp; range-&gt;satisfied_by(candidate)) { ... }</code></pre>
+<p>so a range that fails to parse yields an empty optional and the constraint <b>silently never applies</b> — a resource declaring <code>^1.0</code> would accept every version in existence rather than failing to load. The failure mode of not padding is not an error message; it is a constraint that quietly evaporates.</p>
+<h3 id="283-manifest-envelope">2.8.3 Manifest envelope</h3>
+<blockquote><p>[!note] Resolution of Q-03 (D-021) Manifests are <b>JSON</b>, in a file named <code>manifest.json</code> at the resource root, parsed with the vendored yyjson. JSON is already a build dependency, is fully offline, has an unambiguous grammar, and — unlike Lua tables — is inert data that can be validated statically and read safely from a sandbox.</p></blockquote>
+<p>Every resource manifest, regardless of type, MUST contain this envelope:</p>
+<pre><code class="lang-json">{
+  &quot;schema_version&quot;: 1,
+  &quot;id&quot;: &quot;template.android.cpp&quot;,
+  &quot;type&quot;: &quot;template&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;description&quot;: &quot;Android C++ application workspace&quot;,
+
+  &quot;requires_engine&quot;: &quot;^1.0&quot;,
+  &quot;requires_capabilities&quot;: [
+    &quot;capability.template.substitute@^1.0&quot;,
+    &quot;capability.archive.zip@^1.0&quot;
+  ],
+
+  &quot;dependencies&quot;: [
+    { &quot;id&quot;: &quot;package.squared.core&quot;, &quot;version&quot;: &quot;^1.0&quot;, &quot;optional&quot;: false }
+  ],
+
+  &quot;platforms&quot;: [&quot;android&quot;],
+
+  &quot;template&quot;: { }
+}</code></pre>
+<p>Envelope rules:</p>
+<ul><li><code>schema_version</code> is an integer. An engine MUST refuse a manifest whose <code>schema_version</code> it does not support, with a structured error.</li><li><code>id</code> MUST match §2.8.1 and its <code>type</code> prefix MUST equal <code>type</code>.</li><li><code>version</code> MUST be valid SemVer.</li><li><code>requires_engine</code> constrains the engine version.</li><li><code>requires_capabilities</code> lists engine capability tokens (see [[2.14 Extensibility model]]).</li><li><code>dependencies</code> entries are resource references; <code>optional</code> defaults to <code>false</code>.</li><li>The type-specific block is named for the type: <code>template</code>, <code>kit</code>, <code>package</code>, or <code>asset</code>. Exactly one MUST be present and it MUST match <code>type</code>.</li><li>Unknown envelope keys MUST be preserved and ignored, so newer manifests remain readable by older engines within the same <code>schema_version</code>.</li></ul>
+<p>The <b>Resource Service</b> validates the envelope: JSON well-formedness, identity and version syntax, required keys, and integrity. The <b>owning typed service</b> validates the type block (D-012).</p>
+<h3 id="284-discovery-and-indexing">2.8.4 Discovery and indexing</h3>
+<p>Resources are discovered by scanning declared resource roots for directories containing <code>manifest.json</code>. Discovery produces the immutable resource index described in [[2.4 Engine lifecycle]] §2.4.4.</p>
+<p>Directory layout beneath a resource root is a maintainer convenience and MUST NOT form part of any contract. A resource MUST be locatable solely through the index.</p>
+<p>Discovery MUST be deterministic: roots are scanned in declared order, and entries within a root in sorted order, so that duplicate-identity conflicts are reported consistently rather than depending on filesystem enumeration order.</p>
+<h3 id="285-what-a-template-is">2.8.5 What a template is</h3>
+<p>A template defines <b>what kind of project is being created</b>. It provides:</p>
+<ul><li>workspace directory structure;</li><li>the working directory designation;</li><li>the layer location map;</li><li>initial application source files;</li><li>build system foundation;</li><li>kit, package, and platform integration points;</li><li>default project conventions;</li><li>the declared ownership class of every path it produces.</li></ul>
+<p>A template MUST be reusable across projects, MUST NOT contain environment- or user-specific data, and MUST NOT contain generator logic. Templates are declarative resources; behaviour belongs to the engine and to Lua.</p>
+<h3 id="286-template-manifest-block">2.8.6 Template manifest block</h3>
+<p>A template's declarations live in its cartridge manifest under <code>consumers.squared_pg</code> (cartridge format §5.6). <b>This section is the only normative definition of that schema.</b> The container format carries the section as opaque text and validates nothing inside it, so no rule below is enforced by <code>sqcart</code>.</p>
+<pre><code class="lang-json">&quot;consumers&quot;: {
+  &quot;squared_pg&quot;: {
+    &quot;project_types&quot;: [&quot;application&quot;],
+    &quot;working_directory&quot;: &quot;sq_app&quot;,
+    &quot;platforms&quot;: [&quot;all&quot;],
+
+    &quot;layers&quot;: {
+      &quot;application&quot;: [&quot;sq_app&quot;],
+      &quot;build&quot;:       [&quot;Makefile&quot;, &quot;mk&quot;]
+    },
+
+    &quot;integration_areas&quot;: [&quot;render.backend&quot;, &quot;app.entry&quot;],
+    &quot;integration_arity&quot;: { &quot;render.backend&quot;: &quot;single&quot; },
+
+    &quot;parameters&quot;: [
+      { &quot;name&quot;: &quot;project_name&quot;, &quot;type&quot;: &quot;identifier&quot;, &quot;required&quot;: true },
+      { &quot;name&quot;: &quot;namespace&quot;,    &quot;type&quot;: &quot;identifier&quot;, &quot;required&quot;: false,
+        &quot;default_from&quot;: &quot;project_name&quot; }
+    ],
+
+    &quot;processor&quot;: &quot;substitute&quot;,
+    &quot;executable&quot;: [&quot;run.sh&quot;],
+
+    &quot;requires&quot;: {
+      &quot;engine&quot;:       &quot;&gt;=0.1.0 &lt;0.2.0&quot;,
+      &quot;framework&quot;:    &quot;&gt;=1.0.0 &lt;2.0.0&quot;,
+      &quot;capabilities&quot;: [&quot;capability.project.plan@^1.0&quot;],
+      &quot;packages&quot;:     [],
+      &quot;kits&quot;:         { &quot;required&quot;: [&quot;kit.terminal&quot;], &quot;optional&quot;: [&quot;kit.lua&quot;] }
+    },
+
+    &quot;ownership&quot;: {
+      &quot;generated&quot;: [&quot;mk/squared_generated.mk&quot;],
+      &quot;user&quot;:      [],
+      &quot;shared&quot;:    [],
+      &quot;default&quot;:   &quot;user&quot;
+    }
+  }
+}</code></pre>
+<h4 id="members">Members</h4>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>Type</th><th>Absent</th><th>Read by</th></tr></thead><tbody><tr><td><code>working_directory</code></td><td>string</td><td>no working directory; every path is generator-visible</td><td>resolution</td></tr><tr><td><code>platforms</code></td><td>array of string</td><td>admits every platform</td><td>resolution</td></tr><tr><td><code>layers</code></td><td>object of arrays</td><td>no layer mapping</td><td>planning</td></tr><tr><td><code>integration_areas</code></td><td>array of string</td><td>the template offers no anchors</td><td>resolution</td></tr><tr><td><code>integration_arity</code></td><td>object</td><td>every area is <code>single</code></td><td>planning</td></tr><tr><td><code>parameters</code></td><td>array of objects</td><td>no declared parameters</td><td>planning, validation</td></tr><tr><td><code>processor</code></td><td>string</td><td><code>substitute</code></td><td>planning</td></tr><tr><td><code>executable</code></td><td>array of glob</td><td>nothing is marked executable</td><td>planning</td></tr><tr><td><code>requires.engine</code></td><td>range</td><td>unconstrained</td><td>indexing</td></tr><tr><td><code>requires.framework</code></td><td>range</td><td>unconstrained</td><td>resolution</td></tr><tr><td><code>requires.capabilities</code></td><td>array of token</td><td>demands nothing</td><td>resolution</td></tr><tr><td><code>requires.packages</code></td><td>array of identity</td><td>none</td><td>validation</td></tr><tr><td><code>requires.kits.required</code></td><td>array of identity</td><td>none</td><td>validation</td></tr><tr><td><code>requires.kits.optional</code></td><td>array of identity</td><td>none</td><td><i>not read</i></td></tr><tr><td><code>ownership</code></td><td>object</td><td>every path is <code>seeded</code></td><td>planning</td></tr><tr><td><code>project_types</code></td><td>array of string</td><td>—</td><td><i>not read</i></td></tr></tbody></table></div>
+<h4 id="malformed-values-fall-back-processor-does-not">Malformed values fall back; <code>processor</code> does not</h4>
+<p>A member whose value is of the wrong shape is treated as absent and takes the default in the table above. It is not an error.</p>
+<p>This is deliberate and it is the consequence of §5.6: no reader validates the section, so a manifest can carry anything, and a generator that refused to run over an unrecognised value would be unable to open a cartridge written for a newer version of itself.</p>
+<p><b><code>processor</code> is the exception.</b> An unrecognised processor MUST fail with <code>capability.unsatisfied</code> rather than falling back to <code>substitute</code>. The other members describe <i>what to generate</i>; <code>processor</code> describes <i>how to transform content</i>, and silently substituting the wrong transform would produce a workspace that looks correct and is not.</p>
+<h4 id="ownership"><code>ownership</code></h4>
+<p>The three pattern lists MUST NOT overlap one another (§2.7.10). <code>default</code> is the class taken by any path no pattern matches; where <code>default</code> is absent, an unmatched path is <code>seeded</code>.</p>
+<p>The manifest's vocabulary is not the engine's. <code>user</code> here means <i>the author owns this file</i>, which the engine records as <code>seeded</code> — written once and never rewritten. <code>OwnershipClass::user</code> describes a file the generator never writes at all, which no manifest can enumerate. <code>shared</code> is §2.7.10's reserved <code>merged</code> and is also recorded as <code>seeded</code> in v1 (D-020).</p>
+<h4 id="members-read-by-nothing">Members read by nothing</h4>
+<p><code>project_types</code> and <code>requires.kits.optional</code> appear in every shipped template and no code reads either.</p>
+<p>They are recorded here rather than quietly omitted, because an author copying a shipped manifest will copy them and be entitled to assume they do something. They are reserved: an implementation MUST accept them and MUST NOT rely on them. Removing them is a decision for the version that gives them meaning or deletes them.</p>
+<p>Rules:</p>
+<ul><li><code>working_directory</code> MUST name exactly one path (D-001). It MUST appear in the <code>application</code> layer. No <code>generated</code>-class path may fall inside it.</li><li><code>layers</code> MUST declare a location for each layer the template uses. A layer with no content MAY be omitted.</li><li><code>integration_points</code> names the anchors kits and packages may write to ([[2.9 Kits]]).</li><li><code>files</code> entries MAY use glob patterns. The most specific matching entry wins; where two patterns are equally specific the manifest is invalid, not resolved by order.</li><li>A path matching no entry defaults to <code>seeded</code> (D-004).</li></ul>
+<h3 id="287-parameters">2.8.7 Parameters</h3>
+<p>Parameters are declared with a name, a type, and whether they are required. Parameter types are drawn from a closed vocabulary — <code>string</code>, <code>identifier</code>, <code>java_package</code>, <code>path</code>, <code>bool</code>, <code>integer</code>, <code>enum</code> — so that validation is performed by the engine rather than by template logic.</p>
+<h4 id="the-effective-parameter-set">The effective parameter set</h4>
+<p>Validation is performed against the <b>effective</b> set, not against the declared one. Three layers contribute, and every step is put-if-absent, so precedence runs:</p>
+<p>workflow value  &gt;  engine built-in  &gt;  declared default</p>
+<p>The layers are <i>applied</i> in the opposite order from that precedence:</p>
+<ol><li><b>Workflow values.</b> Whatever the invocation supplied. Present first, so everything below can only fill gaps.</li><li><b>Engine built-ins.</b> Contributed by the engine, never declared by the template.</li><li><b>Declared defaults.</b> The template's own <code>default</code> and <code>default_from</code>, applied <b>last</b>.</li></ol>
+<p>Defaults come last so that <code>&quot;default_from&quot;: &quot;project_name&quot;</code> resolves: the built-in it references must already be present when the default is evaluated. Applying them first — the ordering a reader would assume, and the one this section stated before D-053 — would make every <code>default_from</code> referencing a built-in silently produce an empty value.</p>
+<p>The order costs nothing else. Because each step is put-if-absent, a workflow value still wins over both, and a template default for a name the engine also provides is redundant rather than in conflict.</p>
+<h4 id="engine-built-ins">Engine built-ins</h4>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody><tr><td><code>project_name</code></td><td>the requested project name</td></tr><tr><td><code>namespace</code></td><td>the project name, unless overridden</td></tr><tr><td><code>working_directory</code></td><td>the resolved working directory</td></tr><tr><td><code>generator_version</code></td><td>the running engine's version</td></tr><tr><td><code>template_id</code></td><td>the resolved template's identity</td></tr><tr><td><code>template_version</code></td><td>the resolved template's version</td></tr><tr><td><code>framework_version</code></td><td>the requested framework version, or <code>0.0.0</code></td></tr><tr><td><code>kit_list</code></td><td>the resolved kit identities, comma-separated, or <code>none</code></td></tr></tbody></table></div>
+<p>Every built-in derives from the request or from the engine. <b>None derives from the environment or the clock</b>: §2.7.2 forbids ambient inputs, and §2.7.13 requires byte-identical output from equivalent inputs, which a timestamp would destroy.</p>
+<p>A template MAY declare a parameter that shares a built-in's name. Doing so has no effect unless the built-in is absent, which for the eight above it never is.</p>
+<p>Lua acquires parameter values. The engine validates them against the declared contract. The engine MUST NOT prompt; missing or invalid parameters produce a structured validation error naming each one.</p>
+<p>A parameter MAY declare a <code>default</code> or a <code>default_from</code> referencing another parameter. Defaults MUST be pure derivations, never environment lookups.</p>
+<h3 id="288-processing">2.8.8 Processing</h3>
+<p>A template declares a processor. The engine MAY provide several; each is an engine capability token.</p>
+<div class="tablewrap"><table><thead><tr><th>Processor</th><th>Behaviour</th></tr></thead><tbody><tr><td><code>copy</code></td><td>direct materialization, no substitution</td></tr><tr><td><code>substitute</code></td><td>variable substitution plus conditional file inclusion</td></tr></tbody></table></div>
+<p>Substitution syntax is <code>{{ parameter_name }}</code>. A literal brace pair is escaped as <code>{{&quot;{{&quot;}}</code>. An unknown parameter reference is an error, never an empty string — silent substitution failure produces broken projects that look generated correctly.</p>
+<p>Conditional inclusion is declared in the manifest, not embedded in file content, so that the file set is knowable before any file is read:</p>
+<pre><code class="lang-json">{ &quot;path&quot;: &quot;sq_app_android/**&quot;, &quot;class&quot;: &quot;generated&quot;, &quot;when&quot;: &quot;platform == android&quot; }</code></pre>
+<p>Processing MUST be deterministic and MUST NOT depend on undocumented global state.</p>
+<p><i>Pattern: Strategy. Processors are selected by manifest declaration; adding one requires no change to the Template Service core.</i></p>
+<h3 id="289-composition">2.8.9 Composition</h3>
+<p>Templates MAY support composition. Where supported:</p>
+<ul><li>each composed template retains its own identity and version;</li><li>composition order MUST be declared and deterministic;</li><li>circular composition MUST be rejected;</li><li>the composed result MUST declare exactly one working directory and one layer map;</li><li>conflicting <code>files</code> entries between composed templates MUST be an error, not a silent last-wins.</li></ul>
+<p>Where composition is not implemented, a template MUST provide its complete workspace foundation directly.</p>
+<h3 id="2810-validation">2.8.10 Validation</h3>
+<p>Before use a template MUST be validated for: envelope correctness, type block correctness, identity and version syntax, referenced files existing, parameter declarations well-formed, ownership classes assignable, processor availability, declared kit and package references resolvable, layer map completeness, and working directory validity.</p>
+<p>An invalid template MUST NOT enter generation.</p>
+<h3 id="2811-reference-template-set">2.8.11 Reference template set</h3>
+<pre><code class="lang-text">template.headless      no I/O layer; library or service projects
+template.terminal      standard I/O application
+template.ncurses       TUI application
+template.android.cpp   Android C++ application workspace</code></pre>
+<p>These are the templates the first release targets, drawn from the project vision.</p>
+<h2 id="open-questions">Open questions</h2>
+<ul><li><b>Q-21</b> — is composition implemented in v1? The four reference templates share substantial structure, which argues for it; self-contained templates are simpler and cannot produce composition-order bugs. Decide when the reference templates are authored.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.7 Project generation model]] · [[2.9 Kits]] · [[2.10 Assets and generator resources]] · [[2.11 Packages]] · [[1.5 Resources]] · [[2.14 Extensibility model]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

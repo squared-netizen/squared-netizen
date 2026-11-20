@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TelegramData · squared</title>
+<meta name="description" content="squared: class TelegramData">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegramData.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegramData.md">on GitHub</a></p><h1 id="class-telegramdata">class TelegramData</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L15">messaging/telegram_data.cppm:15</a></i></p>
+<p><b>brief</b> A data area for telegrams' text and uid lists, filled from the front: where <code>read_telegram</code> puts what it reads, and what a test or a replay file hands <code>write_telegram</code>. Over storage its owner gives it; it allocates nothing. (The Telegraph's rings keep their own.)</p>
+<h2 id="functions">Functions</h2>
+<h3 id="telegramdata">TelegramData</h3>
+<p><i>public void TelegramData(std::span&lt;std::byte&gt; storage)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L18">messaging/telegram_data.cppm:18</a></i></p>
+<h3 id="append">append</h3>
+<p><i>public std::optional&lt;DataRef&gt; append(std::span&lt;const std::byte&gt; bytes)</i></p>
+<p><b>brief</b> Copy <code>bytes</code> in. Nothing when they do not fit.</p>
+<h3 id="at">at</h3>
+<p><i>public std::span&lt;const std::byte&gt; at(DataRef where)</i></p>
+<p><b>brief</b> The bytes at <code>where</code>; empty when <code>where</code> is outside what was appended.</p>
+<h3 id="bytes">bytes</h3>
+<p><i>public std::span&lt;const std::byte&gt; bytes()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L29">messaging/telegram_data.cppm:29</a></i></p>
+<p><b>brief</b> Everything appended, for <code>write_telegram</code>.</p>
+<h3 id="capacity">capacity</h3>
+<p><i>public std::size_t capacity()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L51">messaging/telegram_data.cppm:51</a></i></p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L48">messaging/telegram_data.cppm:48</a></i></p>
+<p><b>brief</b> Forget everything appended.</p>
+<h3 id="reserve">reserve</h3>
+<p><i>public std::optional&lt;DataRef&gt; reserve(std::size_t length)</i></p>
+<p><b>brief</b> Room for <code>length</code> bytes at the end, to be filled through <code>writable</code>: for a reader that decodes in place. Nothing when it does not fit.</p>
+<h3 id="rewind">rewind</h3>
+<p><i>public void rewind(std::size_t used)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L45">messaging/telegram_data.cppm:45</a></i></p>
+<p><b>brief</b> Forget what was appended after the first <code>used</code> bytes.</p>
+<h3 id="used">used</h3>
+<p><i>public std::size_t used()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_data.cppm#L50">messaging/telegram_data.cppm:50</a></i></p>
+<h3 id="writable">writable</h3>
+<p><i>public std::span&lt;std::byte&gt; writable(DataRef where)</i></p>
+<p><b>brief</b> The bytes at <code>where</code>, to fill; empty outside what was appended.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

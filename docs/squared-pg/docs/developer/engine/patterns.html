@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design patterns · squared-pg</title>
+<meta name="description" content="squared-pg: Design patterns">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/engine/patterns.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/engine/patterns.md">on GitHub</a></p><h1 id="design-patterns">Design patterns</h1>
+<p>Every pattern the engine uses, why it was chosen over the alternatives, and where it deviates from the textbook form. Required by AGENTS.md §"Design patterns" and by <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02%20Generator%20architecture/2.2%20Engine%20responsibility%20and%20role.md">§2.2 of the specification</a>.</p>
+<p>Programmer counterpart: <a href="../../programmer/engine/control-surface.html">control surface</a>.</p>
+<hr>
+<h2 id="state--engine-lifecycle">State — engine lifecycle</h2>
+<p><b>Where.</b> <code>LifecycleState</code> in <code>engine/include/squared/pg/engine.hpp</code>; enforcement in <code>Engine::execute</code>, <code>Engine::initialize</code> and <code>Engine::shutdown</code>.</p>
+<p><b>Why.</b> §2.4.11 defines seven states and a legality matrix over them. The alternative is a scatter of <code>if (!initialized_)</code> guards at every service entry point, which has two problems: the matrix stops being reviewable as a single artefact, and every new entry point is a chance to forget one.</p>
+<p><b>Deviation.</b> No state objects and no virtual dispatch. The states have no behaviour of their own — they only permit or forbid — so a <code>switch</code> in three places is the honest encoding, and introducing seven classes to hold no data would obscure rather than clarify.</p>
+<p><b>Consequence worth knowing.</b> Nested operation execution is rejected for free: an engine inside an operation is <code>operating</code>, not <code>ready</code>, and <code>execute</code> admits only <code>ready</code>. §2.4.11 requires that rejection and it costs no extra code.</p>
+<hr>
+<h2 id="service-locator--engine-services">Service Locator — engine services</h2>
+<p><b>Where.</b> <code>ServiceLocator</code> in <code>engine/src/services/services.hpp</code>; registration in <code>Engine::Impl::register_services</code>.</p>
+<p><b>Why.</b> §2.4.3 names it directly. Ten services need to reach each other without every one taking nine constructor parameters, and the registry is enumerable, which <code>engine.describe</code> exposes.</p>
+<p><b>Deviation, and it matters.</b> The textbook Service Locator is a process-wide singleton. This one is an instance member, because §2.4.12 permits several engines in one process and §2.4.13 forbids hidden global state. A global registry would make two engines in one process silently share services — and "no two instances may target the same workspace" would become unenforceable.</p>
+<p><b>Deviation.</b> Lookup is <code>locator.get&lt;T&gt;()</code>, keyed on a <code>static constexpr kServiceName</code> on each service type rather than on a string the caller types. A typo becomes a compile error instead of a runtime null.</p>
+<p><b>Rejected.</b> Constructor injection throughout. It is better for testability in the small, but the services form a graph with the Filesystem and Resource services near the root, and threading them through by hand made <code>register_services</code> unreadable for no gain the locator does not give.</p>
+<hr>
+<h2 id="command--operations-and-the-generation-plan">Command — operations and the generation plan</h2>
+<p><b>Where.</b> <code>OperationDescriptor</code> + handler in <code>Engine::Impl</code>; <code>PlanStep</code> and <code>GenerationPlan</code> in <code>engine/include/squared/pg/plan.hpp</code>.</p>
+<p><b>Why, for operations.</b> §2.4.6 requires the registry to be enumerable so that Lua, tooling and documentation can discover operations without hardcoding them. Reifying each operation as a descriptor plus a handler is what makes <code>engine.operations</code> possible, and it is why the Lua binding is <i>generated</i> from the registry rather than hand-listed (§2.6.3) — the two cannot drift.</p>
+<p><b>Why, for the plan.</b> §2.7.9 requires the engine to produce the complete ordered set of operations and paths generation would produce, without mutating anything, and then requires executing that plan to produce the workspace it described. Building a list of <code>PlanStep</code> objects and having both <code>project.plan</code> and <code>project.generate</code> consume the same list is what makes that guarantee structural. A dry run computed by a second code path is a dry run that can lie.</p>
+<p><b>Deviation.</b> A <code>PlanStep</code> has no <code>execute()</code>. Execution lives in the Transaction Service. Two reasons: ordering, journalling and rollback are one decision and belong in one place rather than distributed across step subclasses; and a plan must be producible by an engine holding no workspace lock (§2.15.12), which a step that knows how to write itself would invite someone to violate.</p>
+<p><b>Deviation.</b> Step content is resolved at plan time, not apply time — the step carries the exact bytes. That is heavier in memory, and it is the reason "executing a plan produces what the plan described" is true rather than approximately true.</p>
+<hr>
+<h2 id="strategy--template-processors">Strategy — template processors</h2>
+<p><b>Where.</b> The <code>processor</code> manifest field, read in <code>ProjectService::build_plan</code>; <code>copy</code> and <code>substitute</code> are the two implementations.</p>
+<p><b>Why.</b> §2.8.8 names the pattern and requires that adding a processor need no change to the Template Service core. Selection is by manifest declaration, so a template chooses its own processing without the engine branching on identity.</p>
+<p><b>Deviation.</b> Two processors do not yet justify a polymorphic family, so this is currently a branch, not a class hierarchy. The <i>seam</i> is in the right place — the manifest field, the capability token, the unavailable-processor error — so promoting it later is local. Registering an abstract <code>Processor</code> interface with two implementations today would be the pattern without the benefit.</p>
+<p><b>Related.</b> Asset transformers are the same family keyed by asset type and platform (§2.10.5). Not implemented; see <a href="limitations.html">limitations</a>.</p>
+<hr>
+<h2 id="factory--engine-creation">Factory — engine creation</h2>
+<p><b>Where.</b> <code>Engine::create</code>, returning <code>std::unique_ptr&lt;Engine&gt;</code>.</p>
+<p><b>Why.</b> §2.4.1 requires an explicit runtime object with a well-defined ownership boundary, and states there is no global instance and no singleton. A private constructor plus a static factory makes "the component that created it is responsible for shutting it down" the only expressible arrangement.</p>
+<hr>
+<h2 id="facade--engine-and-sqcartcartridge">Facade — Engine, and sqcart::Cartridge</h2>
+<p><b>Where.</b> <code>Engine</code> over ten services; <code>sqcart::Cartridge</code> over the container codec, JSON parser, path validator and limit accountant.</p>
+<p><b>Why.</b> §2.6.1 forbids the boundary from exposing internal classes, service implementation details or filesystem internals. One narrow type in front of ten is what lets the engine's internals be rearranged without a compatibility change.</p>
+<hr>
+<h2 id="pimpl--engine-cartridge-manifest">Pimpl — Engine, Cartridge, Manifest</h2>
+<p><b>Where.</b> <code>Engine::Impl</code>, and sqcart's equivalents.</p>
+<p><b>Why.</b> <code>engine.hpp</code> names no service type, no sqcart type and no yyjson type. A consumer compiling against the public header pulls in <code>&lt;filesystem&gt;</code>, <code>&lt;memory&gt;</code>, <code>&lt;span&gt;</code> and the project's own value types — nothing more. This is what makes the public/private boundary in §1.3 real rather than declared.</p>
+<p><b>Cost.</b> One allocation per engine and one indirection per call. Both are irrelevant at the frequency the control surface is called.</p>
+<hr>
+<h2 id="builder--plan-construction">Builder — plan construction</h2>
+<p><b>Where.</b> <code>ProjectService::build_plan</code>.</p>
+<p><b>Why.</b> A <code>GenerationPlan</code> has a dozen fields that must be consistent with one another, assembled from four resolved resource kinds. A constructor taking twelve arguments would be unreadable and would not express that some fields are derived from others.</p>
+<p><b>Deviation.</b> A free function rather than a builder class. The plan is built in exactly one place and never partially, so a class that exists to be filled in across several call sites would be ceremony.</p>
+<hr>
+<h2 id="not-used-and-why">Not used, and why</h2>
+<p><b>Observer.</b> No engine event needs more than one consumer. Diagnostics are accumulated into the result (§2.4.7), which is the shape a workflow can act on; a subscriber list would add a second reporting channel §2.15.6 explicitly says should not exist.</p>
+<p><b>Object Pool.</b> Nothing is allocated at a frequency that justifies it. A generation run is one pass over a few dozen files.</p>
+<p><b>Abstract Factory.</b> Resource kinds have distinct manifest bodies and distinct validation, but they are resolved by four separate typed services on purpose (D-012), not produced by a common factory. A shared factory would need a common resource base class, and the four kinds have almost nothing in common past the envelope — which sqcart already handles.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class ButtonGroup · squared</title>
+<meta name="description" content="squared: class ButtonGroup">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/ButtonGroup.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/ButtonGroup.md">on GitHub</a></p><h1 id="class-buttongroup">class ButtonGroup</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L21">gui/button_group.cppm:21</a></i></p>
+<p><b>brief</b> Non-owning coordinator for toggle buttons and radio-style choices.</p>
+<p>A button may belong to at most one group. The group and every registered button detach from each other during destruction, so either may be owned by an ordinary Widget subtree without imposing a second ownership hierarchy.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="buttongroup">ButtonGroup</h3>
+<p><i>public void ButtonGroup(ButtonGroup &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L38">gui/button_group.cppm:38</a></i></p>
+<h3 id="buttongroup">ButtonGroup</h3>
+<p><i>public void ButtonGroup(const ButtonGroup &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L36">gui/button_group.cppm:36</a></i></p>
+<h3 id="buttongroup">ButtonGroup</h3>
+<p><i>public void ButtonGroup(std::size_t minimum_checked, std::size_t maximum_checked)</i></p>
+<p><b>brief</b> Construct a checked-count policy.</p>
+<p><b>minimum_checked</b> Minimum checked buttons while members exist.</p>
+<p><b>maximum_checked</b> Maximum checked buttons; must not be smaller than <code>minimum_checked</code>.</p>
+<p><b>throws</b>when the limits are reversed.</p>
+<h3 id="add">add</h3>
+<p><i>public void add(ToggleButton &amp; button)</i></p>
+<p><b>brief</b> Register a non-owned toggle button.</p>
+<p><b>button</b> Button that must outlive the call; duplicate adds are no-ops.</p>
+<p><b>throws</b>when the button already belongs to another group.</p>
+<h3 id="checked_button">checked_button</h3>
+<p><i>public ToggleButton * checked_button()</i></p>
+<p><b>brief</b> Return the first checked member, or null when none is checked.</p>
+<h3 id="checked_count">checked_count</h3>
+<p><i>public std::size_t checked_count()</i></p>
+<p><b>brief</b> Return the number of currently checked members.</p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear()</i></p>
+<p><b>brief</b> Detach every member without destroying any button.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public ButtonGroup &amp; operator=(ButtonGroup &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L39">gui/button_group.cppm:39</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public ButtonGroup &amp; operator=(const ButtonGroup &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L37">gui/button_group.cppm:37</a></i></p>
+<h3 id="remove">remove</h3>
+<p><i>public bool remove(ToggleButton &amp; button)</i></p>
+<p><b>brief</b> Detach one registered button.</p>
+<p><b>button</b> Candidate member.</p>
+<p><b>return</b> true when the button was a member.</p>
+<h3 id="set_limits">set_limits</h3>
+<p><i>public void set_limits(std::size_t minimum_checked, std::size_t maximum_checked)</i></p>
+<p><b>brief</b> Replace the checked-count policy and rebalance current members.</p>
+<p><b>minimum_checked</b> Minimum checked buttons while members exist.</p>
+<p><b>maximum_checked</b> Maximum checked buttons.</p>
+<p><b>throws</b>when the limits are reversed.</p>
+<h3 id="size">size</h3>
+<p><i>public std::size_t size()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/button_group.cppm#L68">gui/button_group.cppm:68</a></i></p>
+<p><b>brief</b> Return the number of registered buttons.</p>
+<h3 id="buttongroup">~ButtonGroup</h3>
+<p><i>public void ~ButtonGroup()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

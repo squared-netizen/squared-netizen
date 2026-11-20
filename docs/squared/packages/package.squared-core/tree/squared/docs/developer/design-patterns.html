@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design patterns in use · squared</title>
+<meta name="description" content="squared: Design patterns in use">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/design-patterns.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/design-patterns.md">on GitHub</a></p><h1 id="design-patterns-in-use">Design patterns in use</h1>
+<p>Each entry names the pattern, what it was chosen over, how it deviates from the textbook form, and what it costs.</p>
+<h2 id="composite-ampmdash-actor--group--widget">Composite &amp;mdash; <code>Actor</code> / <code>Group</code> / <code>Widget</code></h2>
+<p>Children are owned by <code>Group</code> through <code>std::vector&lt;std::unique_ptr&lt;Actor&gt;&gt;</code>; <code>Widget</code> extends the composite with layout, paint and input.</p>
+<ul><li><b>Over:</b> a flat entity list with parent indices, which would have been smaller but would not give the libGDX feel the project asks for.</li><li><b>Cost:</b> 8 bytes of vtable pointer plus 24 bytes of vector per group node; <code>sizeof(Group)</code> is 96 bytes against <code>sizeof(Actor)</code> at 72.</li></ul>
+<h2 id="template-method-ampmdash-widgetlayout--paint--_size">Template Method &amp;mdash; <code>Widget::layout</code> / <code>paint</code> / <code>*_size</code></h2>
+<p>The base defines the sequence, subclasses override the steps.</p>
+<ul><li><b>Over:</b> a strategy object per widget, which would have added an indirection and an allocation.</li><li><b>Cost:</b> one virtual call per widget per phase per frame. See priority audit item 7.</li></ul>
+<h2 id="strategy-bounded-ampmdash-drawable">Strategy (bounded) &amp;mdash; <code>Drawable</code></h2>
+<p><code>ColorDrawable</code>, <code>RegionDrawable</code>, <code>NinePatchDrawable</code> behind one interface.</p>
+<ul><li><b>Over:</b> a tagged union. Three known kinds would fit a union in 400 bytes with no vtable and no <code>shared_ptr</code>. The project rules prefer the union here.</li><li><b>Cost:</b> vtable pointer plus a 16-byte <code>shared_ptr</code> at each reference site, and an atomic refcount per copy.</li></ul>
+<h2 id="bridge-ampmdash-painter">Bridge &amp;mdash; <code>Painter</code></h2>
+<p>The GUI names no rendering backend; <code>Painter</code> is the entire boundary.</p>
+<ul><li><b>Deviation:</b> none worth noting. This is the pattern working as intended, and it is why the widget set has no SDL, GL or GLES dependency anywhere.</li><li><b>Cost:</b> one virtual call per draw primitive.</li></ul>
+<h2 id="flyweight-ampmdash-skin-drawables-and-fonts">Flyweight &amp;mdash; <code>Skin</code> drawables and fonts</h2>
+<p>Shared immutable resources referenced by many widgets.</p>
+<ul><li><b>Deviation:</b> sharing is by <code>shared_ptr</code> rather than by handle into a skin-owned pool, so each reference costs 16 bytes and an atomic instead of 4 or 8 bytes and nothing.</li></ul>
+<h2 id="mediator-ampmdash-buttongroup">Mediator &amp;mdash; <code>ButtonGroup</code></h2>
+<p>Coordinates checked state across toggle buttons without owning them; group and buttons detach from each other on destruction, so neither imposes a second ownership hierarchy.</p>
+<ul><li><b>Deviation:</b> the textbook mediator owns or outlives its colleagues. This one deliberately does not, which is the right call &amp;mdash; it lets a group live in an ordinary widget subtree.</li><li><b>Cost:</b> 40 bytes plus one pointer per member button.</li></ul>
+<h2 id="observer-ampmdash-guiinputlistener-widget-callbacks">Observer &amp;mdash; <code>gui::InputListener</code>, widget callbacks</h2>
+<p>Low-frequency events only: input, lifecycle, value changes. Not used for per-frame data flow, which matches the project rule.</p>
+<ul><li><b>Deviation:</b> the rule says "never via <code>std::function</code> lists", and <code>Actor::add_input_listener</code> stores exactly that.</li></ul>
+<h2 id="null-object-ampmdash-style-fallback">Null Object &amp;mdash; style fallback</h2>
+<p>Every style lookup falls back to the style named <code>default</code>, so widgets never branch on a missing style.</p>
+<ul><li><b>Cost:</b> the fallback is <code>map::at(&quot;default&quot;)</code>, which throws when <code>default</code> is itself absent. A genuine null object would return a static default- constructed style instead and could not throw.</li></ul>
+<p>The policy behind these choices, and the test for when an extension point is warranted at all, is in <a href="extension-policy.html">extension-policy.md</a>.</p>
+<h2 id="builder-ampmdash-layoutwriter--nodewriter">Builder &amp;mdash; <code>LayoutWriter</code> / <code>NodeWriter</code></h2>
+<p>C++ screens write a layout through a writer: <code>add&lt;W&gt;()</code> returns a <code>NodeWriter</code> whose calls chain (<code>.bind(...).grow()</code>). Deviates from the textbook in what it builds: not an object graph but a flat node table in storage the caller gives, the same table a compiled layout file is. Cost: 192 bytes for the writer, 16 for a <code>NodeWriter</code> (a pointer and an index); nothing allocated. Chosen over building widgets directly from C++, which would have been a second way to make a screen (<a href="layouts.html">layouts.md</a>).</p>
+<h2 id="attorney-ampmdash-detailfilewriting">Attorney &amp;mdash; <code>detail::FileWriting</code></h2>
+<p>A layout file needs two writer calls the typed API rightly refuses at compile time: adding a node by its <code>NodeType</code>, and binding by a name rather than a <code>Key</code>. <code>LayoutWriter</code> and <code>NodeWriter</code> befriend one struct, <code>gui::detail::FileWriting</code>, defined only in <code>layout_file.cpp</code>, which forwards exactly those two calls to private members. The textbook attorney grants a named client a subset of a class's privates; here the client is a whole translation unit, and nothing outside it can call the attorney. Chosen over making the calls public (an app could then bypass the checks the typed API makes) or a second writer for files (two writers would have to agree). Cost: two <code>friend</code> lines; no bytes, no indirection.</p>
+<h2 id="facade-ampmdash-sqapp">Facade &amp;mdash; <code>sq::App</code></h2>
+<p>An app sees three things: <code>stage</code>, <code>run&lt;Model&gt;()</code> and <code>quit()</code>. Behind them the App holds the Telegraph line, the model's runner and the Stage, and routes the platform's lifecycle to each (it is the platform's <code>sq::app::Application</code>). Cost: the vtable of that interface, one per process, and nothing per call beyond the virtual dispatch the platform already made. Chosen over handing the platform the Stage and the model separately, which would make every platform layer know the start and shutdown order (<a href="stage.html">stage.md</a>).</p>
+<h2 id="command-queue-bounded-ampmdash-the-stages-waiting-navigations">Command queue (bounded) &amp;mdash; the Stage's waiting navigations</h2>
+<p>A tap runs inside the button it tapped; building the next screen there would free the button mid-call. Navigation asked for during an event goes into a fixed queue of 4 (a <code>TapKind</code> and a layout pointer each, 64 bytes), applied after delivery. Deviation from the textbook: no command objects, no undo, no allocation; a full queue drops and reports. The demo's <code>ScreenStack</code> used a <code>std::vector</code> of owning <code>unique_ptr&lt;Screen&gt;</code>s for the same job.</p>
+<h2 id="type-erasure-ampmdash-detailmodelholder">Type erasure &amp;mdash; <code>detail::ModelHolder</code></h2>
+<p>The App holds a <code>ModelRunner&lt;M&gt;</code> without knowing <code>M</code>: <code>ModelOf&lt;M&gt;</code> derives from <code>ModelHolder</code> (a virtual destructor, a virtual <code>turn()</code>), made once by <code>run</code>. Cost: one allocation for the process's model, a vtable, and one virtual call a frame for a model on the UI thread. Chosen over a fixed buffer in the App (a size knob users would hit) and over <code>App&lt;Model&gt;</code>.</p>
+<h2 id="factory-over-a-type-tag-ampmdash-instantiate">Factory over a type tag &amp;mdash; <code>instantiate</code></h2>
+<p>Widgets are made from nodes by a <code>switch</code> on <code>NodeType</code>, with custom types through one hook (a function pointer). Chosen over a registry of factories or an abstract factory: the built-in types are fixed, so a registry would be an extension point with no second use (priority 4). Cost: one branch per node, at push time.</p>
+<h2 id="not-used-deliberately">Not used, deliberately</h2>
+<p><b>Service Locator</b> &amp;mdash; absent, as the rules require. <code>Ui</code> receives its <code>TextInputService</code> explicitly and every subsystem takes its dependencies as parameters. Worth protecting. The clipboard (12.4) goes the same way: the platform hands its <code>ClipboardService</code> to the App, the App to its Stage, and a widget asks the Stage it was made with (<code>stage.clipboard()</code>); nothing looks it up by name or through a global.</p>
+<p><b>ECS</b> &amp;mdash; absent from the GUI, correctly. A widget tree is touched as whole units, not iterated per component.</p>
+<p><b>Abstract Factory</b> &amp;mdash; absent. <code>Widget::TooltipFactory</code> is a plain callback, not a factory hierarchy.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

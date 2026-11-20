@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Grid · squared</title>
+<meta name="description" content="squared: class Grid">
+<link rel="stylesheet" href="../../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/term/detail/Grid.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/term/detail/Grid.md">on GitHub</a></p><h1 id="class-grid">class Grid</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L19">term/src/grid.cppm:19</a></i></p>
+<p>One screen of cells: rows of <code>columns</code> cells, in one block allocated when the size is set, with a table from the row on screen to the row in the block. Scrolling turns the table, two bytes a row moved, never the cells. Each row has a dirty bit (changed since the owner last drew it) and a wrapped bit (its text went on into the next row by autowrap).</p>
+<p>For 80 x 24: 23,040 bytes of cells, 48 of table, 8 of dirty bits, 24 of wrapped flags. Nothing is allocated but by <code>resize</code>.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="grid">Grid</h3>
+<p><i>public void Grid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L22">term/src/grid.cppm:22</a></i></p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear(const Cell &amp; fill)</i></p>
+<p>Every row set to <code>fill</code>, and marked; none wrapped.</p>
+<h3 id="clear_dirty">clear_dirty</h3>
+<p><i>public void clear_dirty()</i></p>
+<h3 id="columns">columns</h3>
+<p><i>public std::uint16_t columns()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L30">term/src/grid.cppm:30</a></i></p>
+<h3 id="dirty">dirty</h3>
+<p><i>public bool dirty(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L67">term/src/grid.cppm:67</a></i></p>
+<h3 id="fill">fill</h3>
+<p><i>public void fill(std::uint16_t row, std::uint16_t first, std::uint16_t last, const Cell &amp; fill)</i></p>
+<p>Cells <code>first</code> to <code>last</code> of a row (both included) set to <code>fill</code>, the row marked.</p>
+<h3 id="mark">mark</h3>
+<p><i>public void mark(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L62">term/src/grid.cppm:62</a></i></p>
+<h3 id="mark_all">mark_all</h3>
+<p><i>public void mark_all()</i></p>
+<h3 id="resize">resize</h3>
+<p><i>public void resize(std::uint16_t columns, std::uint16_t rows, bool keep, const Cell &amp; fill)</i></p>
+<p>The new size, blank (<code>fill</code>), or keeping what fits: the top left of the old one, row by row. <code>columns</code> and <code>rows</code> are at least 1.</p>
+<h3 id="row">row</h3>
+<p><i>public std::span&lt;Cell&gt; row(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L34">term/src/grid.cppm:34</a></i></p>
+<p>Row <code>row</code> on screen; <code>row</code> is below <code>rows()</code>. Does not mark it dirty.</p>
+<h3 id="row">row</h3>
+<p><i>public std::span&lt;const Cell&gt; row(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L38">term/src/grid.cppm:38</a></i></p>
+<h3 id="rows">rows</h3>
+<p><i>public std::uint16_t rows()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L31">term/src/grid.cppm:31</a></i></p>
+<h3 id="scroll_down">scroll_down</h3>
+<p><i>public void scroll_down(std::uint16_t top, std::uint16_t bottom, std::uint16_t count, const Cell &amp; fill)</i></p>
+<p>The same, down: blank rows in at the top.</p>
+<h3 id="scroll_up">scroll_up</h3>
+<p><i>public void scroll_up(std::uint16_t top, std::uint16_t bottom, std::uint16_t count, const Cell &amp; fill)</i></p>
+<p>Rows <code>top</code> to <code>bottom</code> (both included) moved up <code>count</code> rows, the rows that leave the top coming in at the bottom set to <code>fill</code>. Every row of the region is marked.</p>
+<h3 id="set_wrapped">set_wrapped</h3>
+<p><i>public void set_wrapped(std::uint16_t row, bool wrapped)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L77">term/src/grid.cppm:77</a></i></p>
+<h3 id="wrapped">wrapped</h3>
+<p><i>public bool wrapped(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/src/grid.cppm#L73">term/src/grid.cppm:73</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

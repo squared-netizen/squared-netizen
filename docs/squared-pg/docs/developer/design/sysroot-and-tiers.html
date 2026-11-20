@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design — sysroot, tiers, and conformance · squared-pg</title>
+<meta name="description" content="squared-pg: Design — sysroot, tiers, and conformance">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/design/sysroot-and-tiers.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/design/sysroot-and-tiers.md">on GitHub</a></p><h1 id="design--sysroot-tiers-and-conformance">Design — sysroot, tiers, and conformance</h1>
+<p>Status: <b>proposal</b>. Nothing here is implemented. It exists to be argued with before code is written, because two of the collisions below change what gets built first.</p>
+<p>Covers: the <code>~/sqsysroot</code> environment, sandbox/project tiers, promote and demote, workspace conformance, and where git, linting and static analysis belong.</p>
+<hr>
+<h2 id="1-the-environment">1. The environment</h2>
+<pre><code class="lang-text">~/sqsysroot/
+  squared/          squared-pg itself — the installed generator
+  sandbox/          generated workspaces, by default
+  projects/         promoted workspaces</code></pre>
+<h3 id="it-must-be-configuration-not-discovery">It must be configuration, not discovery</h3>
+<p>§2.7.2 forbids generation from depending on ambient state or the current working directory. A sysroot is ambient by nature, so it has to arrive the same way resource roots do: <b>explicitly, in <code>EngineConfig</code></b>, resolved by the host from <code>--sysroot</code> or <code>SQUARED_PG_SYSROOT</code>, and never guessed.</p>
+<p>The engine may then <i>use</i> it. It must never <i>find</i> it.</p>
+<h3 id="the-default-output-path-is-a-workflow-decision">The default output path is a workflow decision</h3>
+<p>"Generated workspaces live in <code>sandbox/</code> by default" is policy, and §2.5.6 puts policy in Lua. The workflow computes <code>output = $sysroot/sandbox/$name</code>, exactly as it already computes <code>output = ./$name</code> today. The engine keeps supplying no default for an identity-bearing input — consistent with D-042, where the same reasoning removed the platform default.</p>
+<p>This also keeps squared-pg usable without a sysroot at all, which matters: a tool that requires a particular directory layout before it will run is a tool people work around.</p>
+<h3 id="where-sqpg-lives">Where sqpg lives</h3>
+<p><code>~/sqsysroot/squared/</code> is just an installation prefix. <code>sqpg</code> already locates its resources by walking up from its own executable and by checking <code>&lt;prefix&gt;/share/squared-pg</code> (D-043), so this works today with no change. The release bundle's <code>install.sh</code> takes a prefix argument already.</p>
+<hr>
+<h2 id="2-tiers">2. Tiers</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th><code>sandbox</code></th><th><code>project</code></th></tr></thead><tbody><tr><td>location</td><td><code>$sysroot/sandbox/</code></td><td><code>$sysroot/projects/</code></td></tr><tr><td>git</td><td>forbidden</td><td>required</td></tr><tr><td><code>AGENTS.md</code></td><td>restrictive</td><td>collaborative</td></tr><tr><td>agent boundary</td><td>may not leave the workspace, may not ask to</td><td>normal review rules</td></tr><tr><td>symlinks</td><td>must not escape the workspace</td><td>same</td></tr></tbody></table></div>
+<p>The tier is a property of the workspace, so it belongs in <code>.squared/metadata.json</code>:</p>
+<pre><code class="lang-json">{ &quot;record_version&quot;: 2, &quot;tier&quot;: &quot;sandbox&quot;, ... }</code></pre>
+<p><b>That is a metadata schema change</b>, which makes Q-24 (metadata format migration) live rather than hypothetical. A v1 record read by a v2 engine has no tier; the honest reading is "unknown", not "sandbox", and <code>workspace.verify</code> should say so rather than assume.</p>
+<h3 id="what-the-engine-can-and-cannot-enforce">What the engine can and cannot enforce</h3>
+<p>Most of the tier rules are <b>documentation</b>, and saying otherwise would be dishonest:</p>
+<ul><li>"agents may not leave the sandbox" is an <code>AGENTS.md</code> rule. No generator enforces what an agent does.</li><li>"no symlinks escape" is a filesystem property the engine cannot prevent after generation.</li></ul>
+<p>What the engine <i>can</i> do is <b>detect</b> violations. That is not enforcement, and it is worth more than it sounds: a rule nobody checks is a rule nobody follows. Detection is §4's conformance report.</p>
+<hr>
+<h2 id="3-promote-and-demote">3. Promote and demote</h2>
+<h3 id="the-collision">The collision</h3>
+<p><b>The engine cannot mutate an existing workspace.</b> <code>project.generate</code> refuses one, because regeneration needs the write-ahead journal of §2.15.9 and that is deliberately unimplemented (D-033).</p>
+<p>Promote and demote are, by definition, operations on an existing workspace. So either they wait for the journal, or they need a narrower transactional path of their own.</p>
+<h3 id="the-narrower-path-and-why-it-works">The narrower path, and why it works</h3>
+<p>Promote and demote decompose into three kinds of change:</p>
+<div class="tablewrap"><table><thead><tr><th>Change</th><th>Safe today?</th></tr></thead><tbody><tr><td>move the directory <code>sandbox/x</code> → <code>projects/x</code></td><td><b>yes</b> — same filesystem, one rename. Exactly D-024's argument, and the code exists.</td></tr><tr><td>add files that do not exist (<code>.gitignore</code>, <code>.git/</code>)</td><td><b>yes</b> — no conflict is possible</td></tr><tr><td>replace a file the user may have edited (<code>AGENTS.md</code>)</td><td><b>only with provenance</b></td></tr></tbody></table></div>
+<p>The third is the interesting one, and it is where this design earns its keep.</p>
+<p><code>.squared/metadata.json</code> already records a SHA-256 for every generated path. Nothing reads it. Promote/demote would be its <b>first consumer</b>:</p>
+<ul><li>hash matches the provenance record → the user never touched it → replace freely</li><li>hash differs → the user edited it → refuse, or back it up and report</li></ul>
+<p>That is the same question regeneration has to answer, asked in a much smaller setting. <b>So promote/demote is a good way to validate provenance before building the journal on top of it</b> — which argues for doing it <i>before</i> regeneration rather than after.</p>
+<h3 id="sketch">Sketch</h3>
+<pre><code class="lang-text">project.promote   name | path
+  1. verify the workspace (§4). Refuse if it does not conform.
+  2. check provenance for every path the promotion would replace.
+  3. stage additions in a sibling temp dir on the target filesystem.
+  4. rename the workspace into projects/.
+  5. apply additions; rewrite .squared/metadata.json with tier=project.
+  6. git init is NOT run by the engine (see §5).
+
+project.demote    name | path
+  1. verify.
+  2. refuse unless the working tree is clean — demotion discards history and
+     the engine must not be the thing that loses someone&#x27;s commits.
+  3. archive .git/ to $sysroot/.cache/demoted/&lt;name&gt;-&lt;date&gt;.tar.gz, or refuse
+     if that cannot be written. Never delete outright.
+  4. rename into sandbox/, swap AGENTS.md, rewrite metadata with tier=sandbox.</code></pre>
+<p>Step 2 of demote matters more than the rest. "Stripped of git dir and files" is destructive, and a generator that can silently destroy history is a generator people stop trusting. Archive, refuse on dirty, never <code>rm -rf .git</code>.</p>
+<h3 id="open-question">Open question</h3>
+<p>Does promote/demote move the directory, or operate in place? Moving makes the tier legible from the path, which is the point of the layout. But a workspace that has been <code>cd</code>-ed into, opened in an editor, or referenced by an absolute path in someone's notes moves out from under all of them. Worth deciding explicitly rather than by implementation accident.</p>
+<hr>
+<h2 id="4-conformance">4. Conformance</h2>
+<p>Two audiences, one invariant list.</p>
+<h3 id="test_templates--development-time"><code>test_templates</code> — development time</h3>
+<p>Iterates every indexed template, plans a workspace from it, and asserts the shared conventions hold. Roughly 150 lines, no engine changes. Catches the drift that a third template would otherwise introduce silently:</p>
+<ul><li>declares a working directory, and it exists in the plan</li><li>no <code>generated</code>-class path inside the working directory</li><li><code>Makefile</code> is <code>seeded</code>; every <code>mk/*</code> fragment is <code>generated</code></li><li><code>sq_app/include</code> and <code>sq_app/src</code> are present</li><li>no unsubstituted <code>{{</code> survives in any step's content</li><li>every declared <code>integration_area</code> has an arity entry</li><li>required kits resolve</li></ul>
+<p>This is the conformance test agreed in the previous discussion, and it is worth doing whatever else happens.</p>
+<h3 id="workspaceverify--user-time"><code>workspace.verify</code> — user time</h3>
+<p>The reader's counterpart, and the thing <code>sqpg inspect</code> should surface:</p>
+<ul><li>every provenance entry: present, and hash matches or is reported as user-modified</li><li>no <code>generated</code> path inside the working directory</li><li>files present that provenance does not know about, and are not under a user-owned path — reported as unknown, not as errors</li><li>symlinks that resolve outside the workspace</li><li>tier invariants: <code>sandbox</code> has no <code>.git</code>; <code>project</code> has one</li><li>the recorded template and kits still resolve in the current index</li></ul>
+<h3 id="two-operations-one-command">Two operations, one command</h3>
+<p><code>workspace.inspect</code> stays a <b>pure read</b> — it returns the record and cannot fail for reasons about the workspace's state. <code>workspace.verify</code> is a separate operation returning a report with findings.</p>
+<p>Keeping them apart matters because they have different failure modes: a malformed record is an <code>inspect</code> failure, while a modified file is a <code>verify</code> <i>finding</i>, not an error. Collapsing them would make "this workspace has three findings" indistinguishable from "I could not read this workspace".</p>
+<p>The CLI can present them as one thing:</p>
+<pre><code class="lang-sh">sqpg inspect ~/sqsysroot/sandbox/myapp          # record + findings
+sqpg inspect ~/sqsysroot/sandbox/myapp --json   # machine-readable</code></pre>
+<p>Which is exactly the requested use case, without conflating the operations.</p>
+<hr>
+<h2 id="5-git-linting-static-analysis">5. Git, linting, static analysis</h2>
+<p>Tested against §2.2.5 — the engine provides capability, never policy — and against a property worth defending: <b>the engine has no external runtime dependency today.</b> Everything it needs is vendored and compiled in.</p>
+<h3 id="git-not-an-engine-service">Git: not an engine service</h3>
+<p>The engine should never execute <code>git</code>.</p>
+<ul><li>It is an external binary whose behaviour varies by version and user config.</li><li>Everything the generator needs <i>from</i> it is either policy ("init a repo on promote") or detectable without it (<code>.git</code> exists, <code>.gitignore</code> exists).</li><li>Running it would give the engine its first external runtime dependency, and that property is worth more than the convenience.</li></ul>
+<p>So: the engine <b>reports facts</b> — <code>.git</code> present, tier mismatch — as conformance findings. Lua runs git, in the <code>trusted</code> tier, as workflow policy. <code>project.promote</code> returns "this workspace now expects a repository"; the workflow runs <code>git init</code>.</p>
+<h3 id="linting-and-formatting-kit-or-plugin-not-engine">Linting and formatting: kit or plugin, not engine</h3>
+<p><code>clang-format</code>, <code>clang-tidy</code>, <code>stylua</code> are external tools with per-project configuration. The same argument applies, more strongly.</p>
+<p>But there is a cheaper answer than a plugin system: <b>this is already a kit's job.</b> A kit contributes files to a workspace, and a lint setup is files — a <code>.clang-format</code> and a <code>mk/kit_lint.mk</code> contributing a <code>make lint</code> target. That needs no engine feature at all, works today, and puts the tool configuration next to the code it applies to.</p>
+<p><code>kit.lint</code> is a better first move than implementing §2.14.2's extension model.</p>
+<h3 id="static-analysis-same-later">Static analysis: same, later</h3>
+<p><code>scan-build</code> and friends are heavy, slow and toolchain-specific. Same conclusion: a kit contributing a <code>make analyze</code> target. Worth doing after <code>kit.lint</code> proves the shape.</p>
+<h3 id="what-should-be-an-engine-service">What <i>should</i> be an engine service</h3>
+<p>Conformance verification, because it needs the provenance table, the ownership classes and the resource index — all engine-internal, none of it reachable from outside.</p>
+<hr>
+<h2 id="6-ordering">6. Ordering</h2>
+<ol><li><b><code>test_templates</code></b> — no engine change, catches drift now.</li><li><b><code>workspace.verify</code></b> — the invariant list from step 1, applied to a workspace. First real consumer of provenance.</li><li><b>Sysroot as configuration</b> — <code>EngineConfig</code>, host resolution, workflow default. Small, and unblocks the rest.</li><li><b><code>project.promote</code> / <code>project.demote</code></b> — validates provenance in a small setting before the journal is built on top of it.</li><li><b>Regeneration and the journal</b> — by which point provenance is proven and the tier model is settled.</li><li><b><code>kit.lint</code></b> — cheap, and answers the linting question without a plugin system.</li></ol>
+<p>Steps 1 and 2 are worth doing regardless of whether the sysroot design survives review. Steps 3 and 4 need the spec written first — see <code>spec-audit-02.md</code>, class L.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

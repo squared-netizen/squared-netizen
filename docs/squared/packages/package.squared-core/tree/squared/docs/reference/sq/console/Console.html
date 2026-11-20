@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Console · squared</title>
+<meta name="description" content="squared: class Console">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/console/Console.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/console/Console.md">on GitHub</a></p><h1 id="class-console">class Console</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/console.cppm#L44">console/console.cppm:44</a></i></p>
+<p><b>brief</b> Text in, text out: the escape hatch for when the rest is broken.</p>
+<p>This is the Console's state and behaviour, with no drawing: the scrollback, the input line, the command table. The view that draws it comes separately. Everything is inline and sized at compile time (about 68 KB by default, nearly all of it the scrollback), so hold it in something long-lived, never on the stack. Nothing it does allocates. One thread uses it.</p>
+<pre><code class="lang-cpp">
+
+
+## Records
+
+Queued
+
+
+
+## Functions
+
+### Console
+
+*public void Console()*
+
+
+
+**brief** An empty, hidden console with its built-ins: `help`, `clear`, `close`, `dump`. 
+
+### Console
+
+*public void Console(Console &amp;&amp; )*
+
+*Defined at [console/console.cppm:52](../../../../console/console.cppm#L52)*
+
+### Console
+
+*public void Console(const Console &amp; )*
+
+*Defined at [console/console.cppm:50](../../../../console/console.cppm#L50)*
+
+### add
+
+*public Commands::AddResult add(const char * name, const char * help, Handler handler, void * context)*
+
+*Defined at [console/console.cppm:56](../../../../console/console.cppm#L56)*
+
+
+
+**brief** Register a command. See Commands::add for what can refuse. 
+
+### add_group
+
+*public Groups::AddResult add_group(const char * group, std::initializer_list&lt;const char *&gt; lines)*
+
+
+
+**brief** Add each of `lines` to `group`; the first refusal, or `added`. 
+
+### add_to_group
+
+*public Groups::AddResult add_to_group(const char * group, const char * line)*
+
+*Defined at [console/console.cppm:66](../../../../console/console.cppm#L66)*
+
+
+
+**brief** Add `line` (a whole command line, `logcat 100`) to the group `group` for `dump`, making the group if it is new. See Groups::add.
+
+### commands
+
+*public const Commands &amp; commands()*
+
+*Defined at [console/console.cppm:142](../../../../console/console.cppm#L142)*
+
+### complete
+
+*public std::size_t complete()*
+
+
+
+**brief** Complete the command name being typed (Tab).
+
+**return** How many commands match. One: the name is filled in. More: the common part is filled in and the matches are printed.
+
+### dumping
+
+*public bool dumping()*
+
+*Defined at [console/console.cppm:82](../../../../console/console.cppm#L82)*
+
+
+
+**brief** Whether `dump` has lines still to run: the loop should not sleep long. 
+
+### groups
+
+*public const Groups &amp; groups()*
+
+*Defined at [console/console.cppm:143](../../../../console/console.cppm#L143)*
+
+### hide
+
+*public void hide()*
+
+*Defined at [console/console.cppm:136](../../../../console/console.cppm#L136)*
+
+### input
+
+*public InputLine &amp; input()*
+
+*Defined at [console/console.cppm:141](../../../../console/console.cppm#L141)*
+
+### input
+
+*public const InputLine &amp; input()*
+
+*Defined at [console/console.cppm:140](../../../../console/console.cppm#L140)*
+
+### key
+
+*public bool key(app::Key key, app::KeyModifiers modifiers)*
+
+
+
+**brief** Edit the input with a key: arrows, Home, End, Backspace, Delete, Enter (submit), Tab (complete), Escape (clear the line).
+
+**return** true when the key was the console&#x27;s.
+
+### lines
+
+*public Scrollback &amp; lines()*
+
+*Defined at [console/console.cppm:139](../../../../console/console.cppm#L139)*
+
+### lines
+
+*public const Scrollback &amp; lines()*
+
+*Defined at [console/console.cppm:138](../../../../console/console.cppm#L138)*
+
+### operator=
+
+*public Console &amp; operator=(Console &amp;&amp; )*
+
+*Defined at [console/console.cppm:53](../../../../console/console.cppm#L53)*
+
+### operator=
+
+*public Console &amp; operator=(const Console &amp; )*
+
+*Defined at [console/console.cppm:51](../../../../console/console.cppm#L51)*
+
+### print
+
+*public void print(std::string_view text, Level level)*
+
+
+
+**brief** Add text to the scrollback, one line per `**n** ` part. 
+
+### printf
+
+*public void printf(Level level, const char * format)*
+
+
+
+**brief** Format with printf rules into one fixed buffer (format_bytes), then print. 
+
+### queue_group
+
+*public Queued queue_group(std::string_view group)*
+
+
+
+**brief** Queue each line of `group` that is not queued already, for update() to run; `all` queues every group, in the order made.
+
+### run
+
+*public void run(std::string_view line)*
+
+
+
+**brief** Run a command line: echo it, split it, call its command.
+
+ An unknown name, or too many words, prints an error line. The words are views into `line`, which must stay put until this returns.
+
+### set_mirror
+
+*public void set_mirror(Mirror mirror, void * context)*
+
+*Defined at [console/console.cppm:88](../../../../console/console.cppm#L88)*
+
+
+
+**brief** Hand every printed line to `mirror` as well, the echo of a command and its output included; nullptr stops it. One at a time.
+
+### show
+
+*public void show()*
+
+*Defined at [console/console.cppm:135](../../../../console/console.cppm#L135)*
+
+### shown
+
+*public bool shown()*
+
+*Defined at [console/console.cppm:134](../../../../console/console.cppm#L134)*
+
+
+
+**brief** Whether it should be drawn. The Console only keeps the flag: whoever draws it reads it. Hidden at first; `close` and the close button hide it.
+
+### stop_dump
+
+*public std::size_t stop_dump()*
+
+
+
+**brief** Forget the queued lines; how many there were. 
+
+### submit
+
+*public void submit()*
+
+
+
+**brief** Run the input line (Enter): remember it in the history, run it, clear it. 
+
+### text
+
+*public void text(std::string_view utf8)*
+
+*Defined at [console/console.cppm:127](../../../../console/console.cppm#L127)*
+
+
+
+**brief** Typed text, from a keyboard or the soft keyboard. 
+
+### update
+
+*public void update()*
+
+
+
+**brief** Run the next line `dump` queued, if any: once a frame, so a long group never holds a frame up, and the bridge sends between.
+
+### ~Console
+
+*public void ~Console()*
+
+*Defined at [console/console.cppm:49](../../../../console/console.cppm#L49)*
+
+</code></pre></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

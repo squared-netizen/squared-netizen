@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kit.edu_cpp - implementation notes · squared-pg</title>
+<meta name="description" content="squared-pg: kit.edu_cpp - implementation notes">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/kits/kit.edu_cpp.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/kits/kit.edu_cpp.md">on GitHub</a></p><h1 id="kitedu_cpp---implementation-notes">kit.edu_cpp - implementation notes</h1>
+<p>Consumer-facing counterpart: <a href="../../programmer/kits/kit.edu_cpp.html">../../programmer/kits/kit.edu_cpp.md</a> Related: <a href="../templates/template.term.edu.cpp.html">template.term.edu.cpp</a></p>
+<h2 id="purpose">Purpose</h2>
+<p>Holds the teaching content that used to be seeded by <code>template.term.edu.cpp</code>, so the template stays minimal and the lessons can be added, removed or versioned independently.</p>
+<h2 id="is-this-a-kit">Is this a kit?</h2>
+<p>Spec 2.9.1 defines a kit as a bridge to an external framework or platform. This kit bridges nothing: it is content. It is a kit anyway because the only other resource kinds (package, asset bundle) are for framework code and binary assets, and a kit is the one optional, per-workspace, user-selected addition a template accepts. It declares no <code>external</code> block, which the spec reads as "wraps nothing". Revisit if an asset-bundle kind becomes the better fit for static text.</p>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">resources/kits/kit.edu_cpp/
+  SQ-INF/manifest.json   squared-cartridge format 2, kind &quot;kit&quot;
+  tree/lessons/cpp/      payload, mapped one-for-one into the workspace</code></pre>
+<h2 id="decisions">Decisions</h2>
+<div class="tablewrap"><table><thead><tr><th>Decision</th><th>Why</th></tr></thead><tbody><tr><td>Path <code>lessons/cpp/</code>, not <code>lessons/</code></td><td>Namespaced by language so a later <code>kit.edu_python</code> can add <code>lessons/python/</code> without a path conflict (<code>kit.integration_point.conflict</code>).</td></tr><tr><td>Outside <code>sq_kit/</code></td><td><code>sq_kit/</code> is generated and rewritten; these files are meant to be annotated.</td></tr><tr><td>Outside <code>sq_app/</code></td><td>The working directory is the learner's code, not reading material.</td></tr><tr><td>Ownership <code>user</code> (recorded <code>seeded</code>)</td><td>Never overwritten, so notes survive. The trade-off: a corrected lesson in a later kit version does not reach existing workspaces. Acceptable until the update workflow (spec 2.7.11) exists.</td></tr><tr><td>Integration area <code>edu.lessons</code></td><td>Spec 2.9.3 requires a kit to declare every point it writes and the template to declare it first. Declared in both manifests, arity <code>multi</code>.</td></tr><tr><td>No <code>requires.framework</code></td><td>The kit has no framework dependency, and absent means unconstrained.</td></tr><tr><td>No <code>platforms</code></td><td>Text works everywhere; absent admits every platform.</td></tr><tr><td>No build fragment</td><td>The substrate rule (spec 2.9.3): the template builds without the kit, and the kit changes nothing about the build.</td></tr></tbody></table></div>
+<h2 id="manifest-fields">Manifest fields</h2>
+<p><code>compatible_templates</code> is the name the engine reads (spec 2.9.2). Note that the <code>sqpg new</code> error text prints it as <code>supported_templates</code>; the manifest field is still <code>compatible_templates</code>.</p>
+<h2 id="design-patterns">Design patterns</h2>
+<p>None. Static payload.</p>
+<h2 id="standard-library-vs-custom">Standard library vs custom</h2>
+<p>Not applicable; no code.</p>
+<h2 id="invariants-and-limits">Invariants and limits</h2>
+<ul><li>Lesson code blocks must compile warning-free with <code>-std=c++20 -Wall -Wextra</code> and use only the standard library, because the template offers nothing else. Verify by extracting each fenced <code>cpp</code> block and compiling it whenever a lesson changes.</li><li>Lessons contain no <code>{{</code>. If kit payload is run through <code>substitute</code>, a literal brace pair in C++ code would be treated as a placeholder.</li><li>A lesson that needs a kit (for example the terminal helpers from <code>kit.terminal</code>) cannot live here: <code>kit.terminal</code> is not compatible with the teaching template.</li></ul>
+<h2 id="unverified">Unverified</h2>
+<ul><li>Whether the engine requires a kit's paths to fall under a declared integration area, or only checks declared areas against the template's list. <code>sqpg plan</code> on a workspace using the kit will show it.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

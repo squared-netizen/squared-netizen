@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>files · squared</title>
+<meta name="description" content="squared: files">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/files.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/files.md">on GitHub</a></p><h1 id="files">files</h1>
+<p>Virtual filesystem. A <code>FileHandle</code> names a location; a <code>FileSystem</code> decides what that location actually is on this platform. Modelled on libGDX.</p>
+<p>Developer counterpart: <a href="../developer/files.html">../developer/files.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>FileHandle</code></td><td><code>squared/files/file_handle.cppm</code></td><td>A named location, modelled on libGDX's FileHandle</td></tr><tr><td><code>FileType</code></td><td><code>squared/files/src/file_type.cppm</code></td><td>Where a path is rooted</td></tr><tr><td><code>FileSystem</code></td><td><code>squared/files/file_system.cppm</code></td><td>The framework's porting layer for storage</td></tr><tr><td><code>PosixFileSystem</code></td><td><code>squared/files/posix_file_system.cppm</code></td><td>Directories each FileType resolves to under a POSIX file system</td></tr><tr><td><code>PosixFileSystemRoots</code></td><td><code>squared/files/posix_file_system.cppm</code></td><td>Directories each FileType resolves to under a POSIX file system</td></tr><tr><td><code>EmbeddedFileSystem</code></td><td><code>squared/files/embedded_file_system.cppm</code></td><td>A read-only <code>Internal</code> over files compiled into the program</td></tr><tr><td><code>EmbeddedFile</code></td><td><code>squared/files/embedded_file_system.cppm</code></td><td>One compiled-in file: its path and its bytes</td></tr><tr><td><code>FileReadResult</code></td><td><code>squared/files/src/file_read_result.cppm</code></td><td>Bytes read from one file, or the failure that prevented it</td></tr><tr><td><code>FileTextResult</code></td><td><code>squared/files/src/file_text_result.cppm</code></td><td>Text read from one file, or the failure that prevented it</td></tr><tr><td><code>FileError</code></td><td><code>squared/files/src/file_error.cppm</code></td><td>Structured file system failure information</td></tr><tr><td><code>FileErrorCode</code></td><td><code>squared/files/src/file_error_code.cppm</code></td><td>Stable error categories produced by file system operations</td></tr></tbody></table></div>
+<h2 id="the-shortest-call-site">The shortest call site</h2>
+<pre><code class="lang-cpp">sq::files::PosixFileSystem fs{ {
+    .internal_root = app_directory + &quot;/assets&quot;,
+    .local_root    = app_directory + &quot;/files&quot;,
+    .external_root = &quot;/sdcard/MyApp&quot;
+} };
+
+auto skin = fs.internal(&quot;skins/default.json&quot;);
+if (auto text = skin.read_string()) {
+    load_skin(text.text);
+}</code></pre>
+<h2 id="file-types">File types</h2>
+<p>The same relative path means a different file under each root, and the platform decides what each root is:</p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Android</th><th>Termux and desktop</th></tr></thead><tbody><tr><td><code>Internal</code></td><td>assets inside the APK, read-only</td><td>a directory, still read-only</td></tr><tr><td><code>Local</code></td><td>the app's private files directory</td><td>a directory</td></tr><tr><td><code>External</code></td><td>shared storage</td><td>a directory</td></tr><tr><td><code>Absolute</code></td><td>the path exactly as given</td><td>the same</td></tr></tbody></table></div>
+<p><b><code>Internal</code> refuses writes on every platform</b>, even where it is an ordinary writable directory. A build that works in Termux therefore behaves the same on a device, instead of failing the first time someone runs the APK.</p>
+<h2 id="handles-are-values">Handles are values</h2>
+<p>A handle is 48 bytes: a file system pointer, a type, and a path string. Constructing one touches nothing, so building handles in a loop costs only the strings. Nothing is opened until an operation is called and nothing stays open after one returns.</p>
+<pre><code class="lang-cpp">auto atlas = skin.sibling(&quot;default.atlas&quot;);   // skins/default.atlas
+auto dir   = skin.parent();                   // skins
+auto page  = dir.child(&quot;pages/0.png&quot;);        // skins/pages/0.png
+skin.name();                                  // default.json
+skin.extension();                             // json
+skin.name_without_extension();                // default</code></pre>
+<h2 id="failures-are-returned">Failures are returned</h2>
+<p>Nothing throws, and a missing file is an ordinary result rather than a programmer error:</p>
+<pre><code class="lang-cpp">auto bytes = handle.read_bytes();
+if (!bytes) {
+    log(bytes.error.code, bytes.error.message, bytes.error.path);
+    return;
+}
+use(bytes.bytes);</code></pre>
+<p>What each operation returns when it fails, on <code>PosixFileSystem</code>:</p>
+<div class="tablewrap"><table><thead><tr><th>Operation</th><th>Fails with</th></tr></thead><tbody><tr><td>any, on a path with <code>..</code> or a leading <code>/</code>, or a type with no root</td><td><code>NotSupported</code></td></tr><tr><td><code>write</code>, <code>make_directories</code>, <code>remove</code> on <code>Internal</code></td><td><code>ReadOnly</code></td></tr><tr><td><code>read</code> of a missing file</td><td><code>NotFound</code></td></tr><tr><td><code>read</code> of a directory</td><td><code>IsADirectory</code></td></tr><tr><td><code>write</code> into a missing directory</td><td><code>NotFound</code> (<code>write_bytes</code> on a handle makes the directories first)</td></tr><tr><td><code>write</code> onto a directory</td><td><code>IsADirectory</code></td></tr><tr><td><code>list</code> of a missing path, or of a file</td><td><code>NotFound</code>, <code>NotADirectory</code></td></tr><tr><td><code>make_directories</code> where a file is in the way, or is the path</td><td><code>NotADirectory</code></td></tr><tr><td><code>remove</code> of a missing path, or of a directory that is not empty</td><td><code>NotFound</code>, <code>IoFailure</code></td></tr></tbody></table></div>
+<p><code>exists()</code>, <code>is_directory()</code> and <code>length()</code> return plain values, because there is no useful difference between "missing" and "could not tell". <code>length()</code> returns zero for a missing file, a directory, and an empty file alike; use <code>exists()</code> when the difference matters.</p>
+<h2 id="reading-in-place-map-123d">Reading in place: <code>map</code> (12.3d)</h2>
+<p>A file read now and then for as long as the app runs (a font FreeType reads a glyph at a time, a table looked up by offset) is mapped rather than read: no copy on the heap.</p>
+<pre><code class="lang-cpp">sq::files::MapResult font = fs.internal(&quot;fonts/JetBrainsMonoNL-Regular.ttf&quot;).map();
+if (!font) { report(font.error); return; }
+face.open(font.file.bytes());     // valid while `font.file` lives</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>handle.map()</code>, <code>fs.map( type, path )</code></td><td>a <code>MapResult</code>: the <code>MappedFile</code>, or the error (<code>NotFound</code>, <code>IsADirectory</code>, <code>NotSupported</code> for a path that escapes its root, a root that is not set, or a non-<code>Internal</code> embedded file)</td></tr><tr><td><code>file.bytes()</code></td><td>the file's bytes, read in place; empty for an empty file</td></tr><tr><td><code>file.valid()</code></td><td>a file is mapped (an empty one is)</td></tr><tr><td><code>file.in_place()</code></td><td>the file's own pages (<code>mmap</code>, an asset stored uncompressed, an embedded file), not a copy</td></tr><tr><td><code>file.reset()</code>, the destructor</td><td>give it back; <code>bytes()</code> is empty after</td></tr></tbody></table></div>
+<p><code>MappedFile</code> is move-only (40 bytes). Its pages are clean: Android can drop them under memory pressure and read them again, and only what is touched is resident. <b>An asset is mapped in place only when the APK stores it uncompressed</b>: the template's packaging stores <code>ttf</code>, <code>otf</code> and <code>ttc</code> so (<code>SQ_STORED</code> in the project's Makefile adds more). A compressed asset still maps, into memory Android unpacks it to, and <code>in_place()</code> is false: check it once in a dev build.</p>
+<h2 id="writing">Writing</h2>
+<pre><code class="lang-cpp">auto save = fs.local(&quot;saves/slot1.json&quot;);
+if (auto error = save.write_string(document)) { report(error); }</code></pre>
+<p>Missing parent directories are created first, as libGDX does, so writing to a fresh path needs no setup call.</p>
+<p><b>A save that must not be half written</b> (the process can die during it):</p>
+<pre><code class="lang-cpp">if (auto error = fs.local(&quot;saves/slot1.json&quot;).write_atomically(document)) { report(error); }</code></pre>
+<p><code>write_atomically( bytes )</code> and <code>write_atomically( text )</code> write beside the file (<code>slot1.json.new</code>), flush it to storage, and rename it over the file: whoever reads it gets the old contents or the new, whole. Missing parent directories are created first. Failures as <code>write</code>'s, and on any failure the file is as it was and nothing is left beside it. <code>Internal</code> refuses it (<code>ReadOnly</code>), as it refuses every write. The same on Termux, a desktop and a device: private storage is a directory on each.</p>
+<p><b>The platform's own path</b>, for code that outlives the file system it came from (a thread that saves after the activity has gone):</p>
+<pre><code class="lang-cpp">const std::string path = fs.resolve_platform_path(sq::files::FileType::Local, &quot;saves/slot1.json&quot;);</code></pre>
+<p>Empty when there is none: bundled files inside an APK, compiled-in files, a root that is not set, a path that escapes its root. Use it later with <code>FileType::Absolute</code> through any file system.</p>
+<h2 id="listing">Listing</h2>
+<pre><code class="lang-cpp">std::vector&lt;sq::files::FileHandle&gt; entries;
+if (!fs.local(&quot;saves&quot;).list(entries)) {
+    for (const auto&amp; entry : entries) { ... }
+}</code></pre>
+<p>The caller owns the vector so it can be reused across calls rather than allocating a new one each time, which is why this does not return a value.</p>
+<h2 id="paths-that-escape-their-root">Paths that escape their root</h2>
+<p>A relative path containing <code>..</code>, or starting with <code>/</code>, is <b>refused</b> rather than normalised, with <code>FileErrorCode::NotSupported</code>. Asking for something under a root and quietly getting something outside it would be worse than failing. Use <code>FileType::Absolute</code> when you mean an absolute path.</p>
+<h2 id="files-compiled-in-embeddedfilesystem">Files compiled in: <code>EmbeddedFileSystem</code></h2>
+<p>Small files the program cannot do without (the Stage's default skin is one) can be compiled into it and read like bundled files, with nothing to package. <code>tools/embed_files.sh</code> turns a directory into a C++ source: the files' bytes as constants, and a table of <code>EmbeddedFile</code>s that a function returns:</p>
+<pre><code class="lang-sh">tools/embed_files.sh sq_app/data data my_data detail/my_data.hpp sq_app/src/my_data.cpp</code></pre>
+<p>(the directory, the path its files appear under, the function's name in <code>sq::detail</code>, the header that declares it, the output). Then:</p>
+<pre><code class="lang-cpp">sq::files::EmbeddedFileSystem files( sq::detail::my_data() );
+const auto text = files.internal( &quot;data/levels.json&quot; ).read_string();</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Answers</th></tr></thead><tbody><tr><td><code>exists</code>, <code>is_directory</code>, <code>length</code></td><td>from the table: a directory is any path some file is under; only <code>Internal</code> holds anything</td></tr><tr><td><code>read</code></td><td>a copy of the bytes; <code>NotFound</code>, <code>IsADirectory</code>; <code>NotSupported</code> outside <code>Internal</code></td></tr><tr><td><code>list</code></td><td>the names directly under a path, each once, sorted; <code>NotADirectory</code>, <code>NotFound</code></td></tr><tr><td><code>write</code>, <code>make_directories</code>, <code>remove</code></td><td><code>ReadOnly</code></td></tr></tbody></table></div>
+<p>The table must outlive the file system: a generated one is a constant. The bytes are read-only data in the program, mapped from its file and shared, not heap; a <code>read</code> copies them. Lookups scan the table, so keep it to a handful of files.</p>
+<h2 id="nested-assets-on-android">Nested assets on Android</h2>
+<p>Organise assets in as many directories as you like &amp;mdash; reads work at any depth, on every platform:</p>
+<pre><code class="lang-cpp">fs.internal(&quot;audio/sfx/ui/click.ogg&quot;).read_bytes();
+fs.internal(&quot;skins&quot;).list(entries);          // returns default/ on device too</code></pre>
+<p>On Android, listing and <code>is_directory()</code> are answered from an index the build writes into the APK at <code>assets/SQ-INF/index</code>. You do not create or maintain it; <code>make apk</code> regenerates it whenever an asset changes, and an app update replaces it along with everything else, so it cannot go stale.</p>
+<p>Two things to know:</p>
+<ul><li>Keep <code>sq_android/assets/SQ-INF/index</code> in your <code>.gitignore</code>. It is a build product.</li><li>Do not put assets under <code>assets/SQ-INF/</code>. It is the bundle's metadata directory, excluded from the index and hidden from listings &amp;mdash; from <code>Internal</code>'s root listing in Termux and on a desktop too, so every platform lists the same names.</li></ul>
+<p>The details, and why it works this way rather than any of the obvious alternatives, are in <a href="../developer/asset-index.html">../developer/asset-index.md</a>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.16 Architectural invariants · squared-pg</title>
+<meta name="description" content="squared-pg: 2.16 Architectural invariants">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.16 Architectural invariants.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.16 Architectural invariants.md">on GitHub</a></p><hr>
+<p>section: "2.16" title: Architectural invariants status: review tags: [spec, architecture, invariant]</p>
+<hr>
+<h1 id="216-architectural-invariants">2.16 Architectural invariants</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.15 Error and transaction model]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>States the properties that MUST remain true regardless of implementation change, names the section establishing each, and names how each is detected. This is the checklist a reviewer holds a proposed change against.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; invariant list</li><li>&#9745; source section per invariant</li><li>&#9745; detection mechanism per invariant</li><li>&#9745; the four invariants that outrank the rest</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="2161-the-four-that-outrank-the-rest">2.16.1 The four that outrank the rest</h3>
+<p>If a change forces a choice, these win:</p>
+<ol><li><b>User work is never destroyed.</b> ([[2.12 Generated-project boundary]])</li><li><b>Generated projects do not depend on the generator.</b> ([[2.12 Generated-project boundary]])</li><li><b>The engine provides capability; Lua provides orchestration.</b> ([[2.1 Architectural model]])</li><li><b>Everything works offline from a clean checkout.</b> ([[1.13 Repository invariant]])</li></ol>
+<p>Everything else is a means to these.</p>
+<h3 id="2162-invariant-register">2.16.2 Invariant register</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>Invariant</th><th>Established by</th><th>Detection</th></tr></thead><tbody><tr><td>I-01</td><td>Capability and orchestration remain separate</td><td>[[2.1 Architectural model]]</td><td><code>engine/</code> builds and its tests pass with <code>lua/</code> absent</td></tr><tr><td>I-02</td><td>The engine never decides workflow policy</td><td>[[2.2 Engine responsibility and role]]</td><td>no engine symbol names a template, kit, or workflow; audited by grep over the public API</td></tr><tr><td>I-03</td><td>Component boundaries are explicit</td><td>[[2.13 Dependency graph]]</td><td>include-path and registered-symbol checks in CI</td></tr><tr><td>I-04</td><td>The dependency graph is acyclic</td><td>[[2.13 Dependency graph]]</td><td>resolver rejects cycles; deliberate-cycle fixture in tests</td></tr><tr><td>I-05</td><td>Resource resolution is deterministic</td><td>[[2.8 Templates]]</td><td>resolve twice from one configuration, diff the resolved set</td></tr><tr><td>I-06</td><td>Output is reproducible where not time-sensitive</td><td>[[Spec conventions]]</td><td>generate twice, diff the workspace excluding declared volatile fields</td></tr><tr><td>I-07</td><td>Resource identity is independent of filesystem layout</td><td>[[2.4 Engine lifecycle]]</td><td>relocate a resource root, assert identical resolution</td></tr><tr><td>I-08</td><td>Generation is offline</td><td>[[1.13 Repository invariant]]</td><td>full generation suite in a network-isolated environment</td></tr><tr><td>I-09</td><td>No generated-project dependency on generator internals</td><td>[[2.12 Generated-project boundary]]</td><td>build a generated project with the generator absent</td></tr><tr><td>I-10</td><td>No undocumented global state</td><td>[[2.4 Engine lifecycle]]</td><td>two engine instances in one process produce identical independent results; no non-const namespace-scope variables in <code>engine/</code>, enforced by <code>clang-tidy</code></td></tr><tr><td>I-11</td><td>Ownership and lifetime are explicit</td><td>[[2.4 Engine lifecycle]]</td><td>ASan/LSan clean on the full suite; no raw owning pointers, enforced by <code>clang-tidy</code></td></tr><tr><td>I-12</td><td>The public API is stable and versioned</td><td>[[2.2 Engine responsibility and role]]</td><td>exported-symbol and operation-registry snapshot compared per release</td></tr><tr><td>I-13</td><td>Workflows remain programmable after release</td><td>[[2.14 Extensibility model]]</td><td>a custom workflow and custom resource load from the user path with no engine change</td></tr><tr><td>I-14</td><td>Failure leaves a valid state</td><td>[[2.15 Error and transaction model]]</td><td>fault-injection suite: fail at each generation phase, assert workspace and engine validity</td></tr><tr><td>I-15</td><td>Interrupted transactions are recoverable</td><td>[[2.15 Error and transaction model]]</td><td>kill the process at each journal state, assert recovery reaches a consistent state</td></tr><tr><td>I-16</td><td>User work is never destroyed</td><td>[[2.12 Generated-project boundary]]</td><td><code>workspace.verify</code> reports a modified <code>generated</code>-class file before a regeneration could overwrite it (§2.16.5); and modify a seeded file, regenerate, assert survival</td></tr><tr><td>I-17</td><td>Operations behave identically regardless of caller</td><td>[[2.4 Engine lifecycle]]</td><td>same operation via C++ API, Lua, and CLI produces identical results</td></tr><tr><td>I-18</td><td>Errors are machine-readable</td><td>[[2.15 Error and transaction model]]</td><td>every failure path in the suite yields a category and code; none require log parsing</td></tr></tbody></table></div>
+<h3 id="2163-on-detection">2.16.3 On detection</h3>
+<p>An invariant with no detection mechanism is documentation, not a guarantee. Every row above names one; where the mechanism is weak, that is visible rather than hidden.</p>
+<p>This register is the resolution of open question Q-25 ([[Spec open questions]]), recorded as [[Spec decisions#D-028 — Invariant register names a detection mechanism per invariant|D-028]].</p>
+<p>I-16's mechanism was strengthened by <code>workspace.verify</code> (§2.16.5), which detects a threatened overwrite <i>before</i> it happens rather than asserting survival afterwards. The half it still lacks is checking a resource in isolation.</p>
+<p>I-10 is the weakest and deserves attention: "no undocumented global state" is only partially checkable. The two-instance test catches state that affects results; <code>clang-tidy</code>'s check on namespace-scope mutables catches the obvious form. Neither catches state hidden behind a function-local static. This is a known gap.</p>
+<h3 id="2164-changing-an-invariant">2.16.4 Changing an invariant</h3>
+<p>An invariant may be changed, but not quietly. Changing one requires a decision entry in [[Spec decisions]] recording what is given up and why, and an update to every section that relied on it.</p>
+<h3 id="2165-workspaceverify">2.16.5 <code>workspace.verify</code></h3>
+<blockquote><p>[!note] Resolution of AUD-L-004 (D-052, D-054)</p></blockquote>
+<p><code>workspace.verify</code> checks a <b>generated workspace against its own provenance record</b>. It is distinct from <code>workspace.inspect</code>, which reports what the record says; verify compares the record against the tree.</p>
+<p>It is the <b>first reader of the provenance table</b>. Every generation had written that table — path, ownership class, origin, sha256, one row per file — and nothing had ever read it back. Unread data drifts from correct without failing, so the table was true only by coincidence; verify makes it true on purpose, and its first assertion is that a freshly generated workspace verifies clean.</p>
+<p>What it checks, and what each finding means:</p>
+<div class="tablewrap"><table><thead><tr><th>Condition</th><th>Result</th><th>Because</th></tr></thead><tbody><tr><td>recorded <code>generated</code> file differs from its hash</td><td><b>conflict</b></td><td>a regeneration would overwrite the edit</td></tr><tr><td>recorded <code>generated</code> file absent</td><td><b>conflict</b></td><td>recorded but gone; a different remedy, so a different finding</td></tr><tr><td>recorded <code>seeded</code> file differs</td><td>counted, not reported</td><td>that is what <code>seeded</code> means</td></tr><tr><td>recorded row carries no hash</td><td>counted as unchecked</td><td>copied assets are recorded without one; hiding this would overstate what verify proved</td></tr></tbody></table></div>
+<p>It MUST NOT repair. Restoring a file would be the regeneration path §2.7.11 defers, arriving by a side door. It reports; the remedy is the author's.</p>
+<p>It exits non-zero when there are findings, so it composes into a <code>check</code> target or a CI step.</p>
+<p><b>Not yet checked, and named so the gap is visible:</b></p>
+<ul><li><b>Untracked files</b> — present in the tree, absent from the record. Almost always the author's own work, and a useful number. No implementation offers directory listing on its filesystem service.</li><li><b>A resource in isolation.</b> Ownership overlaps (§2.7.10) are detected during planning, so a defective template fails when someone generates from it, not before. <code>sqcart</code> performed this check until cartridge format 2.0 removed its jurisdiction (format spec §6), and it has had no successor since. This is the detection mechanism I-16 would want and does not have.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[1.13 Repository invariant]] · [[2.12 Generated-project boundary]] · [[2.13 Dependency graph]] · [[2.15 Error and transaction model]] · [[Spec decisions]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

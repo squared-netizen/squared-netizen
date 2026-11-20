@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class ValueCache · squared</title>
+<meta name="description" content="squared: class ValueCache">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/ValueCache.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/ValueCache.md">on GitHub</a></p><h1 id="class-valuecache">class ValueCache</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L63">messaging/value_cache.cppm:63</a></i></p>
+<p><b>brief</b> The latest value of each address, on the UI side: a screen built later shows current values at once.</p>
+<p>An address an actor is bound to (<code>bind</code>) keeps its entry; the others are evicted when room is needed, roughly oldest first. Text and uid lists up to 16 bytes are held in the entry; longer ones in a text area, which is compacted when it fills. Over storage its owner gives it, sized at init; nothing allocates. One thread only.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="valuecache">ValueCache</h3>
+<p><i>public void ValueCache(ValueCache &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L83">messaging/value_cache.cppm:83</a></i></p>
+<h3 id="valuecache">ValueCache</h3>
+<p><i>public void ValueCache(const ValueCache &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L81">messaging/value_cache.cppm:81</a></i></p>
+<h3 id="valuecache">ValueCache</h3>
+<p><i>public void ValueCache(std::span&lt;std::byte&gt; entries, std::span&lt;std::byte&gt; index, std::span&lt;std::byte&gt; text)</i></p>
+<p><b>brief</b> A cache over <code>entries</code> (32 bytes an entry, a power of two of them, 2 to 32,768), <code>index</code> (<code>index_bytes</code>) and <code>text</code> (text and uid lists over 16 bytes; may be empty). Asserted; the storage needs no alignment.</p>
+<h3 id="bind">bind</h3>
+<p><i>public bool bind(Address address)</i></p>
+<p><b>brief</b> An actor shows <code>address</code>: its entry is kept (made now if there is none, with no value yet). False when there is no room (every entry bound) or 255 actors already show it.</p>
+<h3 id="bindings">bindings</h3>
+<p><i>public std::uint32_t bindings(Address address)</i></p>
+<p><b>brief</b> How many binds <code>address</code> has; 0 when it has none or no entry.</p>
+<h3 id="bound_from">bound_from</h3>
+<p><i>public std::optional&lt;BoundEntry&gt; bound_from(std::uint32_t from)</i></p>
+<p><b>brief</b> The first bound entry numbered <code>from</code> or after; nothing when there is none. A walk over the bound entries: from 0, then from the last one found plus 1. Unbinding the one found does not disturb it.</p>
+<h3 id="entry_from">entry_from</h3>
+<p><i>public std::optional&lt;BoundEntry&gt; entry_from(std::uint32_t from)</i></p>
+<p><b>brief</b> The first entry in use numbered <code>from</code> or after, bound or not: a walk over every address the cache holds, as <code>bound_from</code> walks the bound ones (the Console's <code>telegraph state</code>).</p>
+<h3 id="find">find</h3>
+<p><i>public std::optional&lt;CachedValue&gt; find(Address address)</i></p>
+<p><b>brief</b> The latest value of <code>address</code>; nothing if none is cached.</p>
+<h3 id="index_bytes">index_bytes</h3>
+<p><i>public static std::size_t index_bytes(std::size_t entries)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L67">messaging/value_cache.cppm:67</a></i></p>
+<p><b>brief</b> Index bytes a cache of <code>entries</code> entries needs: 4 an entry.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public ValueCache &amp; operator=(ValueCache &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L84">messaging/value_cache.cppm:84</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public ValueCache &amp; operator=(const ValueCache &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L82">messaging/value_cache.cppm:82</a></i></p>
+<h3 id="stats">stats</h3>
+<p><i>public CacheStats stats()</i></p>
+<h3 id="store">store</h3>
+<p><i>public CacheResult store(const Telegram &amp; telegram, std::span&lt;const std::byte&gt; data)</i></p>
+<p><b>brief</b> Make <code>telegram</code>'s value the latest for its address. A <code>text</code> or <code>uids</code> value is taken from <code>data</code> (as a ring delivers it); any other type takes no data. On <code>dropped</code> or <code>too_large</code> the address keeps the value it had.</p>
+<h3 id="unbind">unbind</h3>
+<p><i>public void unbind(Address address)</i></p>
+<p><b>brief</b> One actor fewer shows <code>address</code>. It must be bound.</p>
+<h3 id="valuecache">~ValueCache</h3>
+<p><i>public void ~ValueCache()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/value_cache.cppm#L85">messaging/value_cache.cppm:85</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

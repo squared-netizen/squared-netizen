@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kit.terminal - implementation notes · squared-pg</title>
+<meta name="description" content="squared-pg: kit.terminal - implementation notes">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/kits/kit.terminal.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/kits/kit.terminal.md">on GitHub</a></p><h1 id="kitterminal---implementation-notes">kit.terminal - implementation notes</h1>
+<p>Consumer-facing counterpart: <a href="../../programmer/kits/kit.terminal.html">../../programmer/kits/kit.terminal.md</a></p>
+<h2 id="version-020">Version 0.2.0</h2>
+<p>Simplification of 0.1.0. The header code is unchanged; what changed is the metadata and the build fragment, so the kit declares only what something reads or what the project's own decisions ask authors to state.</p>
+<div class="tablewrap"><table><thead><tr><th>Changed</th><th>From</th><th>To</th><th>Why</th></tr></thead><tbody><tr><td><code>version</code></td><td>0.1.0</td><td>0.2.0</td><td>Manifest and fragment changed.</td></tr><tr><td><code>compatible_templates</code></td><td><code>template.terminal.cpp</code></td><td>adds <code>template.term.edu.cpp</code></td><td>The teaching template gained the kit-fragment hook (see its developer page), so the same kit serves both.</td></tr><tr><td><code>description</code></td><td>"...bridge..."</td><td>single header, standard library only</td><td>It wraps no external system, so "bridge" misled.</td></tr><tr><td><code>external</code> block</td><td><code>posix-terminal</code>, <code>vendored</code></td><td>removed</td><td>The kit wraps nothing. Spec 2.9.2: absent means "wraps nothing"; the block was read only by diagnostics.</td></tr><tr><td><code>runtime</code> block</td><td><code>model: none</code></td><td>removed</td><td>Read by nothing (spec 2.9.2).</td></tr><tr><td><code>platforms</code></td><td>termux, linux, macos, desktop</td><td>removed</td><td>Standard C++ only; absent admits every platform.</td></tr><tr><td><code>requires.framework</code></td><td><code>&gt;=1.0.0 &lt;2.0.0</code></td><td>removed</td><td>The kit does not use the framework; absent is unconstrained.</td></tr><tr><td><code>requires.kits</code></td><td><code>[]</code></td><td>removed</td><td>Empty; absent means none.</td></tr><tr><td><code>requires.capabilities</code></td><td><code>substitute@^1.0</code></td><td>removed</td><td>The payload contains no <code>{{</code>, so nothing needs substituting.</td></tr><tr><td><code>mk/kit_terminal.mk</code></td><td>variable <code>SQ_KIT_TERMINAL_INCLUDE</code> plus two appends</td><td>two appends</td><td>The variable had no other user.</td></tr><tr><td>Header comment</td><td>long design preamble</td><td>tidied</td><td>Typos and list layout from the hand edit; wording kept.</td></tr></tbody></table></div>
+<p>Kept deliberately:</p>
+<ul><li><code>provides</code> and <code>conflicts_with</code>. D-070 puts the burden on kit authors to declare these accurately, even though overlap detection for <code>provides</code> is deferred. <code>conflicts_with</code> is already honoured by validation.</li><li><code>integration_areas</code> (<code>app.include</code>, <code>build.make.fragments</code>), which both templates declare, <code>requires.engine</code>, <code>requires.packages</code>.</li><li>Layout <code>sq_kit/include/terminal/</code> (D-061: kit-named segment inside the include root keeps the app and kit roots disjoint) and the ownership entries <code>sq_kit/**</code> plus the literal <code>mk/kit_terminal.mk</code> (D-064).</li></ul>
+<p>Existing workspaces recorded kit 0.1.0 and are unaffected. Kit updates are not implemented, so nothing migrates them.</p>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">resources/kits/kit.terminal/
+  SQ-INF/manifest.json
+  tree/sq_kit/include/terminal/terminal.hpp
+  tree/mk/kit_terminal.mk</code></pre>
+<h2 id="design-patterns">Design patterns</h2>
+<div class="tablewrap"><table><thead><tr><th>Pattern</th><th>Where</th><th>Why / deviation</th></tr></thead><tbody><tr><td>Facade</td><td>the regex functions over <code>&lt;regex&gt;</code></td><td>Four-argument <code>std::regex</code> calls and exceptions become one-line, non-throwing calls. Deviation: it is a set of free functions rather than a class, because there is no state to hold. <code>pattern()</code> is the escape hatch to the real type.</td></tr><tr><td>Value object</td><td><code>FileHandle</code></td><td>A cheap, copyable wrapper around <code>std::filesystem::path</code> with no identity. Modelled on libGDX, so it keeps libGDX's names (<code>readString</code>, <code>child</code>) rather than the standard library's.</td></tr></tbody></table></div>
+<p>Not a pattern but a convention: <code>std::optional</code> is the error channel everywhere. A terminal program's reaction to "no such file" is to print and carry on, so exceptions would only be caught at every call site.</p>
+<h2 id="data-structures-and-complexity">Data structures and complexity</h2>
+<ul><li>Regex results are <code>std::vector&lt;std::string&gt;</code>; <code>find</code> reserves <code>match.size()</code>.</li><li><code>list()</code> sorts with <code>std::sort</code>: O(n log n), because directory order is not stable.</li><li><code>readLines()</code> and <code>readString()</code> are O(file size). The whole file is held in memory; this kit is not for large files.</li><li>Each regex call compiles its pattern again. <code>std::regex</code> construction is slow, so a loop over many lines should call <code>pattern()</code> once and use <code>&lt;regex&gt;</code> directly.</li></ul>
+<h2 id="standard-library-versus-custom">Standard library versus custom</h2>
+<p>Nothing third-party. Custom code where the standard library has no equivalent or a worse fit:</p>
+<ul><li><code>trim</code>: there is no <code>std::trim</code>; six lines.</li><li><code>parse&lt;T&gt;</code>: wraps <code>std::from_chars</code> instead of <code>std::stoi</code>, which throws and accepts trailing garbage. Integer <code>T</code> works everywhere; floating-point <code>T</code> depends on the standard library's <code>from_chars</code> support, which older libc++ releases lack. Verify on-device before documenting <code>parse&lt;double&gt;</code> as supported.</li><li><code>readLines</code>: a character loop instead of <code>std::getline</code> over a stream, so CRLF handling and the "no final empty line" rule live in one place.</li><li><code>FileHandle</code> has one constructor, not three, because overloads for string types make <code>FileHandle{some_string}</code> ambiguous.</li></ul>
+<h2 id="invariants">Invariants</h2>
+<ul><li>Header-only, every function <code>inline</code> or a template, include-guarded.</li><li>No function throws. Anything that can fail returns a value that says so.</li><li>Compiles warning-free under <code>-std=c++20 -Wall -Wextra -Wpedantic</code>.</li><li>No terminal control (design note in the header).</li></ul>
+<h2 id="verification">Verification</h2>
+<p>Each release: build a <code>template.terminal.cpp</code> workspace with the kit, run it, and compile a smoke test calling every function under the flags above.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

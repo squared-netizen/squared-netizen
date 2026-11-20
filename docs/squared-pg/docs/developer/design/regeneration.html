@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Regeneration and update model · squared-pg</title>
+<meta name="description" content="squared-pg: Regeneration and update model">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/design/regeneration.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/design/regeneration.md">on GitHub</a></p><hr>
+<p>title: Regeneration and update model tags: [design, not-normative]</p>
+<hr>
+<h1 id="regeneration-and-update-model">Regeneration and update model</h1>
+<blockquote><p>[!warning] Not normative This document is the specification §2.7.11 carried until D-033/D-054. It describes a mechanism <b>no implementation provides</b>: <code>project.generate</code> refuses an existing workspace, and there is no write-ahead journal.</p>
+<p>It is retained because the thinking is sound and the groundwork exists — provenance hashes, the reified plan, enforced ownership classes were all built for this. What is missing is the transactional guarantee, and a partial journal corrupts user work in exactly the cases it exists to prevent.</p>
+<p>§2.7.11 is a stub pointing here. Do not read this as a description of behaviour.</p></blockquote>
+<p>Regeneration is the application of generator operations to an <b>existing</b> workspace.</p>
+<p>Regeneration is optional. A generated project MUST remain fully usable without ever regenerating.</p>
+<h4 id="preconditions">Preconditions</h4>
+<p>Regeneration requires:</p>
+<ul><li>a valid workspace metadata record;</li><li>a valid provenance table;</li><li>resolvable versions of the recorded resources, or explicitly requested new versions.</li></ul>
+<p>If metadata is absent or invalid, the engine MUST refuse to regenerate and MUST return a structured error. The engine MUST NOT reconstruct provenance by guessing from filesystem contents.</p>
+<h4 id="operations">Operations</h4>
+<p>The update model MUST support:</p>
+<ul><li><b>add</b> — introduce a new kit, package, or asset;</li><li><b>remove</b> — remove a previously integrated kit, package, or asset;</li><li><b>update</b> — move a template, kit, package, asset, or framework version to a new version;</li><li><b>repair</b> — restore <code>generated</code>-class files to match current provenance.</li></ul>
+<p>Each operation is requested explicitly by Lua. The engine MUST NOT perform any of them as a side effect of another operation.</p>
+<h4 id="update-sequence">Update sequence</h4>
+<p>An update MUST follow:</p>
+<ol><li>Load and validate workspace metadata and provenance.</li><li>Compute the current workspace state (hash every recorded path).</li><li>Resolve the requested target resource set.</li><li>Cross-validate the target set (as in §2.7.9).</li><li>Produce an <b>update plan</b>: paths to add, modify, remove, and paths in conflict.</li><li>Return the plan to Lua for a decision.</li><li>On approval, open a transaction and apply.</li><li>Update metadata and provenance.</li><li>Validate and commit.</li></ol>
+<p>Steps 1–6 MUST NOT mutate the workspace. The update plan MUST be obtainable as a preview without applying it.</p>
+<h4 id="preservation-guarantees">Preservation guarantees</h4>
+<p>Regeneration MUST preserve:</p>
+<ul><li>all <code>user</code>-class files;</li><li>all <code>seeded</code>-class files;</li><li>any <code>generated</code>-class file whose hash indicates user modification, unless the workflow explicitly authorizes overwrite.</li></ul>
+<p>Regeneration MUST NOT delete a path it did not create, as recorded in provenance.</p>
+<h4 id="removal">Removal</h4>
+<p>Removing a kit, package, or asset MUST remove only paths whose provenance attributes them to that resource <b>and</b> whose ownership class is <code>generated</code> <b>and</b> whose hash is unmodified.</p>
+<p>Paths that are user-modified, <code>seeded</code>, or <code>user</code> MUST be reported as orphaned rather than deleted. Lua decides.</p>
+<h4 id="version-migration">Version migration</h4>
+<p>A resource version change MAY require migration beyond file replacement — moved paths, renamed targets, changed configuration schemas.</p>
+<p>Where migration is required, the resource MUST declare migration rules. The engine MUST apply declared migrations as part of the update transaction.</p>
+<p>If a required migration is unavailable, the update MUST fail with a structured compatibility error rather than proceeding partially.</p>
+<h4 id="framework-version-updates">Framework version updates</h4>
+<p>Updating the Squared framework version MAY require package updates, build configuration changes, source changes, and metadata changes.</p>
+<p>Framework updates MUST be explicitly requested, MUST be validated against every resolved package and kit, and MUST follow the same plan-and-approve sequence.</p>
+<h4 id="transaction-requirement">Transaction requirement</h4>
+<p>Regeneration MUST occur within a generation transaction ([[2.15 Error and transaction model]]). A failed update MUST restore the workspace to its pre-update state.</p>
+<p>The engine MUST NOT leave a workspace in a state where its metadata describes a resource set that does not match its files.</p>
+<hr></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

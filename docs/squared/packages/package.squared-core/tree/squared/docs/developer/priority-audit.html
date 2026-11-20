@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Priority audit · squared</title>
+<meta name="description" content="squared: Priority audit">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/priority-audit.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/priority-audit.md">on GitHub</a></p><h1 id="priority-audit">Priority audit</h1>
+<p>The project's priority order is RAM efficiency, then API ergonomics, then speed, then extensibility. This page records where the tree as it stands contradicts that order, or contradicts the language rules the project sets for itself. <b>None of these were changed during the file split</b>: every one is a behavioural or API change, and hiding those inside a mechanical refactor would make both impossible to review.</p>
+<p>Counts are measured against this tree, not estimated.</p>
+<h2 id="1-exceptions-are-live-ampmdash-contradicts-the-no-exceptions-rule">1. Exceptions are live &amp;mdash; contradicts the no-exceptions rule</h2>
+<p>23 <code>throw</code> statements, plus <code>std::unordered_map::at</code> in the style lookup path (<code>style_or_default</code> falls back to <code>styles.at(&quot;default&quot;)</code>, which throws <code>std::out_of_range</code> when a skin has no <code>default</code> style).</p>
+<p>Affected: <code>FontResource</code>, <code>Skin::add_font</code>, <code>ButtonGroup</code>, <code>NinePatchDrawable</code>, <code>Ui::set_tooltip_config</code>, <code>Ui::update</code>, the skin loader.</p>
+<p>The framework rule is a <code>Result</code>-style return for recoverable failure, an assert for programmer error, and hard failure only at startup. Every throw site here is one of the first two.</p>
+<h2 id="2-rtti-ampmdash-resolved">2. RTTI &amp;mdash; resolved</h2>
+<p><b>Closed.</b> All 17 <code>dynamic_cast</code> expressions are gone and the tree builds clean with <code>-fno-rtti</code>:</p>
+<pre><code class="lang-sh">make SQUARED_ABI=-fno-rtti</code></pre>
+<p>They were three distinct questions, answered three ways:</p>
+<div class="tablewrap"><table><thead><tr><th>Was</th><th>Sites</th><th>Now</th></tr></thead><tbody><tr><td><code>Actor*</code> &amp;rarr; <code>Widget*</code></td><td>11</td><td><code>gui::actor_cast&lt;Widget&gt;()</code></td></tr><tr><td><code>Actor*</code> &amp;rarr; <code>Group*</code></td><td>3</td><td><code>gui::actor_cast&lt;Group&gt;()</code></td></tr><tr><td><code>Widget*</code> &amp;rarr; <code>TextField*</code></td><td>3</td><td><code>Widget::wants_text_input()</code></td></tr></tbody></table></div>
+<p><code>actor_cast</code> is a one-virtual-call downcast built on <code>Actor::actor_interface(ActorInterfaceId)</code>: each derived interface publishes a constant and answers for it, delegating to its base otherwise. It costs no storage &amp;mdash; <code>Actor</code> already had a vtable &amp;mdash; and is cheaper than <code>dynamic_cast</code> was. See <a href="gui.html#downcasting-without-rtti">gui.md</a>.</p>
+<p>The third replacement is an improvement rather than a translation: only <code>TextField</code> could raise the soft keyboard before, and a virtual lets any custom text-entry widget opt in.</p>
+<h2 id="3--fno-exceptions-does-not-build">3. <code>-fno-exceptions</code> does not build</h2>
+<p><code>-fno-rtti</code> is clean as of the RTTI pass. <code>-fno-exceptions</code> is not: <b>21 remaining errors</b>, all exception-related.</p>
+<p>What is left, by kind:</p>
+<div class="tablewrap"><table><thead><tr><th>Kind</th><th>Count</th><th>Work</th></tr></thead><tbody><tr><td><code>throw std::invalid_argument</code> on a precondition</td><td>20</td><td>assert instead; one line each</td></tr><tr><td><code>catch (...)</code> rollback against <code>bad_alloc</code></td><td>6 blocks</td><td>dead under <code>-fno-exceptions</code>; delete</td></tr><tr><td><code>catch (std::bad_alloc)</code> converted to an error code</td><td>2 blocks</td><td>pre-check limits and <code>reserve()</code> instead</td></tr><tr><td><code>FontResource</code> constructors validating external data</td><td>3 throws</td><td>static factories returning a status</td></tr><tr><td><code>styles.at(&quot;default&quot;)</code> in <code>style_or_default</code></td><td>1</td><td>return a static default-constructed style</td></tr></tbody></table></div>
+<p>The 20 precondition throws are null <code>unique_ptr</code> arguments (9), reversed min/max limits (2), empty resource names (2), out-of-range nine-patch splits, an empty input listener, an already-parented actor, a non-finite tooltip config, and a tooltip factory returning a parented widget. Every one is programmer error, which the framework rules say is an assert.</p>
+<p><code>FontResource</code> is the only genuine API change on the list. It does not need a new <code>Result</code> type: <code>BitmapFont::parse(..., BitmapFontError&amp;)</code> already establishes the idiom this codebase uses for recoverable failure. (Since 3.1c, 2026-10-16, that idiom is a returned error: <code>BitmapFont::load()</code> returns a <code>BitmapFontError</code>, true on failure. See <code>graphics.md</code>.)</p>
+<p><b>External blocker:</b> <code>gui/src/skin_loader.cpp</code> wraps the whole load in <code>catch (const std::exception&amp;)</code>, and inside it calls <code>data::parse_json</code> from a module outside this archive. That translation unit cannot build with <code>-fno-exceptions</code> until <code>sq::data</code> is exception-free.</p>
+<h2 id="3b-contextpresent-discarded-surface-loss-ampmdash-resolved">3b. <code>Context::present()</code> discarded surface loss &amp;mdash; resolved</h2>
+<p><b>Closed.</b> It returned <code>void</code>; it now returns <code>[[nodiscard]] bool</code>. The only signal some devices give that the rendering surface has gone was being thrown away, and the symptom is an application frozen on its last frame after a phone call. Found by comparing the framework's declaration against <code>kit.opengl</code>, which had it right.</p>
+<h2 id="4-skin-is-the-largest-resident-cost">4. <code>Skin</code> is the largest resident cost</h2>
+<p><code>sizeof(Skin)</code> is 688 bytes, and that is before any content: ten <code>std::unordered_map&lt;std::string, T&gt;</code> members, each of which heap-allocates a control block on first insert and one node per entry, with a 32-byte <code>std::string</code> key per node.</p>
+<p>A skin with 40 drawables and 8 styles per widget kind pays roughly 100 allocations and several kilobytes of pointer-chased nodes, resident for the life of the application. Priority 1 says this is the first thing to fix.</p>
+<p>Shape of the fix: intern names to a 32-bit handle at load time and index a dense <code>std::vector</code> per style kind. Lookup becomes an array index; the string table exists once instead of once per map.</p>
+<h2 id="5-stdfunction-on-interaction-paths">5. <code>std::function</code> on interaction paths</h2>
+<p>Seven <code>std::function</code> members across the public API: <code>Button::Callback</code>, <code>ToggleButton::ChangeCallback</code>, <code>Slider::ChangeCallback</code>, <code>Widget::TooltipFactory</code>, <code>gui::InputListener</code>, and both skin resolvers (<code>Dialog::ResultCallback</code> went with <code>Dialog</code> in 7.7). 32 bytes each, plus a heap allocation for any capture past the small-buffer size, plus an indirect call.</p>
+<p>None of these are per-frame in the strict sense &amp;mdash; they fire on input, not on tick &amp;mdash; but <code>Widget::TooltipFactory</code> sits in the 136-byte <code>Widget</code> base, so <b>every widget in the tree pays 32 bytes for it</b> whether or not it has a tooltip. That is the cheapest real win available: move it to a side table keyed by widget, and <code>Widget</code> drops to 104 bytes.</p>
+<h2 id="6-style-names-are-stdstring-members">6. Style names are <code>std::string</code> members</h2>
+<p><code>std::string style_{&quot;default&quot;}</code> appears in <code>Label</code>, <code>Panel</code>, <code>Button</code>, <code>TextField</code>, <code>Slider</code> and <code>ProgressBar</code> (<code>Window</code>'s went in 7.7: a pane frame keeps a <code>std::string_view</code> to a literal). 32 bytes per widget to store a name that is almost always the same short literal, and it is compared by value on every lookup. An interned handle is 4 bytes and compares as an integer.</p>
+<h2 id="7-virtual-dispatch-on-the-layout-and-paint-path">7. Virtual dispatch on the layout and paint path</h2>
+<p><code>minimum_size</code>, <code>preferred_size</code>, <code>maximum_size</code>, <code>layout</code>, <code>paint</code>, and <code>pointer_event</code> are all virtual and all called per frame per widget through <code>Ui::layout</code> and <code>Ui::paint</code>. This is the ergonomic model libGDX users expect, and the priority order does put ergonomics above speed &amp;mdash; but it also says ergonomics must not cost memory, and the vtable pointer is already paid for by <code>gui::Actor</code>. Recorded here as a known cost, not as a defect.</p>
+<h2 id="8-other-standard-library-choices">8. Other standard-library choices</h2>
+<p><code>std::deque&lt;Cell&gt;</code> in <code>Table</code>, <code>std::shared_ptr</code> behind <code>DrawablePtr</code> and <code>FontPtr</code> (16 bytes plus an atomic control block per resource), <code>std::unordered_map&lt;std::int64_t, Widget*&gt;</code> for pointer captures in <code>Ui</code>. See <a href="standard-library-deviations.html">standard-library-deviations.md</a>.</p>
+<h2 id="what-the-file-split-changed">What the file split changed</h2>
+<p>Nothing on this list. That refactor moved text between files and adjusted include sets. Every declaration and every definition was byte-identical to its input, verified by a round-trip check in the tooling.</p>
+<h2 id="what-the-rtti-pass-changed">What the RTTI pass changed</h2>
+<p>Item 2 only. Nine files: a new <code>ActorInterfaceId</code> header, the interface query on <code>Actor</code> and <code>Group</code>, the same on <code>Widget</code> plus <code>wants_text_input()</code>, the <code>TextField</code> override, and the 17 call sites in <code>ui.cpp</code>, <code>widget.cpp</code> and <code>stack.cpp</code>. <code>ui.cpp</code> also drops its <code>text_field.cppm</code> include, which is no longer named there.</p>
+<p>Behaviour is unchanged. <code>actor_cast</code> was tested against the cases <code>dynamic_cast</code> used to answer: a plain <code>Group</code> is a <code>Group</code> and not a <code>Widget</code>; a <code>Widget</code> answers both identifiers and returns the same <code>Group</code> subobject <code>dynamic_cast</code> produced; an <code>Actor</code> that is neither answers neither; null in, null out; and the <code>const</code> overload agrees with the mutable one.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

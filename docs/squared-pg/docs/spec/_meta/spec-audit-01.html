@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec audit 01 · squared-pg</title>
+<meta name="description" content="squared-pg: Spec audit 01">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/spec-audit-01.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/spec-audit-01.md">on GitHub</a></p><hr>
+<p>title: Spec audit 01 tags: [spec, meta, audit]</p>
+<hr>
+<h1 id="spec-audit-01">Spec audit 01</h1>
+<pre><code>Audit run:  2026-09-02
+Task:       sqcart/prompt-plan.md (read-only pass)
+Scope:      all 39 notes in docs/spec/ + repository root + AGENTS.md
+            (task scope list stops at §2.7; the vault runs to §2.16 and the
+            meta notes, so the whole vault was audited as one document)
+Status:     each finding below awaits an APPROVED / REJECTED mark before
+            any edit (see sqcart/prompt-edit.md)</code></pre>
+<h2 id="summary">Summary</h2>
+<div class="tablewrap"><table><thead><tr><th>Class</th><th>Count</th><th>Blocking</th><th>Serious</th><th>Minor</th></tr></thead><tbody><tr><td>A — section numbering integrity</td><td>3</td><td>0</td><td>1</td><td>2</td></tr><tr><td>B — contradictory duplicate content</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>C — cross-reference validity</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>D — conversational / meta leakage</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>E — markdown structural damage</td><td>3</td><td>0</td><td>2</td><td>1</td></tr><tr><td>F — normative language</td><td>2</td><td>0</td><td>1</td><td>1</td></tr><tr><td>G — spec/repository divergence</td><td>6</td><td>2</td><td>1</td><td>3</td></tr><tr><td>H — unresolved deferrals</td><td>1</td><td>0</td><td>1</td><td>0</td></tr><tr><td>I — redundancy</td><td>7</td><td>0</td><td>0</td><td>7</td></tr><tr><td>J — ordering conflicts</td><td>0</td><td>0</td><td>0</td><td>0</td></tr><tr><td><b>Total</b></td><td><b>28</b></td><td><b>2</b></td><td><b>9</b></td><td><b>17</b></td></tr></tbody></table></div>
+<p>Severity (per task): blocking = cannot be implemented from as written; serious = an implementer would likely get it wrong; minor = editorial.</p>
+<p>Verified-clean positives are recorded inline under each class (A-004, C-001, E-004, F-002, G-007, H-002, J-001, J-002). No D-class remnants of the kind the task warns about were found in any note body.</p>
+<hr>
+<h2 id="a--section-numbering-integrity">A — Section numbering integrity</h2>
+<h3 id="aud-a-001--27-outline-names-a-subsection-that-the-headings-do-not">AUD-A-001 — §2.7 outline names a subsection that the headings do not</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code> Outline item 2.7.12 ("Generated project boundary", line 46) vs heading <code>## 2.7.12 Ownership transition</code> (line 1630). The TOC is the first thing a reader uses; it points at a section that has a different name. The subsection then repeats its own title as <code>### Ownership transition</code> (line 1636).</p>
+<p><b>Correction:</b> align the two: rename the heading to "Generated project boundary" or the outline to "Ownership transition"; delete the redundant <code>### Ownership transition</code> sub-heading. Decide alongside AUD-B-001.</p>
+<h3 id="aud-a-002--25-outline-title-drift">AUD-A-002 — §2.5 outline title drift</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>File: <code>02 Generator architecture/2.5 Lua control layer.md</code> Outline "2.5.4 CLI control" vs heading <code>### 2.5.4 Command-line interface control</code>.</p>
+<p><b>Correction:</b> make the outline item read "2.5.4 Command-line interface control".</p>
+<h3 id="aud-a-003--26-outline-title-drift-three-items">AUD-A-003 — §2.6 outline title drift (three items)</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>File: <code>02 Generator architecture/2.6 Engine-Lua boundary.md</code> Outline "2.6.7 Resource identity" vs heading <code>Resource identity across the boundary</code>; "2.6.9 Ownership and lifetime" vs <code>Ownership and lifetime rules</code>; "2.6.13 Filesystem abstraction" vs <code>Filesystem and path abstraction</code>.</p>
+<p><b>Correction:</b> update the outline to the actual heading titles.</p>
+<h3 id="aud-a-004--numbering-continuity-clean">AUD-A-004 — numbering continuity: clean</h3>
+<p>Subsection sequences are contiguous in every file — no gaps or duplicated numbers (verified mechanically: 2.4.1–2.4.13, 2.5.1–2.5.11, 2.6.1–2.6.16, 2.7.0–2.7.13, 2.8.1–2.8.11, 2.9.1–2.9.9, 2.10.1–2.10.9, 2.11.1–2.11.11, 2.12.1–2.12.6, 2.13.1–2.13.6, 2.14.1–2.14.7, 2.15.1–2.15.14, 2.16.1–2.16.4). No action.</p>
+<hr>
+<h2 id="b--contradictory-duplicate-content">B — Contradictory duplicate content</h2>
+<h3 id="aud-b-001--2712-restates-the-boundary-guarantee-whose-home-is-212">AUD-B-001 — §2.7.12 restates the boundary guarantee whose home is §2.12</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> serious</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code> Heading: <code>2.7.12 Ownership transition</code></p>
+<p>The subsection's own opening note (lines 1632–1634) says the guarantee "is stated in [[2.12 Generated-project boundary]]" and that §2.7.12 defines only the mechanism — exactly what D-006a decided. Yet <code>### Independence</code> (lines 1658–1670) and <code>### Leakage prohibition</code> (lines 1672–1684) restate the guarantee verbatim, and the two lists diverge:</p>
+<ul><li>Leakage: 2.7.12 has 5 bullets; §2.12.2 has 7 (missing "resources from <code>resources/generator/</code>" and "generator-internal state, handles, or temporary artifacts").</li><li>Independence: 2.7.12 says "relocate"; §2.12.1 says "relocate to another path, machine, or filesystem".</li></ul>
+<p>An implementer reconciling the two sources cannot tell which list is authoritative. §2.12 is the more consistent version: it is the section D-006a created for this purpose and the section §2.16.2's register cites.</p>
+<p><b>Correction:</b> delete <code>### Independence</code> and <code>### Leakage prohibition</code> from 2.7.12 (keep the ownership-transfer mechanism) and leave the guarantee in §2.12 only, cited via the existing link. Confirm no distinct requirement is lost in the deletions (compare against AUD-A-001).</p>
+<h3 id="aud-b-002--the-templatekitpackageasset-taxonomy-block-is-written-five-times">AUD-B-002 — the Template/Kit/Package/Asset taxonomy block is written five times</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> minor</p>
+<p>Instances: <code>2.7</code> lines 788–791 (<code>2.7.6</code>), 1696–1699 (<code>2.7.13</code>), 1019–1022 (<code>2.7.7</code>, variant wording); <code>2.11</code> lines 53–56 (<code>2.11.1</code>); <code>Spec glossary</code> Resources table. No contradiction between copies today, but four normative restatements of one taxonomy will drift.</p>
+<p><b>Correction:</b> make the glossary (or 2.11.1) canonical and turn the other sites into cross-references (<code>[[2.11 Packages]]</code> or <code>[[Spec glossary]]</code>), keeping any sentence that adds a requirement beyond the taxonomy itself.</p>
+<hr>
+<h2 id="c--cross-reference-validity">C — Cross-reference validity</h2>
+<h3 id="aud-c-001--targets-clean">AUD-C-001 — targets: clean</h3>
+<p>All 75 <code>§N.N</code> references resolve to real, written headings (no stubs exist in the vault — status dashboard reports <code>stub</code> 0), and every <code>[[wikilink]]</code> target is a real note (the two flagged by naive scan, <code>[[wikilink]]</code> in README and <code>[[nodiscard]]</code> in the AGENTS proposal, are prose, not links). No reference in the "wrong section" class was found; <code>2.10 §2.7.7</code>, <code>2.11 §2.7.6/§2.7.11</code>, <code>2.14 §2.4.9/§2.6.15</code>, <code>2.15 §2.4.7/§2.6.12/§2.7.9</code>, <code>2.8 §2.7.4</code>, <code>2.9 §2.7.5/§2.8.6</code>, <code>2.6 §2.4.6/§2.5.9</code>, <code>2.5 §2.1.6</code> all land on the right topic. No action.</p>
+<h3 id="aud-c-002--bare--numbers-without-wikilinks">AUD-C-002 — bare <code>§</code> numbers without wikilinks</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>Per <code>Spec conventions</code> ("Wikilinks only … Never a bare section number in prose without a link"), 46 <code>§</code> references sit on lines with no wikilink, mostly in the two heaviest notes:</p>
+<p><code>2.7 Project generation model.md</code> — 24 instances, lines 29, 74, 145, 165, 208 (<code>§2.5.5</code>, <code>§2.5.6</code>), 262, 349, 351, 360, 385, 413, 536, 626, 752, 769, 929, 1098, 1159, 1309, 1409, 1436, 1464, 1569, 1670.</p>
+<p><code>2 Generator architecture.md</code> — 4 instances, lines 50, 51, 52 (two refs), 55.</p>
+<p><code>Spec decisions.md</code> — 9 instances, lines 100, 121, 128, 129, 134, 209, 219, 222, 223.</p>
+<p><code>Spec open questions.md</code> — 2 instances, lines 25, 28. <code>README.md</code> — 2 (range notation "§1.1 – §1.13", not references). <code>Specification Index.md</code> — 1, line 63. <code>2.9 Kits.md</code> — 1, line 185. <code>2.8 Templates.md</code> — 1, line 146 (self-reference within the same note). <code>2.4 Engine lifecycle.md</code> — 1, line 237. <code>2.13 Dependency graph.md</code> — 1, line 14.</p>
+<p>A further five appear on lines that do contain a link but keep a bare suffix: <code>1 Repository conventions.md:40</code>, <code>2.3 Generation pipeline.md:17</code> (second ref), <code>Spec status.md:34</code> and <code>:44</code>.</p>
+<p><b>Correction option 1 (strict):</b> convert every bare <code>§N.N</code> to <code>[[Note name]]</code> with the number as an anchor suffix (e.g. <code>[[2.7 Project generation model]] §2.7.10</code>), matching the pattern already used throughout. <b>Option 2 (document):</b> amend <code>Spec conventions</code> so bare <code>§N.N</code> is permitted when the note is named on the same line or in the enclosing table, and keep the 50+ instances. Decide; if option 1, this is a file-wide mechanical pass over the listed files.</p>
+<h3 id="aud-c-003--the-reciprocal-definition-rule-has-exactly-one-broken-pair">AUD-C-003 — the reciprocal-definition rule has exactly one broken pair</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>Spec conventions</code> requires that when A defers to B, B says so too. Checked for every <code>## Open questions</code> block and every "see also" deferral: all pairs are reciprocal except the Q-25 / §2.16 pair — see AUD-H-001.</p>
+<hr>
+<h2 id="d--conversational-and-meta-commentary-leakage">D — Conversational and meta-commentary leakage</h2>
+<h3 id="aud-d-001--repository-agentsmd-is-still-labelled-proposed-though-it-shipped">AUD-D-001 — <code>Repository AGENTS.md</code> is still labelled "proposed" though it shipped</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>File: <code>_meta/Repository AGENTS.md</code>, heading "Repository <code>AGENTS.md</code> — proposed rewrite". The note (and <code>Specification Index</code> line 88) presents the embedded <code>AGENTS.md</code> as a <i>proposal</i>. Comparison with the repository root <code>AGENTS.md</code> shows the proposal was adopted verbatim — "C++20 exclusively", the offline hard constraint, the type-aliasing rules, the deliverable format, the completion report are all present in the live file. The meta note is stale.</p>
+<p><b>Correction:</b> no normative content to lose; mark the note as adopted and re-point it at the shipped file (or delete it, keeping the diff rationale as a decision entry). See also AUD-I-007.</p>
+<h3 id="aud-d-002--27-places-open-questions-and-related-before-content">AUD-D-002 — §2.7 places <code>Open questions</code> and <code>Related</code> before <code>Content</code></h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code> The forced note order per <code>Spec conventions</code> is Purpose → Outline → Content → Open questions → Related. In 2.7 the order is Purpose (14) → Outline (32) → <b>Open questions (49)</b> → <b>Related (57)</b> → Content (61), so all fourteen numbered subsections (written, complete content) trail the section trailers. Anyone reading the note top-down is told what is still open before being told what the section defines.</p>
+<p><b>Correction:</b> move <code>## Open questions</code> and <code>## Related</code> below <code>## Content</code> (mechanical re-order during the E-002 rewrite).</p>
+<hr>
+<h2 id="e--markdown-structural-damage">E — Markdown structural damage</h2>
+<h3 id="aud-e-001--duplicated-sentence-in-273-build-layer">AUD-E-001 — duplicated sentence in §2.7.3 Build layer</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code>, heading <code>2.7.3 Workspace model</code> → <code>#### Build layer</code> (lines 347–351)</p>
+<p>The sentence "The ownership class of every build file MUST be declared by the template (§2.7.10)." appears twice back-to-back. A paste error; either copy reads as a single normative requirement and the duplication adds a MUST.</p>
+<p><b>Correction:</b> remove the second copy (lines 350–351). No content change.</p>
+<h3 id="aud-e-002--27-numbered-subsections-at-the-wrong-heading-level">AUD-E-002 — §2.7 numbered subsections at the wrong heading level</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> serious</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code> All numbered subsections (<code>2.7.0</code>–<code>2.7.13</code>) use <code>##</code> (H2) while every sibling file uses <code>###</code> for numbered subsections and <code>##</code> only for Purpose/Outline/ Content/Open questions/Related. <code>Spec conventions</code> is explicit: "One second-level section per note. Third-level subsections are headings within." The <code>## 2.7.0 Terminology</code> heading also makes the terminology table a top-level block even though it is section-local. Anchors still resolve by heading text, but the Obsidian outline and any automated linter see a structurally different document.</p>
+<p><b>Correction:</b> re-tier <code>## 2.7.N</code> → <code>### 2.7.N</code> file-wide (and demote the deeper <code>####</code>/<code>#####</code> headings to match), then apply D-002's order fix in the same pass.</p>
+<h3 id="aud-e-003--215-inserts-unnumbered-h2-part-dividers-among-numbered-h3s">AUD-E-003 — §2.15 inserts unnumbered H2 part dividers among numbered H3s</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>File: <code>02 Generator architecture/2.15 Error and transaction model.md</code> <code>## Part 1 — Errors</code> (line 35) and <code>## Part 2 — Transactions</code> (line 152) are a second H2 level inside one note, interleaved with <code>### 2.15.N</code> subsections. Consistent with nothing else in the vault and with the one-H2 rule.</p>
+<p><b>Correction:</b> demote both to <code>###</code> (e.g. <code>### 2.15.0 Part 1 — Errors</code>), or to a bold lead-in, keeping the two-part split visible.</p>
+<h3 id="aud-e-004--fences-and-diagrams-clean">AUD-E-004 — fences and diagrams: clean</h3>
+<p>All 39 notes have balanced ```<code> </code>`<code> </code>``<code> fences (no unclosed or nested fences) and the ASCII diagrams (2.1.9, 2.4.10, 2.5.1, 2.6.2, 2.7.x, 2.13.1, 2.15 staging states, etc.) are intact inside their fences. No heading has lost its </code>#` prefix (no bare "2.N.M" body-paragraph text). No action.</p>
+<hr>
+<h2 id="f--normative-language">F — Normative language</h2>
+<h3 id="aud-f-001--the-spec-never-defines-mustshouldmay">AUD-F-001 — the spec never defines MUST/SHOULD/MAY</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>No vault note contains an RFC 2119 conformance clause: the normative meaning of MUST/SHOULD/MAY, what reading rules the reader applies (e.g. RFC 2119's "implementation may ignore a SHOULD only with justification"), and the hard-vs-soft split for the keyword set. <code>Spec conventions</code> <i>uses</i> the capitals and the determinism table but nowhere states the standard-reading clause.</p>
+<p><b>Correction:</b> add the clause as §0 (e.g. in <code>Spec conventions</code>, or the vault-level entry note) in the form the follow-up pass already anticipates.</p>
+<h3 id="aud-f-002--keyword-choices-internally-consistent">AUD-F-002 — keyword choices: internally consistent</h3>
+<p>The MUST/SHOULD census and a contradiction sweep over the requirement pairs found no property stated as MUST in one note and SHOULD in another, and no contradicting MAY/MUST pair. Reproducibility (SHOULD, byte-identical) vs resolution determinism (MUST) is stated identically in <code>Spec conventions</code>, §2.12.4, §2.7.13 and §2.10.5. No lowercase "must"/"should" reads as an unmarked requirement (2.15.7's "should therefore" is prose). One item is deferred to a decision (AUD-F-003).</p>
+<h3 id="aud-f-003--279s-reference-phase-order-is-should-d-027-calls-it-normative">AUD-F-003 — §2.7.9's reference-phase order is SHOULD, D-027 calls it "normative"</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> minor</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code>, heading <code>2.7.9 Generation phases</code>; and <code>Spec decisions</code> D-027 / <code>Spec status</code> (2.3 row: "conceptual; defers order to §2.7.9").</p>
+<p>The reference order is introduced as "A generation workflow SHOULD follow this order" while two meta notes describe §2.7.9 as "the normative engine phase order". No contradiction in fact — phase numbering, naming and the resolve-before-mutate rule are consistent across §2.3, §2.3.7, §2.7.9, §2.11.3, §2.15.7 — but the keyword reads advisory for something described as normative. Keep SHOULD (Lua may legitimately reorder, and §2.7.1 forbids the engine from fixing order), then soften the "normative" label in D-027/Spec status instead.</p>
+<hr>
+<h2 id="g--specrepository-divergence">G — Spec/repository divergence</h2>
+<h3 id="aud-g-001--vendored-dependency-directory-is-wrong-named-and-empty">AUD-G-001 — vendored-dependency directory is wrong-named and empty</h3>
+<p><b>Status:</b> blocking · <b>Severity:</b> blocking</p>
+<p>Spec: §1.1 division <code>third_party/</code>; §1.6 <code>third_party/</code> containing Lua 5.4.8, LuaFileSystem 1.8.0, Penlight 1.14.0, LDoc 1.5.0, miniz 3.1.2, yyjson 0.12.0, plus <code>third_party/cache/</code> for downloaded archives; §1.13 offline invariant; the dependency graph (§2.13.2) draws <code>third_party/</code> as a leaf.</p>
+<p>Repo: the directory is <code>third-party/</code> (hyphen) and contains only <code>.gitkeep</code>. None of the six dependencies exists in-tree; there is no <code>cache/</code> directory.</p>
+<p><b>Correction:</b> either (a) rename the repo directory to <code>third_party/</code> and provision the six vendored deps + <code>cache/</code>, or (b) amend §1.1/§1.6/§2.13.2 to the hyphenated name and record the dependency list as provisional. This is a repo-vs-spec decision (see Jesse section).</p>
+<h3 id="aud-g-002--resources-required-but-absent">AUD-G-002 — <code>resources/</code> required but absent</h3>
+<p><b>Status:</b> blocking · <b>Severity:</b> blocking</p>
+<p>Spec: §1.1 division lists <code>resources/</code>; §1.5 defines the five namespaces (<code>assets/</code>, <code>generator/</code>, <code>kits/</code>, <code>packages/</code>, <code>templates/</code>) and the <code>manifest.json</code> rule; §2.10 (resource storage), §2.7.7 (asset namespaces), §2.12.2 ("resources from <code>resources/generator/</code>") and §2.13.3 all rely on it.</p>
+<p>Repo: no <code>resources/</code> directory at the root.</p>
+<p><b>Correction:</b> create <code>resources/</code> with the declared namespaces (which may be empty with <code>.gitkeep</code> until authored), or amend the spec to defer the resource tree to the resources milestone. Decision required.</p>
+<h3 id="aud-g-003--luarcjson-required-at-the-root-but-absent">AUD-G-003 — <code>.luarc.json</code> required at the root but absent</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> serious</p>
+<p>Spec: §1.2 ("The repository root MUST contain … <code>.luarc.json</code>").</p>
+<p>Repo: root has <code>.clang-format</code>, <code>.clang-tidy</code>, <code>.gitignore</code> — no <code>.luarc.json</code>.</p>
+<p><b>Correction:</b> add a root <code>.luarc.json</code> (least-privilege config matching the tooling the spec's README/AGENTS describe), or amend §1.2.</p>
+<h3 id="aud-g-004--docsprogrammer-and-docsdeveloper-absent">AUD-G-004 — <code>docs/programmer/</code> and <code>docs/developer/</code> absent</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>Spec: §1.8 ("<code>squared-pg</code> MUST maintain two parallel, cross-linked documentation trees") at <code>docs/programmer/</code> and <code>docs/developer/</code>. The spec's own dashboard acknowledges this (<code>Spec status</code> — "What this specification does not yet cover": "no pages yet"), so it is a tracked gap rather than a silent divergence. §2.15.3 additionally mandates that every error <code>code</code> be documented in <code>docs/programmer/</code>.</p>
+<p><b>Correction:</b> none in this pass — record as scheduled work; §2.15.3's obligation fires when the first codes ship.</p>
+<h3 id="aud-g-005--sqcart-exists-but-no-section-mentions-it">AUD-G-005 — <code>sqcart/</code> exists but no section mentions it</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> minor</p>
+<p>Repo: <code>sqcart/</code> is a second, self-contained project (own <code>AGENTS.md</code>, <code>CMakeLists.txt</code>, <code>src/</code>, <code>tests/</code>, <code>docs/</code>, <code>tools/</code>) at the repository root.</p>
+<p>Spec: §1.1's division names <code>engine/ lua/ resources/ third_party/ tools/ docs/</code> plus build/docs at root; §1.2 permits extra root files "when they serve a repository-wide purpose" — whether <code>sqcart/</code> (a nested project, not a file) falls inside that allowance is an open judgement call.</p>
+<p><b>Correction:</b> either add <code>sqcart/</code> to the §1.1 division (with a one-line purpose) or record in Spec status why it is excluded.</p>
+<h3 id="aud-g-006--docsindexmd-exists-but-is-absent-from-18">AUD-G-006 — <code>docs/index.md</code> exists but is absent from §1.8</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p>Repo: <code>docs/index.md</code> present. Spec §1.8 lists <code>docs/programmer/</code>, <code>docs/developer/</code>, <code>docs/spec/</code>, <code>docs/edu/</code>, <code>docs/history.md</code>, <code>docs/todo.md</code>.</p>
+<p><b>Correction:</b> add <code>index.md</code> to §1.8's division (or drop the file). Trivial.</p>
+<h3 id="aud-g-007--conforming-components-clean">AUD-G-007 — conforming components: clean</h3>
+<p><code>engine/</code> matches §1.3 (<code>CMakeLists.txt</code>, <code>AGENTS.md</code>, <code>README.md</code>, <code>include/</code>, <code>src/</code>); <code>lua/</code> matches §1.4 (<code>AGENTS.md</code>); <code>tools/</code> matches §1.7 (<code>clang-check.fish</code>, <code>lua-check.fish</code>). <code>docs/edu/Glossary.md</code> exists, which is what the README's naming note for <code>Spec glossary</code> assumes. No action.</p>
+<hr>
+<h2 id="h--unresolved-deferrals">H — Unresolved deferrals</h2>
+<h3 id="aud-h-001--q-25-is-open-in-the-meta-register-and-nowhere-in-its-own-section">AUD-H-001 — Q-25 is open in the meta register and nowhere in its own section</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> serious</p>
+<p>Deferral: <code>Spec open questions</code> Q-25 ("Invariant testability", §2.16) with no decision entry.</p>
+<p>Target state: <code>2.16 Architectural invariants</code> has <b>no</b> <code>## Open questions</code> block at all — it neither resolves nor re-defers Q-25. Its content has moved on: the register §2.16.2 gives all of I-01…I-18 a detection mechanism and §2.16.3 discusses the known weak spot (I-10, "no undocumented global state"). The question the meta register keeps open is, on the face of it, answered — but nothing records that, and <code>Spec status</code> still annotates 2.16 with "Q-25 testability".</p>
+<p><b>Correction:</b> record the resolution (a new D-NNN: "invariant register names a detection mechanism per invariant; I-10 partially checkable, gap documented in §2.16.3"), move Q-25 from Open to the resolved table in <code>Spec open questions</code>, drop the "Q-25" annotation in <code>Spec status</code>, and add the reciprocal link in §2.16. See AUD-C-003.</p>
+<h3 id="aud-h-002--remaining-open-questions-targets-written-and-reciprocal">AUD-H-002 — remaining open questions: targets written and reciprocal</h3>
+<p>Q-21 (in <code>2.8</code>, open-questions block present) → <code>Spec open questions</code> Q-21, no target section; Q-22 (blocks in <code>2.9</code>, <code>2.11</code>, <code>2.7</code>) → targets written; Q-23 (<code>2.7</code>) → target written; Q-24 (<code>2.7</code>, <code>2.15</code>) → targets written. Every deferral with a home has a written, non-stub home; only H-001 breaks the pattern. No action beyond H-001.</p>
+<hr>
+<h2 id="i--redundancy">I — Redundancy</h2>
+<h3 id="aud-i-001--270-terminology-duplicates-the-glossary-with-drift">AUD-I-001 — §2.7.0 Terminology duplicates the glossary, with drift</h3>
+<p><b>Status:</b> requires decision · <b>Severity:</b> minor</p>
+<p>File: <code>02 Generator architecture/2.7 Project generation model.md</code>, heading <code>2.7.0 Terminology</code> (lines 63–78). Seven rows (Workspace, Working directory, Resource, Materialization, Provenance, Ownership class, Finalization) restate <code>Spec glossary</code> terms. The glossary's own preamble says "Drift between these is a defect", and drift already exists: glossary "Working directory … Reference convention <code>sq_app/</code>" vs 2.7.0 "The subtree the user authors code in. A subset of the workspace."</p>
+<p><b>Correction:</b> pick one canonical home (recommend <code>Spec glossary</code>) and reduce 2.7.0 to the rows specific to generation composition plus a <code>[[Spec glossary]]</code> link, or keep the table and gate it to the glossary's exact wording.</p>
+<h3 id="aud-i-002--an-invalid-template-must-not-enter-generation-verbatim-twice">AUD-I-002 — "An invalid template MUST NOT enter generation." verbatim twice</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>2.8 Templates.md:311</code> (…2.8.10 Validation) and <code>2.7 Project generation model.md:608</code> (…2.7.4 Template validation).</p>
+<p><b>Correction:</b> keep it in <code>2.8</code> (the template's own validation section) and make the <code>2.7</code> site a reference.</p>
+<h3 id="aud-i-003--the-engine-must-validate-the-complete-kit-dependency-graph-before-application-verbatim-twice">AUD-I-003 — "The engine MUST validate the complete kit dependency graph before application." verbatim twice</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>2.9 Kits.md:160</code> (…2.9.5 Dependencies, beside its own identical rule "The engine MUST validate the complete kit dependency graph before application" is its own sentence — actually this IS the sentence) and <code>2.7 Project generation model.md:713</code> (…2.7.5 Kit dependencies).</p>
+<p><b>Correction:</b> keep in <code>2.9</code>; reference from <code>2.7</code>.</p>
+<h3 id="aud-i-004--during-generation-the-engine-owns-resolved-asset-state-transformation-state-verbatim-twice">AUD-I-004 — "During generation the engine owns resolved asset state, transformation state," verbatim twice</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>2.10 Assets and generator resources.md:158</code> (…2.10.8 Ownership) and <code>2.7 Project generation model.md:1149</code> (…2.7.7 Asset ownership and user modification).</p>
+<p><b>Correction:</b> keep the ownership paragraph in one place; reference the other.</p>
+<h3 id="aud-i-005--resolution-must-complete-before-materialization-twice-within-27">AUD-I-005 — "Resolution MUST complete before materialization." twice within 2.7</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>2.7</code> lines 847 (…2.7.6 Package resolution) and 1081 (…2.7.7 Asset resolution), plus a variant in <code>2.11.3</code>. Consistent parallel phrasing of one rule per resource type; acceptable under D-006's composition/restatement split, but if trimming, the canonical rule lives in <code>2.11.3</code>.</p>
+<h3 id="aud-i-006--materialization-must-occur-through-engine-controlled-filesystem-operations-the--twice-within-27">AUD-I-006 — "Materialization MUST occur through engine-controlled filesystem operations. The …" twice within 2.7</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>2.7</code> lines 922 (…2.7.6 Package materialization) and 1094 (…2.7.7 Asset materialization). Same as I-004/I-005 — mechanical parallelism, no drift.</p>
+<h3 id="aud-i-007--the-shipped-agentsmd-and-its-meta-proposal-are-the-same-text">AUD-I-007 — the shipped AGENTS.md and its meta proposal are the same text</h3>
+<p><b>Status:</b> awaiting decision · <b>Severity:</b> minor</p>
+<p><code>docs/spec/_meta/Repository AGENTS.md</code> embeds the adopted <code>AGENTS.md</code> verbatim; the live file is that text. One source duplicated.</p>
+<p><b>Correction:</b> fold into AUD-D-001 (retire or re-point the meta note).</p>
+<hr>
+<h2 id="j--ordering-conflicts">J — Ordering conflicts</h2>
+<h3 id="aud-j-001--23-12-conceptual-stages-vs-279-18-reference-phases-reconciled">AUD-J-001 — §2.3 (12 conceptual stages) vs §2.7.9 (18 reference phases): reconciled</h3>
+<p><b>Status:</b> verified clean</p>
+<p>Stage counts and names differ by design (D-027); §2.3.1's 12 rows are the workflow-facing view and §2.7.9's 18 steps the engine-facing one. Every §2.3 stage maps onto a subset of the 18 phases; the transfer points (resolution before mutation; transaction opening) agree, and each note cites the other reciprocally. No mismatch to repair. No action.</p>
+<h3 id="aud-j-002--the-2711-update-sequence-19-is-consistent-with-the-279-reference-order">AUD-J-002 — the 2.7.11 update sequence (1–9) is consistent with the 2.7.9 reference order</h3>
+<p><b>Status:</b> verified clean</p>
+<p>The nine-step update sequence reuses phases 1–7 plus transaction/apply steps and adds none that conflict with the reference order. No action.</p>
+<hr>
+<h2 id="requires-a-decision-from-jesse">Requires a decision from Jesse</h2>
+<blockquote><p>[!note] Resolution applied 2026-09-02 Jesse directed: <i>"for now the project is the one truth, and the spec is the strong guideline, weakly enforced guideline. write the spec using that as the guiding principle."</i> Under that directive, decision items <b>1</b> (repo wins for presence/naming → G-001, G-002), <b>2</b> (keep "Ownership transition"; §2.12 canonical → A-001, B-001), <b>5</b> (re-tier → E-002, D-002), <b>6</b> (amend the convention to permit bare <code>§</code> → C-002), <b>7</b> (keep SHOULD → F-003), <b>8</b> (resolve Q-25 → H-001/C-003), <b>9</b> (add conformance clause → F-001), <b>10</b> (soften the <code>.luarc.json</code> MUST → G-003), <b>11</b> (acknowledge <code>sqcart/</code> + <code>docs/index.md</code> → G-005, G-006), and <b>12</b> (re-frame the AGENTS meta note → D-001/I-007) were applied. Items <b>3</b> (taxonomy home) and <b>4</b> (terminology-table home) were left open (B-002, I-001 handling noted in the <code>Applied</code> section). See <code>## Applied</code>.</p></blockquote>
+<p>The items below were the ones originally listed as requiring a decision. The pass applied the above resolutions; the remaining open choices are only items 3 and 4.</p>
+<ol><li><b>Spec is the truth vs repo is the truth (G-001, G-002).</b> Decide the direction of reconciliation for naming and presence: rename/provision the repo to match the spec (<code>third_party/</code>, <code>resources/</code>, six vendored deps, <code>cache/</code>), or amend the spec to match reality and move <code>resources/</code> to a later milestone. → <b>Resolved by directive: repo wins; spec amended.</b></li><li><b>§2.7.12 naming and scope (AUD-A-001 + AUD-B-001).</b> Rename the heading to "Generated project boundary", or keep "Ownership transition" and fix the outline; in either case delete the duplicated Independence/Leakage restatement. If any wording in the 2.7.12 versions is preferred over the §2.12 text, say which — otherwise §2.12 is canonical. → **Kept "Ownership transition"; §2.12 canonical; duplicates deleted.**</li><li><b>Single home for the resource taxonomy (AUD-B-002).</b> Glossary, or <code>2.11.1</code>? Recommendation: glossary. → **Left open; taxonomy kept distributed (see Applied → Skipped).**</li><li><b>Single home for the generation terminology (AUD-I-001).</b> Keep 2.7.0 and sync to the glossary, or replace with a link to <code>Spec glossary</code>? Recommendation: keep 2.7.0 minimal, link the glossary. → **Kept 2.7.0 minimal and linked the glossary as canonical.**</li><li><b>§2.7 heading re-tiering (AUD-E-002, large diff).</b> Approve demoting all <code>## 2.7.N</code> to <code>### 2.7.N</code> and moving <code>Open questions</code>/<code>Related</code> below <code>Content</code> (AUD-D-002) in one file-wide rewrite of the note. → <b>Applied.</b></li><li><b>Bare-<code>§</code> policy (AUD-C-002).</b> Strict conversion to <code>[[note]] §N.N</code> everywhere, or amend <code>Spec conventions</code> to permit the short form in tables/same-line contexts? → **Amended the convention (weak-guideline approach).**</li><li><b>§2.7.9 keyword (AUD-F-003).</b> Keep SHOULD and relax "normative" in D-027/<code>Spec status</code> (recommended), or promote to MUST. → **Kept SHOULD; D-027 label softened.**</li><li><b>Q-25 (AUD-H-001 / AUD-C-003).</b> Approve the D-NNN entry "invariant register provides detection per invariant; I-10 gap documented in §2.16.3" and move Q-25 to resolved. → <b>Applied as D-028; Q-25 moved to resolved.</b></li><li><b>RFC 2119 clause (AUD-F-001).</b> Approve adding the conformance clause as a new §0 (already anticipated by the follow-up pass). → **Applied in `Spec conventions` (Normative language).**</li><li><b><code>.luarc.json</code> (AUD-G-003).</b> Provision a minimal root config, or drop the §1.2 MUST? → <b>Dropped the hard MUST; noted as recommended/absent.</b></li><li><b><code>sqcart/</code> and <code>docs/index.md</code> (AUD-G-005, AUD-G-006).</b> Add to the §1.1/§1.8 listings, or record as intentionally outside Item 1? → **Added to §1.1/§1.8.**</li><li><b><code>Repository AGENTS</code> meta note (AUD-D-001 / AUD-I-007).</b> Retire it, or re-frame as "adopted — historical diff"? → <b>Re-framed as adopted.</b></li></ol>
+<hr>
+<h2 id="how-to-approve-this-report">How to approve this report</h2>
+<p>Mark each finding heading's status. The follow-up pass (<code>sqcart/prompt-edit.md</code>) applies only findings marked <code>APPROVED</code>; for the items above, either write a resolution after the arrow in the "requires a decision" section or mark the finding <code>REJECTED</code>. The pass will append an <code>## Applied</code> section here recording per-finding outcomes.</p>
+<hr>
+<h2 id="applied">Applied</h2>
+<p><b>Guiding principle for this pass:</b> the repository is the ground truth; the specification is a strong guideline that is weakly enforced. Where the spec and the repo disagreed about the repo's present state, the spec was amended to match reality (G-class). Where the repo is silent, the spec's design intent remains as a recommendation.</p>
+<h3 id="applied">Applied</h3>
+<ul><li><b>AUD-A-001</b> — fixed the §2.7.12 outline item to "Ownership transition" and removed the redundant <code>#### Ownership transition</code> sub-heading under the section of the same name.</li><li><b>AUD-A-002</b> — 2.5 outline item 2.5.4 now reads "Command-line interface control" (matches heading).</li><li><b>AUD-A-003</b> — 2.6 outline items 2.6.7, 2.6.9, 2.6.13 now match their headings ("…across the boundary", "…rules", "…and path abstraction").</li><li><b>AUD-B-001</b> — deleted <code>Independence</code> and <code>Leakage prohibition</code> from §2.7.12; the boundary guarantee now lives only in [[2.12 Generated-project boundary]] (verified to contain every deleted requirement: all 7 leakage items and the full independence list). Kept the ownership-transfer mechanism in §2.7.12.</li><li><b>AUD-C-002</b> — amended <code>Spec conventions</code> (Cross-references) to permit a bare <code>§N.M</code> reference when the target note is named on the same line or is unambiguous. Chosen over a 46-call-site rewrite because the specification is a weakly enforced guideline. The <code>[[note]] §N.N</code> form remains preferred for first-on-line cross-note references.</li><li><b>AUD-C-003</b> — resolved with AUD-H-001 (reciprocal link added in §2.16).</li><li><b>AUD-D-001</b> — re-framed <code>_meta/Repository AGENTS.md</code> from "proposed rewrite" to "adopted", pointing at the shipped <code>AGENTS.md</code>; kept the historical diff rationale. Also updated the <code>Specification Index</code> entry.</li><li><b>AUD-D-002</b> — moved <code>Open questions</code> and <code>Related</code> below <code>Content</code> in §2.7 (now Purpose → Outline → Content → Open questions → Related, matching the convention used by every other note).</li><li><b>AUD-E-001</b> — removed the duplicated build-layer sentence in §2.7.3.</li><li><b>AUD-E-002</b> — demoted all §2.7 numbered subsections from <code>##</code> (H2) to <code>###</code> (H3), and their children to <code>####</code>/<code>#####</code>, matching the rest of the vault. Applied as a whole-file rewrite of the note (combined with D-002, B-001, E-001, A-001, I-001).</li><li><b>AUD-E-003</b> — demoted <code>## Part 1 — Errors</code> / <code>## Part 2 — Transactions</code> in §2.15 to <code>###</code> (one H2 per note).</li><li><b>AUD-F-001</b> — added an RFC 2119 conformance clause (and the weak-enforcement policy) to <code>Spec conventions</code> → Normative language. Placed in the vault's conventions note, which is the home the audit itself allowed for §0.</li><li><b>AUD-F-003</b> — softened D-027's "normative" label to "reference phase order"; §2.7.9 keeps SHOULD.</li><li><b>AUD-G-001</b> — per the project-is-truth directive: §1.1, §1.6 and decision D-026 now use <code>third-party/</code> (repo naming) and mark the vendored set as intended-not-yet-provisioned (the directory currently holds only <code>.gitkeep</code>).</li><li><b>AUD-G-002</b> — §1.1 and §1.5 now mark <code>resources/</code> as planned but not yet provisioned; §1.5 status set to <code>draft</code>, namespaces kept as target design.</li><li><b>AUD-G-003</b> — §1.2 no longer lists <code>.luarc.json</code> as a hard MUST; noted as a recommended addition that is not yet present.</li><li><b>AUD-G-005</b> — <code>sqcart/</code> added to §1.1 (nested companion project) and to §1.2's allowance for additional root entries.</li><li><b>AUD-G-006</b> — <code>docs/index.md</code> added to §1.8's <code>docs/</code> division.</li><li><b>AUD-H-001</b> — resolved Q-25: added decision <b>D-028</b>, moved Q-25 to the resolved table in <code>Spec open questions</code>, removed the "Q-25" annotation in <code>Spec status</code>, and added the reciprocal note in §2.16.3.</li><li><b>AUD-I-001</b> — §2.7.0 Terminology now links <code>Spec glossary</code> as canonical and syncs the "Working directory" wording to the user-working-directory concept.</li><li><b>AUD-I-007</b> — no longer a separate duplicated copy; resolved by AUD-D-001.</li></ul>
+<h3 id="skipped-retained-require-an-explicit-canonical-home-decision">Skipped (retained; require an explicit canonical-home decision)</h3>
+<ul><li><b>AUD-B-002</b> — the Template/Kit/Package/Asset taxonomy block is still written at multiple sites for local clarity; no contradiction today.</li><li><b>AUD-G-004</b> — <code>docs/programmer/</code> and <code>docs/developer/</code> remain a tracked gap (already acknowledged in <code>Spec status</code>); no edit beyond that acknowledgment.</li><li><b>AUD-I-002 … AUD-I-005</b> — verbatim cross-file sentences kept; they are consistent parallel restatements with no contradiction and removing them needs a per-pair canonical-home choice that was not given.</li></ul>
+<h3 id="notes">Notes</h3>
+<ul><li>RFC 2119 clause was added inside <code>Spec conventions</code> rather than as a separate <code>§0</code> note; that note is the vault-level home the audit allowed (F-001).</li><li>The root <code>AGENTS.md</code> previously stated "the specification is normative" and "the code and the spec disagreeing is worse than either being wrong alone," which conflicted with the project-as-ground-truth principle. Following Jesse's follow-up direction, that section was rewritten to "Specification is a guideline (temporary stance)": the repository is ground truth and the spec is a weakly enforced guideline during the initial implementation, marked temporary. The <code>_meta/Repository AGENTS.md</code> note was updated to match.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>time &amp;amp;mdash; internals · squared</title>
+<meta name="description" content="squared: time &amp;amp;mdash; internals">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/time.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/time.md">on GitHub</a></p><h1 id="time-ampmdash-internals">time &amp;mdash; internals</h1>
+<p>Rewritten in Sprint 6.6b (2026-10-21) to the app model's "time as a value" (spec §3): a 24-byte <code>Timepiece</code>, two clock functions, and <code>DeadlineQueue&lt;Value, N&gt;</code> holding its own array. Nothing allocates.</p>
+<p>Programmer counterpart: <a href="../programmer/time.html">../programmer/time.md</a></p>
+<h2 id="layout">Layout</h2>
+<pre><code>time/
+  duration.cppm time_point.cppm now.cppm timepiece.cppm deadline_queue.cppm module.cppm
+  src/   now.cpp, timepiece.cpp
+  test/  time_test.cpp
+  Makefile</code></pre>
+<h2 id="what-was-removed-and-why">What was removed, and why</h2>
+<p>Decided 2026-10-21 ("yes to all recommendations"), from the spec's table of 2026-10-15:</p>
+<ul><li><b><code>Clock</code></b> (a base class with a virtual <code>now()</code>) and <b><code>ManualTimepiece</code></b>: a vtable and a virtual call per reading, for test substitution only, which passing the time in gives for nothing.</li><li><b>Time scale and pause</b>: a <code>long double</code> multiply and carried fraction per advance (the old <code>Timepiece</code> was 48 bytes with a vptr); slow motion is one multiply in the model that wants it.</li><li>Nothing outside the module used any of it: the old dispatcher, its one user, went in 6.2.</li></ul>
+<h2 id="timepiece">Timepiece</h2>
+<p>Three members, 24 bytes (<code>static_assert</code>ed): the last time given, the step the last tick reported, the tick count, all integer nanoseconds (so no drift and no rounding until <code>seconds()</code> divides). Not started is the last time at <code>TimePoint::min()</code>, so no flag is needed. <code>tick(now)</code> is a subtraction, a comparison with <code>longest_step</code> (250 ms, a constant: a per-object limit would cost 8 bytes each, priority 1; a build knob waits for a use, priority 4), and a division to seconds. A <code>now</code> before the last time (a caller's mistake, or two clocks mixed) reports a 0 step and moves on from <code>now</code>.</p>
+<p>The first tick without <code>start</code> reports 0 (decided: as libGDX's first delta). The model's runner calls <code>start</code> when <code>tick_every</code> is first set, so a model's first tick measures a real interval.</p>
+<p><b>Its users:</b> the model's runner (<code>messaging::detail::TickClock</code> keeps the next due time and the interval beside a <code>Timepiece</code>, 40 bytes), and the UI's frame loop (Sprint 7). One type for both: the clamp and the measuring are written once.</p>
+<h2 id="the-clocks">The clocks</h2>
+<p><code>now()</code> is <code>clock_gettime(CLOCK_MONOTONIC)</code> and <code>since_boot()</code> is <code>clock_gettime(CLOCK_BOOTTIME)</code>, each in one translation unit so the header pulls in no <code>&lt;time.h&gt;</code>. On Linux and Android both are vDSO calls (tens of nanoseconds). <code>CLOCK_MONOTONIC</code> is what <code>std::chrono::steady_clock</code> reads on both C++ libraries, so a mix of the two agrees. Both clocks are Linux's; a new platform supplies these two functions.</p>
+<h2 id="deadlinequeue">DeadlineQueue</h2>
+<p>A binary min-heap over its own <code>std::array&lt;Entry, N&gt;</code> (<code>std::push_heap</code> and <code>std::pop_heap</code>, ordered by due time then a 64-bit sequence, so equal times keep their order). Entry: due 8, sequence 8, the value (24 bytes for an <code>int</code>); the queue is the array plus 16 (the size, the next sequence): 784 bytes for 32 <code>int</code>s.</p>
+<div class="tablewrap"><table><thead><tr><th>Operation</th><th>Time</th></tr></thead><tbody><tr><td><code>schedule_at</code>, <code>schedule_after</code></td><td>O(log n)</td></tr><tr><td><code>poll_due</code>, per value</td><td>O(log n)</td></tr><tr><td><code>next_due</code></td><td>O(1)</td></tr><tr><td><code>cancel</code></td><td>O(n): a scan for the ticket, then <code>make_heap</code></td></tr><tr><td><code>visit_ordered</code></td><td>O(n²): a selection walk, allocating nothing (it was a <code>std::vector</code> of pointers per call); for the few timers a Console command shows</td></tr></tbody></table></div>
+<ul><li><b>The capacity a template parameter, the array its own</b> (decided 2026-10-21, your call after 6.6b shipped storage given by the owner: "simplicity and ergonomics leads to less errors and we can also change it if it proves too slow"): <code>DeadlineQueue&lt;Restock, 16&gt; timers;</code> is the whole setup. It was a <code>std::vector</code> reserved in the constructor, then (6.6b) a span over storage the owner gave, which took two lines (the array, then the queue). The cost: one instance of the template per capacity and value type, and a capacity fixed at compile time. Same bytes as before (priority 1 untouched); priority 2 decided it.</li><li><b>Slots are cleared</b> when a value leaves (polled or cancelled): assigned <code>Value{}</code>, so a value whose move leaves its source intact (any trivially copyable type, or a handle) is not kept alive by the array.</li><li><b><code>Value</code></b> must be default-constructible (the array is made empty) and move without throwing (the <code>DeadlineValue</code> concept and a <code>static_assert</code>), so every operation is <code>noexcept</code> or throws only what the visitor throws.</li><li><b>Results are snake_case</b> (<code>scheduled</code>, <code>full</code>, <code>invalid_time</code>, <code>tickets_exhausted</code>), as messaging's are: the backlog's enum-spelling item, settled for this type. Scheduling returns <code>Scheduled { result, ticket }</code> instead of filling an out-pointer.</li><li><b><code>schedule_after</code></b> refuses a sum past the largest time before adding (the addition would be signed overflow, undefined; UBSan catches it if the check is removed).</li><li><b>Standard library:</b> <code>&lt;algorithm&gt;</code>'s heap functions, <code>std::array</code>, <code>std::optional</code>. Passed over: <code>std::priority_queue</code> (it owns a container, and offers neither cancel nor an ordered walk), <code>std::map</code>/<code>std::multimap</code> (a node per entry, §2.1).</li><li><b>Pattern:</b> none beyond the heap; values are not callbacks, so policy stays with the owner.</li></ul>
+<h2 id="tested">Tested</h2>
+<p><code>time/test/time_test.cpp</code>: the <code>Timepiece</code> with exact times (the first tick, steps, the same time twice, the clamp, measuring on from a stall, a time that goes back, <code>start</code>, the epoch); the clocks (monotonic over 1,000 reads, boot time never behind); the queue's order with ties, <code>full</code>, the ordered walk, a poll limit, cancels (gone, given back, the empty ticket), every <code>invalid_time</code> case and exactly the largest time; owning values (a 100-byte string cancelled into a visitor); a value whose move copies, counting its live copies (none left in the slots once given back or cancelled); no allocation over 100 rounds of 64; 200,000 random schedules, cancels and polls against a <code>std::map</code>, with the ordered walk compared every 1,000 steps. Clean under AddressSanitizer and UndefinedBehaviorSanitizer; g++ and clang. Planted bugs caught: no clamp, the first tick measured from the epoch, a negative step, <code>start</code> keeping the count, ties reversed, a cancel that breaks the heap, a poll past its limit, a slot left holding its value, the overflow check removed (by UBSan), an ordered walk that repeats.</p>
+<h2 id="memory">Memory</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Bytes</th></tr></thead><tbody><tr><td><code>Timepiece</code></td><td>24</td></tr><tr><td><code>DeadlineQueue&lt;Value, N&gt;</code></td><td>16 plus <code>N</code> entries</td></tr><tr><td>an entry</td><td>16 plus the value, aligned: 24 for an <code>int</code></td></tr></tbody></table></div>
+<p>Nothing allocates; each is resident where its owner is (a model's timers in the model, so in its <code>ModelRunner</code>).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Values · squared-pg</title>
+<meta name="description" content="squared-pg: Values">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/engine/values.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/engine/values.md">on GitHub</a></p><h1 id="values">Values</h1>
+<p>The data types that cross the boundary. Developer counterpart: <a href="../../developer/lua/binding.html">binding layer</a>.</p>
+<pre><code class="lang-cpp">#include &lt;squared/pg/value.hpp&gt;</code></pre>
+<h2 id="value"><code>Value</code></h2>
+<p>A tagged union: <code>null</code>, <code>boolean</code>, <code>integer</code>, <code>number</code>, <code>string</code>, <code>array</code>, <code>object</code>.</p>
+<pre><code class="lang-cpp">Value config = Value::object();
+config.set(&quot;name&quot;, &quot;hello&quot;);
+config.set(&quot;count&quot;, std::int64_t{3});
+config.set(&quot;kits&quot;, Value::strings({&quot;kit.terminal&quot;, &quot;kit.lua&quot;}));
+
+std::string_view name = config.string_or(&quot;name&quot;, &quot;&quot;);
+std::int64_t count    = config.int_or(&quot;count&quot;, 0);
+const Value* kits     = config.find(&quot;kits&quot;);</code></pre>
+<p>Accessors return <code>std::optional</code> and never coerce. <code>as_int()</code> on a <code>1.5</code> returns nothing rather than <code>1</code>, and <code>as_int()</code> on <code>&quot;7&quot;</code> returns nothing rather than parsing it.</p>
+<p><code>set()</code> on a null promotes it to an object; <code>push()</code> promotes to an array. That keeps result assembly free of defensive branching.</p>
+<h2 id="integers-are-not-doubles">Integers are not doubles</h2>
+<p>Version components, counts and sizes cross as integers, and the boundary will not silently narrow. An integer reads as a number (widening is lossless in this range); a double never reads as an integer.</p>
+<h2 id="object-order-is-preserved">Object order is preserved</h2>
+<p><code>Object</code> is an ordered list of pairs, not a map. Serialising the same <code>Value</code> twice produces identical bytes — which is what makes generated metadata reproducible.</p>
+<h2 id="from-lua">From Lua</h2>
+<div class="tablewrap"><table><thead><tr><th>Lua</th><th><code>Value</code></th></tr></thead><tbody><tr><td><code>nil</code></td><td>null</td></tr><tr><td><code>true</code> / <code>false</code></td><td>boolean</td></tr><tr><td>integer</td><td>integer</td></tr><tr><td>float</td><td>number</td></tr><tr><td>string</td><td>string</td></tr><tr><td>table with keys exactly <code>1..n</code></td><td>array</td></tr><tr><td>any other table</td><td>object</td></tr><tr><td>function, userdata, thread</td><td>null</td></tr></tbody></table></div>
+<p><b>The empty table is ambiguous.</b> Lua cannot distinguish an empty list from an empty map, so <code>{}</code> becomes an empty array — and parameter validation accepts an empty array where an object is expected, and vice versa. Passing <code>parameters = {}</code> works.</p>
+<h2 id="version-and-versionrange"><code>Version</code> and <code>VersionRange</code></h2>
+<p>SemVer 2.0.0, with the comparator range grammar:</p>
+<pre><code class="lang-text">&gt;=1.0.0 &lt;2.0.0     conjunctive clauses, space-separated
+^1.2.3             &gt;=1.2.3 &lt;2.0.0   (and ^0.2.3 =&gt; &gt;=0.2.3 &lt;0.3.0)
+~1.2.3             &gt;=1.2.3 &lt;1.3.0
+1.2.3              exactly
+*  or  omitted     any</code></pre>
+<p>A pre-release is only selected when a clause explicitly names one at the same <code>major.minor.patch</code>. <code>&gt;=1.0.0</code> will not give you <code>2.0.0-alpha.1</code>.</p>
+<h2 id="resourceid-and-resourceref"><code>ResourceId</code> and <code>ResourceRef</code></h2>
+<p><code>ResourceId</code> is a validated dotted identifier — a value of that type has been checked, which a <code>std::string</code> with dots in it has not.</p>
+<pre><code class="lang-text">template.terminal.cpp
+kit.terminal@^0.1.0</code></pre>
+<p>Segments are lowercase, start with a letter, and may contain digits, <code>_</code> and <code>-</code>. Two to eight segments. The first names the kind and must agree with the resource's actual kind.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

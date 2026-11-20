@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>squared-pg · squared-pg</title>
+<meta name="description" content="squared-pg: squared-pg">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../index.html">squared-netizen</a>
+  <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
+  <a href="../../docs/index.html">Docs</a>
+  <a href="../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">squared-pg</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/README.md">on GitHub</a></p><h1 id="squared-pg">squared-pg</h1>
+<p>An offline-first project generator for applications built on the Squared framework. A native C++20 engine provides generation capability; a Lua 5.4 control layer sequences it into workflows. The output is a self-contained developer workspace you own outright.</p>
+<p>Termux on Android is a first-class target. A phone with a compiler and <code>make</code> is enough — to run the generator, and to build what it produces.</p>
+<h2 id="quick-start">Quick start</h2>
+<p>first clone this repo:</p>
+<pre><code class="lang-bash">gh repo clone squared-netizen/squared-pg</code></pre>
+<p>then upon success, run ~/path/to/repo-clone</p>
+<pre><code class="lang-bash">tools/bootstrap.sh</code></pre>
+<p>that will clone the two sub repo's; squared and sqcart. both are necessary to use squared-pg, but sqcart is a useful utility standalone. while some of squared can be hand hacked together.</p>
+<p>Then you should get this on std out:</p>
+<pre><code class="lang-text">Assembled. Build with:
+
+  make -j4 &amp;&amp; make check</code></pre>
+<p>if your in the clone directory, run.</p>
+<pre><code class="lang-bash">
+  make -j4 &amp;&amp; make check</code></pre>
+<p>Then after the full build, don't worry you will see the progress, run:</p>
+<pre><code class="lang-bash">
+./build/sqpg initialize
+</code></pre>
+<p>If all is successful you should see:</p>
+<pre><code class="lang-text">build/sqpg initialize     [⏱ 2m51s] ♥ 8:37:21 AM
+environment /data/data/com.termux/files/home/sqsysroot
+  project    promoted work; version controlled
+  sandbox    experiments; nothing here is irreplaceable
+  .sqpg      tools, resources and workflows
+
+directories  1 created, 3 already present
+tools        /data/data/com.termux/files/home/sqsysroot/.sqpg
+sqcart       installed
+
+put the tool on your PATH:
+  ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqpg /data/data/com.termux/files/usr/bin/sqpg
+  ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqcart /data/data/com.termux/files/usr/bin/sqcart
+
+  (/data/data/com.termux/files/usr/bin is already on your PATH; this works in any shell)
+
+  removing them is `rm` on two links; nothing edits a shell profile.
+
+then:
+  cd /data/data/com.termux/files/home/sqsysroot/sandbox
+  sqpg new hello -t template.terminal.cpp -k kit.terminal
+  cd hello &amp;&amp; make &amp;&amp; ./build/hello
+</code></pre>
+<p>The two commands</p>
+<pre><code class="lang-bash">ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqpg /data/data/com.termux/files/usr/bin/sqpg
+  ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqcart /data/data/com.termux/files/usr/bin/sqcart</code></pre>
+<p>matter. They allow you to actually use sqpg and sqcart.</p>
+<p>Good luck, have fun, don't die!</p>
+<h2 id="build">Build</h2>
+<pre><code class="lang-sh">cmake -S . -B build &amp;&amp; cmake --build build -j4 &amp;&amp; ctest --test-dir build</code></pre>
+<p>Without CMake — Termux, chiefly:</p>
+<pre><code class="lang-sh">make -j4      # engine, CLI and tests
+make check    # run the tests
+make smoke    # generate a project, build it, run it</code></pre>
+<p>No network, at any point. A clean checkout plus <code>third-party/</code> is the whole dependency list. A C++20 compiler and <code>make</code> are the only requirements; see <a href="https://github.com/squared-netizen/squared-pg/blob/main/BUILDING.md">BUILDING.md</a> for per-platform notes and troubleshooting.</p>
+<h2 id="use">Use</h2>
+<pre><code class="lang-sh">./build/sqpg list
+./build/sqpg new hello --template template.terminal.cpp --kit kit.terminal
+cd hello &amp;&amp; make &amp;&amp; ./build/hello</code></pre>
+<p>Add a Lua script workspace alongside the C++ one:</p>
+<pre><code class="lang-sh">./build/sqpg new hello --template template.terminal.cpp --kit kit.terminal --kit kit.lua</code></pre>
+<p>Or build an Android app, on the phone, with no Gradle anywhere:</p>
+<pre><code class="lang-sh">./build/sqpg new myapp --template template.android.cpp --kit kit.opengl \
+    --platform android --param package_name=com.example.myapp
+cd myapp &amp;&amp; make apk &amp;&amp; make install</code></pre>
+<p>See what would happen without doing it:</p>
+<pre><code class="lang-sh">./build/sqpg plan hello --template template.terminal.cpp --kit kit.terminal</code></pre>
+<h2 id="the-idea">The idea</h2>
+<p>The engine is a programmable pipeline: fixed, well-tested capability with programmable sequencing on top. It knows what a template, kit, package and asset <i>are</i>, and how to resolve, validate and materialize them. It does not decide which one you want.</p>
+<p>Lua decides. It parses arguments, loads configuration, chooses the template and kits, calls engine operations in whatever order it likes, and interprets the results. The CLI is one consumer of that stack, not the defining interface — and the workflows stay editable after release, without a rebuild.</p>
+<pre><code class="lang-text">User / tool input  →  Lua workflow  →  engine control surface  →  workspace</code></pre>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">engine/        the C++20 engine — include/ is public, src/ is not
+engine/lua/    the Lua binding layer
+lua/           workflows and shared Lua modules
+app/           sqpg, the reference CLI host
+resources/     templates, kits, packages, assets — inert data
+sqcart/        the Squared Cartridge reference implementation (nested project)
+third-party/   vendored dependencies
+tools/         maintenance and smoke tests
+docs/          specification and the two documentation trees</code></pre>
+<h2 id="documentation">Documentation</h2>
+<ul><li><a href="docs/programmer/index.html"><code>docs/programmer/</code></a> — using the engine, writing workflows, authoring templates and kits</li><li><a href="docs/developer/index.html"><code>docs/developer/</code></a> — how it works inside, the patterns used, and what it deliberately does not do</li><li><a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/Specification%20Index.md"><code>docs/spec/</code></a> — the functional specification (an Obsidian vault)</li></ul>
+<h2 id="what-ships-today">What ships today</h2>
+<p><b>Engine.</b> Lifecycle state machine, ten core services, an enumerable operation registry, a manifest-identity resource index built on <code>sqcart</code>, plan production, and transactional new-workspace generation with provenance recording.</p>
+<p><b>Resources.</b> Two templates: <code>template.terminal.cpp</code> (a C++20 terminal application that builds with make and a compiler, on Termux, Linux or macOS) and <code>template.android.cpp</code> (a plain NDK workspace — NativeActivity, no Java, no Gradle, producing a signed APK on a phone).</p>
+<p>Four kits: <code>kit.terminal</code> (header-only console I/O, regex helpers and a libGDX-style <code>FileHandle</code>), <code>kit.lua</code> (an embedded Lua 5.4 interpreter and an <code>sq_lua/</code> script workspace), <code>kit.opengl</code> (EGL context management and GLES 3.0), and <code>kit.termux</code> (Termux:API — battery, clipboard, notifications, dialogs, speech, location, sensors).</p>
+<p><b>Not yet.</b> Regeneration into an existing workspace, package and asset materialization, template composition, and enforcement of the sandboxed workflow trust tier. Each is refused with a structured error rather than approximated; see <a href="docs/developer/engine/limitations.html">limitations</a>.</p>
+<h2 id="guarantees-the-generated-project-gets">Guarantees the generated project gets</h2>
+<ul><li>It does not depend on squared-pg. The generator is not on its build path.</li><li>You never edit outside the working directory (<code>sq_app/</code>) to develop it.</li><li>Nothing generator-owned is written inside that directory.</li><li>Every generated path is recorded with the hash it had when written, so a future update can tell your edits from its own output without guessing.</li><li>Delete <code>.squared/</code> and you still have a working project. You lose only the ability to update it in place.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

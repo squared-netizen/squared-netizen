@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class NodeWriter · squared</title>
+<meta name="description" content="squared: class NodeWriter">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/NodeWriter.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/NodeWriter.md">on GitHub</a></p><h1 id="class-nodewriter">class NodeWriter</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L148">gui/layout_writer.cppm:148</a></i></p>
+<p><b>brief</b> One node being written: each call sets something about it and returns it, so calls chain. A node that could not be written (the storage is full, or it was added where it cannot go) takes the calls and keeps nothing; <code>LayoutWriter::complete</code> says so.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="add">add</h3>
+<p><i>public NodeWriter add(std::string_view text)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L377">gui/layout_writer.cppm:377</a></i></p>
+<p><b>brief</b> Add a node inside this table, scroll (one only), stack, or list (one: its row).</p>
+<h3 id="add_custom">add_custom</h3>
+<p><i>public NodeWriter add_custom(std::string_view name)</i></p>
+<p><b>brief</b> Add a custom node inside this one: a type the app registers by <code>name</code>.</p>
+<h3 id="add_list">add_list</h3>
+<p><i>public NodeWriter add_list(const K &amp; rows)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L232">gui/layout_writer.cppm:232</a></i></p>
+<p><b>brief</b> Add a list inside this one, showing <code>rows</code>; as <code>LayoutWriter::add_list</code>.</p>
+<h3 id="align">align</h3>
+<p><i>public NodeWriter &amp; align(Alignment x, Alignment y)</i></p>
+<h3 id="bind">bind</h3>
+<p><i>public NodeWriter &amp; bind(const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L181">gui/layout_writer.cppm:181</a></i></p>
+<p><b>brief</b> Show <code>key</code>'s <code>state</code> (a label, check box, text field, slider or progress bar); a node that edits sends <code>set</code> when the key carries it. A value type the node cannot show is refused. A key that takes a uid is shown in a list's row, at the row's uid; outside a row it is refused.</p>
+<h3 id="fill">fill</h3>
+<p><i>public NodeWriter &amp; fill()</i></p>
+<p><b>brief</b> Fill the cell both ways, or one.</p>
+<h3 id="fill_x">fill_x</h3>
+<p><i>public NodeWriter &amp; fill_x()</i></p>
+<h3 id="fill_y">fill_y</h3>
+<p><i>public NodeWriter &amp; fill_y()</i></p>
+<h3 id="grow">grow</h3>
+<p><i>public NodeWriter &amp; grow()</i></p>
+<p><b>brief</b> Take the cell's spare room both ways, or one.</p>
+<h3 id="grow_x">grow_x</h3>
+<p><i>public NodeWriter &amp; grow_x()</i></p>
+<h3 id="grow_y">grow_y</h3>
+<p><i>public NodeWriter &amp; grow_y()</i></p>
+<h3 id="pad">pad</h3>
+<p><i>public NodeWriter &amp; pad(float space)</i></p>
+<p><b>brief</b> Space around it in its cell.</p>
+<h3 id="range">range</h3>
+<p><i>public NodeWriter &amp; range(float minimum, float maximum)</i></p>
+<p><b>brief</b> A slider's or progress bar's range; <code>minimum</code> below <code>maximum</code>.</p>
+<h3 id="row">row</h3>
+<p><i>public NodeWriter &amp; row()</i></p>
+<p><b>brief</b> In a table: the next node added to it starts a new row.</p>
+<h3 id="span">span</h3>
+<p><i>public NodeWriter &amp; span(std::uint8_t columns)</i></p>
+<p><b>brief</b> The columns its cell takes.</p>
+<h3 id="step">step</h3>
+<p><i>public NodeWriter &amp; step(float step)</i></p>
+<p><b>brief</b> A slider's step; 0: none.</p>
+<h3 id="style">style</h3>
+<p><i>public NodeWriter &amp; style(std::string_view name)</i></p>
+<p><b>brief</b> A style from the skin, in place of <code>default</code>.</p>
+<h3 id="tap">tap</h3>
+<p><i>public NodeWriter &amp; tap(Navigate how)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L195">gui/layout_writer.cppm:195</a></i></p>
+<p><b>brief</b> A navigation to the C++ screen <code>S</code>, by its name: <code>.tap&lt;About&gt;( Navigate::push )</code>.</p>
+<h3 id="tap">tap</h3>
+<p><i>public NodeWriter &amp; tap(Navigate how, std::string_view target)</i></p>
+<p><b>brief</b> A button's tap that navigates; <code>target</code> names the screen or pane.</p>
+<h3 id="tap">tap</h3>
+<p><i>public NodeWriter &amp; tap(const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L205">gui/layout_writer.cppm:205</a></i></p>
+<p><b>brief</b> A button's tap that sends <code>do &lt;key&gt;</code>. A key that takes a uid is sent from a list's row, with the row's; outside a row it is refused.</p>
+<h3 id="tap">tap</h3>
+<p><i>public NodeWriter &amp; tap(const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout_writer.cppm#L218">gui/layout_writer.cppm:218</a></i></p>
+<p><b>brief</b> A button's tap that sends <code>do &lt;key&gt; &lt;value&gt;</code>, or <code>set</code> for a key without <code>do</code>; a key that takes a uid, as <code>tap( key )</code>.</p>
+<h3 id="tap">tap</h3>
+<p><i>public NodeWriter &amp; tap(std::string_view line)</i></p>
+<p><b>brief</b> A button's tap: a line as a layout file writes it (<code>do file.open &quot;a.txt&quot;</code>, <code>push settings</code>).</p>
+<h3 id="vertical">vertical</h3>
+<p><i>public NodeWriter &amp; vertical()</i></p>
+<p><b>brief</b> A separator that runs up and down.</p>
+<h3 id="written">written</h3>
+<p><i>public bool written()</i></p>
+<p><b>brief</b> Whether this node was written.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

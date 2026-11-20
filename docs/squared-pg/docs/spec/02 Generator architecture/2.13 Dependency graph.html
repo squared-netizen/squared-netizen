@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.13 Dependency graph · squared-pg</title>
+<meta name="description" content="squared-pg: 2.13 Dependency graph">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.13 Dependency graph.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.13 Dependency graph.md">on GitHub</a></p><hr>
+<p>section: "2.13" title: Dependency graph status: review tags: [spec, architecture, dependencies]</p>
+<hr>
+<h1 id="213-dependency-graph">2.13 Dependency graph</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.12 Generated-project boundary]] · Next: [[2.14 Extensibility model]]</p></blockquote>
+<blockquote><p>[!success] Unblocks §1.11 [[1.11 Dependency direction]] defers the authoritative graph to this section. D-026 resolves it.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines the authoritative dependency relationships between every repository component, the resource tree, the Squared framework, and generated projects.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; authoritative direction</li><li>&#9745; per-component permitted dependencies</li><li>&#9745; resources as inert data</li><li>&#9745; third-party constraints</li><li>&#9745; generated projects as sinks</li><li>&#9745; the framework's position</li><li>&#9745; prohibited edges</li><li>&#9745; acyclicity and justified cycles</li><li>&#9745; enforcement and testing</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="2131-authoritative-direction">2.13.1 Authoritative direction</h3>
+<pre><code class="lang-text">                          hosts
+                 (CLI, embedders, tools)
+                            |
+                +-----------+-----------+
+                |                       |
+                v                       v
+              lua/                   engine/  (C++ public API)
+                |                       |
+                +---- binding layer ----+
+                                        |
+                                        v
+                                  third_party/
+
+                                  engine/
+                                     |
+                                     | reads by identity
+                                     v
+                                resources/     (inert data)
+
+                            Generated Project  (sink)
+                                     |
+                                     v
+                            Squared Framework</code></pre>
+<p>Arrows point from dependent to dependency. The graph is acyclic.</p>
+<h3 id="2132-per-component-rules">2.13.2 Per-component rules</h3>
+<p><b><code>third_party/</code></b> — a leaf. Depends on nothing in the repository. May be depended on by <code>engine/</code> only. <code>lua/</code> MUST NOT depend on vendored C sources directly; it reaches Lua libraries through the runtime the engine embeds. Third-party code MUST NOT define Squared project architecture.</p>
+<p><b><code>engine/</code></b> — depends on <code>third_party/</code> and on the C++ standard library. Depends on <code>resources/</code> only as <i>data</i>, reached through the Resource Service by identity. MUST NOT depend on <code>lua/</code> workflow code; it exposes a binding surface, it does not consume workflows. MUST NOT depend on generated projects.</p>
+<p><b><code>lua/</code></b> — depends on the engine public API through the binding layer. MUST NOT depend on engine internals, on <code>third_party/</code> sources, on <code>resources/</code> layout, or on generated projects. Reaches resources by identity only.</p>
+<p><b><code>resources/</code></b> — inert data with <b>no outgoing dependencies</b>. Resources declare dependencies <i>on other resources</i> in their manifests, which the engine resolves; those declarations are data, not code coupling. A resource MUST NOT reference <code>engine/</code> or <code>lua/</code> implementation.</p>
+<p><b>hosts</b> (the CLI, embedding applications, tools) — depend on <code>engine/</code>, and on <code>lua/</code> when they host workflows. Nothing in the repository depends on a host.</p>
+<p><b>Generated projects</b> — sinks. Depend on the Squared framework and on their own declared external dependencies. Nothing in <code>squared-pg</code> may depend on a generated project ([[2.12 Generated-project boundary]]).</p>
+<p><b>Squared framework</b> — external to this repository. Consumed by generated projects. The framework MUST NOT depend on <code>squared-pg</code>.</p>
+<h3 id="2133-resource-dependency-sub-graph">2.13.3 Resource dependency sub-graph</h3>
+<p>Resources depend on each other through manifest declarations, resolved by the engine:</p>
+<pre><code class="lang-text">template  --requires--&gt;  kit
+template  --requires--&gt;  package
+kit       --requires--&gt;  package
+package   --requires--&gt;  package
+package   --requires--&gt;  asset
+kit       --requires--&gt;  asset</code></pre>
+<p>Prohibited edges in this sub-graph:</p>
+<ul><li><code>package -&gt; template</code> — a package MUST NOT require a specific template as a dependency; it MAY declare template <i>compatibility</i>, which is a constraint, not an edge.</li><li><code>asset -&gt; anything</code> — assets are leaves. An asset MAY declare package requirements as compatibility constraints, not as dependencies it pulls in.</li><li>Any cycle. The resource dependency graph MUST be acyclic, and cycles MUST be reported with the full path.</li></ul>
+<p>The distinction between a <b>dependency</b> (pulls the target into the resolved set) and a <b>compatibility constraint</b> (restricts what the resolved set may contain) is load-bearing and MUST be preserved in manifests.</p>
+<h3 id="2134-prohibited-edges-summarised">2.13.4 Prohibited edges, summarised</h3>
+<div class="tablewrap"><table><thead><tr><th>From</th><th>To</th><th>Why</th></tr></thead><tbody><tr><td><code>engine/</code></td><td><code>lua/</code></td><td>the engine must be usable without any workflow</td></tr><tr><td><code>engine/</code></td><td>generated project</td><td>generated projects are outputs</td></tr><tr><td><code>lua/</code></td><td>engine internals</td><td>boundary violation</td></tr><tr><td><code>lua/</code></td><td><code>third_party/</code> sources</td><td>reaches libraries through the engine runtime</td></tr><tr><td><code>resources/</code></td><td>any code</td><td>resources are inert data</td></tr><tr><td>anything</td><td>generated project</td><td>outputs are never dependencies</td></tr><tr><td>Squared framework</td><td><code>squared-pg</code></td><td>the framework must stand alone</td></tr></tbody></table></div>
+<h3 id="2135-acyclicity">2.13.5 Acyclicity</h3>
+<p>The graph MUST be acyclic. A deliberate cycle requires an explicit decision entry in [[Spec decisions]] naming the cycle, the justification, and the mechanism that prevents it from becoming load-bearing. No such cycle currently exists.</p>
+<h3 id="2136-enforcement">2.13.6 Enforcement</h3>
+<p>A dependency rule that is not tested decays. The following SHOULD be enforced automatically:</p>
+<div class="tablewrap"><table><thead><tr><th>Rule</th><th>Mechanism</th></tr></thead><tbody><tr><td><code>engine/</code> does not include <code>lua/</code> workflow code</td><td>include-path check in CI</td></tr><tr><td><code>lua/</code> does not reach engine internals</td><td>binding surface is the only registered API; audit registered symbols</td></tr><tr><td><code>resources/</code> contains no executable code</td><td>file-type check over resource roots</td></tr><tr><td>Resource graph is acyclic</td><td>resolver rejects cycles at initialization; test with a deliberate cycle fixture</td></tr><tr><td>No absolute host paths in generated output</td><td>grep check in the generated-project conformance suite</td></tr><tr><td>Component build isolation</td><td><code>engine/</code> builds and its tests pass with <code>lua/</code> absent</td></tr></tbody></table></div>
+<p>The last check is the strongest single guarantee: if the engine builds and tests green without the Lua layer present, the capability/orchestration split is real rather than aspirational.</p>
+<h2 id="related">Related</h2>
+<ul><li>[[1.11 Dependency direction]] · [[2.1 Architectural model]] · [[1.6 Third-party dependencies]] · [[2.12 Generated-project boundary]] · [[2.16 Architectural invariants]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

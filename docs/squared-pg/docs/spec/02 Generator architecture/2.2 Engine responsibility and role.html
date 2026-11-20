@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.2 Engine responsibility and role · squared-pg</title>
+<meta name="description" content="squared-pg: 2.2 Engine responsibility and role">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.2 Engine responsibility and role.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.2 Engine responsibility and role.md">on GitHub</a></p><hr>
+<p>section: "2.2" title: Engine responsibility and role status: review tags: [spec, architecture, engine]</p>
+<hr>
+<h1 id="22-engine-responsibility-and-role">2.2 Engine responsibility and role</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.1 Architectural model]] · Next: [[2.3 Generation pipeline]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines what the native engine is responsible for and what it is forbidden from doing.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; engine as Squared project domain engine</li><li>&#9745; ownership of native resources</li><li>&#9745; domain concepts the engine understands</li><li>&#9745; public C++ API responsibilities</li><li>&#9745; capability-based API design</li><li>&#9745; prohibited responsibilities</li><li>&#9745; the pipeline analogy</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="221-role">2.2.1 Role</h3>
+<p><code>engine/</code> is the native implementation layer. It exists to provide stable, reusable, testable APIs performing the computational and filesystem-oriented work of generation.</p>
+<p>The engine MUST provide:</p>
+<ul><li>deterministic operations;</li><li>explicit state management;</li><li>well-defined input/output contracts;</li><li>reusable APIs callable from Lua bindings and from C++ directly;</li><li>platform-independent functionality where possible.</li></ul>
+<h3 id="222-the-pipeline-analogy">2.2.2 The pipeline analogy</h3>
+<p>The engine SHOULD be structured like a programmable pipeline:</p>
+<ol><li>Engine initialization creates the generator execution environment.</li><li>Initialization exposes the available control surface.</li><li>Lua configures and sequences engine operations.</li><li>Engine operations execute the requested actions.</li><li>Results return through the Lua boundary.</li></ol>
+<p>This is the shape described in the project vision: fixed, well-tested capability with programmable sequencing on top.</p>
+<h3 id="223-domain-model">2.2.3 Domain model</h3>
+<p>The engine MUST understand the core data models required to manipulate Squared projects:</p>
+<ul><li><code>SquaredProject</code></li><li>Template</li><li>Kit</li><li>Package</li><li>Asset</li><li>Configuration</li><li>Generated project metadata</li></ul>
+<blockquote><p>[!note] Resolution of Q-14 (D-014) These are the engine's native domain model, not workflow logic. The earlier draft's "the engine MAY contain knowledge of Squared project domain concepts" is deleted; understanding the domain model is a MUST.</p></blockquote>
+<h3 id="224-engine-responsibilities">2.2.4 Engine responsibilities</h3>
+<p>The engine SHOULD contain:</p>
+<ul><li>project filesystem operations;</li><li>transactional file generation;</li><li>template expansion;</li><li>package and asset processing;</li><li>archive handling;</li><li>metadata processing;</li><li>dependency resolution primitives;</li><li>validation systems;</li><li>build-configuration emission;</li><li>resource management.</li></ul>
+<h3 id="225-prohibitions">2.2.5 Prohibitions</h3>
+<p>The engine MUST NOT contain:</p>
+<ul><li>command-line argument parsing;</li><li>interactive prompts;</li><li>user-specific workflow logic;</li><li>assumptions about a single generation workflow;</li><li>hidden filesystem paths;</li><li>user-facing presentation policy.</li></ul>
+<p>The engine MUST NOT decide which template a user should select, which kit should be applied, which packages should be included, or how a project should be structured for a specific workflow. Those decisions belong to [[2.5 Lua control layer]].</p>
+<h3 id="226-capabilities-not-workflows">2.2.6 Capabilities, not workflows</h3>
+<p>The engine API MUST expose capabilities rather than workflows.</p>
+<p>The engine MAY provide:</p>
+<pre><code class="lang-text">create_directory()
+copy_resource()
+apply_template()
+load_package_manifest()
+validate_project()</code></pre>
+<p>Lua decides when they are called, in what order, which template is selected, which kit is applied, and what project type is generated.</p>
+<p>This separation is what allows <code>squared-pg</code> to serve command-line usage, automated build tools, IDE integrations, custom generators, and third-party tooling from one implementation.</p>
+<h3 id="227-api-stability">2.2.7 API stability</h3>
+<p>The public C++ API MUST be documented and versioned. Changes to the control surface MUST preserve compatibility where possible and MUST document breaking changes where they cannot.</p>
+<p>Public API documentation belongs in <code>docs/programmer/</code>; implementation detail belongs in <code>docs/developer/</code> (see [[1.8 Documentation]]).</p>
+<h2 id="related">Related</h2>
+<ul><li>[[2.4 Engine lifecycle]] · [[2.6 Engine-Lua boundary]] · [[1.3 Engine]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

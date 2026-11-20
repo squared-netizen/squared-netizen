@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>data &amp;amp;mdash; internals · squared</title>
+<meta name="description" content="squared: data &amp;amp;mdash; internals">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/data.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/data.md">on GitHub</a></p><h1 id="data-ampmdash-internals">data &amp;mdash; internals</h1>
+<p>Strict RFC 8259 JSON over yyjson, behind an owned value type.</p>
+<p>Programmer counterpart: <a href="../programmer/data.html">../programmer/data.md</a></p>
+<ul><li>Public types: 7</li><li>Translation units: 2</li></ul>
+<h2 id="layout">Layout</h2>
+<pre><code>data/
+  json.cppm json_value.cppm   the workhorse headers
+  src/                      the six supporting headers: errors, options, results
+  src/json_value.cpp        JsonValue&#x27;s own members - no yyjson
+  src/json.cpp              parse_json, write_json, and the conversion helpers
+  Makefile</code></pre>
+<h2 id="yyjson-is-now-one-translation-units-problem">yyjson is now one translation unit's problem</h2>
+<p>Before the split, the whole module was one translation unit and every part of it was compiled with <code>yyjson.h</code> in scope. After it, <code>json_value.cpp</code> &amp;mdash; <code>JsonValue</code>'s 23 member definitions &amp;mdash; has no yyjson dependency at all. Only <code>json.cpp</code> includes it, because only <code>parse_json</code>, <code>write_json</code> and the anonymous-namespace converters that back them touch the C API.</p>
+<p>That is the practical payoff of the split here: the backend is contained in one file rather than being a property of the module, and swapping it means rewriting <code>json.cpp</code> and nothing else.</p>
+<p>The four conversion helpers (<code>make_error</code>, <code>make_parse_error</code>, <code>convert_value</code>, <code>convert_for_writing</code>) stayed in <code>json.cpp</code>'s anonymous namespace rather than moving to a <code>detail</code> header, because only that translation unit uses them. The rule throughout this tree: a helper leaves the anonymous namespace only when a second translation unit needs it.</p>
+<h2 id="build-dependency">Build dependency</h2>
+<p>yyjson is vendored under <code>third_party/yyjson/</code> and compiled into <code>libsquared_data.a</code> by <code>data/Makefile</code>. <code>./tools/vendor_third_party.sh</code> unpacks it from the release tarball in <code>third_party/</code>.</p>
+<p>It is vendored rather than taken from a system package because this tree is built with the NDK toolchain for an APK: a package installed for the host sysroot is the wrong target.</p>
+<p>Two details in the rule worth keeping:</p>
+<ul><li><code>yyjson.c</code> is compiled with <code>$(CXX) -x c -std=c11</code>, not with <code>$(CC)</code>. There is one toolchain variable to set, and <code>CC</code> would otherwise default to the host <code>cc</code> and silently produce host objects in an NDK build.</li><li>It is compiled with <code>-w</code>. squared's own warning set includes <code>-Wconversion</code> and <code>-Wsign-conversion</code>; a JSON parser under those emits enough noise to bury a real warning from squared, and third-party code is not ours to keep clean.</li></ul>
+<p>The build fails with a named message rather than a missing-header error when <code>third_party/yyjson</code> is absent:</p>
+<pre><code>data: third_party/yyjson is missing.
+data: run ./tools/vendor_third_party.sh to unpack it.</code></pre>
+<p><code>third_party/lua-*.tar.gz</code> is present for the scripting layer and is deliberately left packed: nothing builds it yet, and unpacking it would make it look wired up.</p>
+<h2 id="error-handling">Error handling</h2>
+<p>This module already does what the framework rules ask for and the GUI does not: <code>parse_json</code> and <code>write_json</code> are <code>noexcept</code> and return a result carrying a <code>JsonError</code>. There is nothing here on the <code>-fno-exceptions</code> blocking list.</p>
+<p>Accessors are the <code>*_if()</code> pointer form rather than a throwing <code>as&lt;T&gt;()</code>, so reading a value of the wrong type is a null check rather than an exception.</p>
+<h2 id="memory">Memory</h2>
+<p><code>JsonValue</code> holds a <code>std::variant</code> over <code>std::nullptr_t</code>, <code>bool</code>, <code>std::int64_t</code>, <code>std::uint64_t</code>, <code>double</code>, <code>std::string</code>, <code>Array</code> and <code>Object</code>. <code>Object</code> is a <code>std::map</code>, which is one heap node per key plus a <code>std::string</code> key &amp;mdash; the same pattern flagged for <code>gui::Skin</code> in <a href="priority-audit.html">priority-audit.md</a>, and for the same reason. It matters less here: JSON documents are parsed, consumed, and dropped, rather than being resident for the life of the process.</p>
+<p>A parsed document is copied out of yyjson's arena into owned storage, so the <code>yyjson_doc</code> is freed before <code>parse_json</code> returns and nothing in the public API points into it.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

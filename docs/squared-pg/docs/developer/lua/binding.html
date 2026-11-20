@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lua binding layer · squared-pg</title>
+<meta name="description" content="squared-pg: Lua binding layer">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/lua/binding.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/lua/binding.md">on GitHub</a></p><h1 id="lua-binding-layer">Lua binding layer</h1>
+<p>Programmer counterpart: <a href="../../programmer/lua/workflows.html">writing a workflow</a>. Specification: §2.6.</p>
+<h2 id="what-it-is-allowed-to-do">What it is allowed to do</h2>
+<p>Convert values, forward a call to the operation registry, convert the result back. Nothing else. §2.6.2 forbids the binding from becoming a workflow layer, and the pressure to add "just one convenience" here is constant. The test: could the addition have been a Lua function? If yes, it belongs in <code>lua/</code>.</p>
+<h2 id="generated-from-the-registry">Generated from the registry</h2>
+<p><code>open_engine</code> walks <code>Engine::operations()</code> and installs a closure per descriptor, splitting <code>project.generate</code> into <code>engine.project.generate</code>. The <code>engine.</code> namespace is flattened, so <code>engine.describe()</code> rather than <code>engine.engine.describe()</code>.</p>
+<p>This is §2.6.3's requirement: the set of callable names cannot drift from the set of registered operations, because it <i>is</i> that set. Adding an operation to the registry makes it callable from Lua with no edit here.</p>
+<p>The operation identity travels as an upvalue rather than being reconstructed from the table path, so a workflow that copies a function out of the table still calls the operation it came from.</p>
+<h2 id="string-sugar">String sugar</h2>
+<p><code>engine.template.resolve(&quot;template.x&quot;)</code> binds the lone string to the descriptor's first <i>required</i> parameter. §2.5.3 and §2.6.4 both write it that way, and the alternative — forcing <code>{id = &quot;template.x&quot;}</code> — would make the specification's own examples not work.</p>
+<p>It produces exactly the parameter table the explicit form would, so the sugar has no second meaning.</p>
+<h2 id="value-conversion">Value conversion</h2>
+<p><b>Integers stay integers.</b> §2.6.5 requires version components, counts and sizes to cross as integers and forbids silent narrowing. <code>lua_isinteger</code> is checked before <code>lua_tonumber</code>.</p>
+<p><b>Sequence or map.</b> A Lua table becomes an <code>Array</code> when its keys are exactly <code>1..n</code>, and an <code>Object</code> otherwise. Lua draws no distinction, so the boundary has to pick one by inspection — it is the only approach that round-trips both shapes.</p>
+<p><b>The empty table is ambiguous</b> and there is no correct answer. It converts to <code>Array</code>, and <code>validate_parameters</code> accepts an empty array where an object is expected and vice versa. Without that, a workflow passing <code>parameters = {}</code> would be rejected for a distinction Lua cannot express. This is documented rather than clever: the check is in <code>type_matches</code> in <code>error.cpp</code>.</p>
+<p><b>Functions, userdata and threads become null.</b> Deliberate: converting them would mean exposing native memory, which is what the boundary exists to prevent.</p>
+<h2 id="no-handles">No handles</h2>
+<p>§2.6.6 is about opaque handles with explicit lifetimes and stale-handle detection. None of that is needed here, because nothing native crosses — every value is copied into a Lua table. There is no native lifetime for a script to get wrong.</p>
+<p>That is worth stating explicitly, because §2.6.6 reads like a requirement to build a handle system. It is a requirement to <i>not leak pointers</i>, and copying satisfies it more simply.</p>
+<h2 id="errors-never-throw">Errors never throw</h2>
+<p><code>engine.execute</code> returns the result table on failure exactly as on success. §2.6.12 forbids exceptions crossing into Lua and forbids terminating the host. The C++ side already returns <code>OperationResult</code> rather than throwing, so the binding has nothing to catch.</p>
+<p><code>luaL_error</code> is used only for genuine misuse of the binding itself — calling <code>engine.execute</code> with a non-table, non-string first argument. That is a bug in the workflow, not an engine failure, and a Lua error is the right report for it.</p>
+<h2 id="a-bug-worth-remembering">A bug worth remembering</h2>
+<p>The initial implementation read object values at stack index <code>-3</code> after pushing a key copy, when the value was at <code>-2</code>. Every configuration value silently became its own key name, and the symptom was a validation error claiming <code>kits</code> was a string. Lua stack arithmetic after <code>lua_next</code> is worth double-checking; the fix is commented in place.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

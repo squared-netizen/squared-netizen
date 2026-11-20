@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gles &amp;amp;mdash; internals · squared</title>
+<meta name="description" content="squared: gles &amp;amp;mdash; internals">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/gles.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/gles.md">on GitHub</a></p><h1 id="gles-ampmdash-internals">gles &amp;mdash; internals</h1>
+<p>Public GL object layer over GLES 3.0.</p>
+<p>Programmer counterpart: <a href="../programmer/gles.html">../programmer/gles.md</a></p>
+<ul><li>Public types: 16</li><li>Translation units: 6</li></ul>
+<h2 id="why-it-is-public">Why it is public</h2>
+<p>It is the layer someone reaches for when they want a custom shader alongside the widget set, and it is the layer OpenGL teaching tooling is built on. libGDX exposes its equivalent (<code>glutils</code>) for the same reasons.</p>
+<p>Being public costs an API surface that has to stay stable. That is paid for deliberately, and it is why the types name things in squared's own enums rather than raw <code>GLenum</code> &amp;mdash; <code>BufferTarget::Index</code> survives a backend change in a way <code>GL_ELEMENT_ARRAY_BUFFER</code> does not.</p>
+<h2 id="sizes">Sizes</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Bytes</th><th>Holds</th></tr></thead><tbody><tr><td><code>VertexArray</code></td><td>4</td><td>a name</td></tr><tr><td><code>Shader</code></td><td>8</td><td>a name and a stage</td></tr><tr><td><code>Program</code></td><td>4</td><td>a name</td></tr><tr><td><code>Buffer</code></td><td>16</td><td>a name, a target, a size</td></tr><tr><td><code>Texture2D</code></td><td>16</td><td>a name, dimensions, a format</td></tr></tbody></table></div>
+<p><b>No CPU-side mirror of anything.</b> That is the priority-1 decision at the centre of the module. Retaining pixel data would make recovery after context loss automatic and would double the resident cost of every texture in the application. Recovery policy lives in <code>graphics::Texture</code>, where the caller chooses per resource; this layer only offers what a policy needs.</p>
+<h2 id="invalidate-is-the-non-obvious-one">invalidate() is the non-obvious one</h2>
+<p>Every object has both <code>destroy()</code> and <code>invalidate()</code>, and calling the wrong one after context loss produces corruption that reads as a driver bug.</p>
+<p><code>destroy()</code> calls <code>glDelete*</code>. After the context is gone, the name belonged to a context that no longer exists: at best the call is a no-op, at worst the same integer now names a different object in the new context and gets freed under its owner.</p>
+<p><code>invalidate()</code> zeroes the name and touches no GL.</p>
+<p>This is why the pair exists rather than a single <code>reset()</code>: the two cases look identical at the call site and behave nothing alike, so they have different names.</p>
+<h2 id="introspection-is-a-query-not-a-cache">Introspection is a query, not a cache</h2>
+<p><code>Program::attributes()</code> and <code>Program::uniforms()</code> fill a caller-owned vector and store nothing. A program drawn with sixty times a second is introspected once, by a person or a tool, so the lists cost nothing until somebody asks. Same pattern as <code>files::FileHandle::list()</code> and for the same reason.</p>
+<p><code>glGetActiveAttrib</code> reports an index, not a location, so each entry is followed by a <code>glGetAttribLocation</code> call. They differ, and conflating them is a common bug.</p>
+<h2 id="two-driver-traps-handled-here">Two driver traps handled here</h2>
+<p><b><code>GL_UNPACK_ALIGNMENT</code> is set to 1 before every upload.</b> GL unpacks rows on a four-byte boundary by default, so an <code>R8</code> texture whose width is not a multiple of four is read with a gap at the end of every row. The symptom is a font atlas that comes out sheared, and it only appears at certain widths.</p>
+<p><b>A new texture gets sampling defaults immediately.</b> GL's default minification filter is mipmap-based, so a texture with no mipmaps samples as black. Setting <code>Linear</code>/<code>Linear</code>/<code>ClampToEdge</code> at creation means a freshly created texture draws.</p>
+<h2 id="standard-library-deviations">Standard library deviations</h2>
+<p>None worth recording. No <code>std::function</code>, no <code>std::shared_ptr</code>, no <code>std::unordered_map</code>. <code>std::string</code> appears only in <code>GlesError::message</code> and in the introspection structs, both of which are diagnostic paths rather than per frame. <code>std::vector</code> is used for driver log buffers, whose length only the driver knows.</p>
+<h2 id="build-wiring">Build wiring</h2>
+<p>The module is in <code>MODULES</code> only when <code>SQUARED_GRAPHICS_BACKEND</code> is <code>gles</code>, because it cannot compile without the NDK's GL headers. The root <code>Makefile</code> reads <code>local.mk</code> directly for that test: module Makefiles reach <code>local.mk</code> through <code>build/common.mk</code>, but the root one does not include <code>common.mk</code>, so a backend chosen in <code>local.mk</code> would otherwise select the right <code>context.cpp</code> and the wrong module list.</p>
+<h2 id="shared-vocabulary-with-graphics">Shared vocabulary with graphics</h2>
+<p><code>Texture2D::set_sampling()</code> takes <code>graphics::TextureFilter</code> and <code>graphics::TextureWrap</code>. Until Sprint 3.1b this module had its own copies of both enums, with the same values. <code>gles</code> already depends on <code>graphics</code> in the root <code>Makefile</code> (<code>gles: graphics</code>), and <code>graphics</code> is always built while <code>gles</code> is not, so the shared pair lives in <code>graphics</code>. Only the two headers are shared, and nothing is linked. The two small <code>to_gl_filter</code>/<code>to_gl_wrap</code> helpers are still written twice, here and in <code>graphics/src/gles/texture.cpp</code>, because the <code>graphics</code> backend must not depend on this module.</p>
+<h2 id="testing-against-a-fake-driver">Testing against a fake driver</h2>
+<p><code>make -C gles test</code> links the module against <code>test/gl_stub.cpp</code>, which defines the GL entry points this module calls. The stub is compiled against the real GL headers, so every signature is checked by the compiler rather than by hand, and it records what was called.</p>
+<p>That records-what-was-called property is the point. It lets the test assert things no real driver can be asked about, and the one that matters most is:</p>
+<pre><code class="lang-cpp">texture.invalidate();
+assert(!glstub::deleted(&quot;glDeleteTextures&quot;, name));</code></pre>
+<p>On a device, getting that wrong frees an unrelated object in the new context and the corruption reads as a driver bug. Here it is one assertion.</p>
+<p>The suite also covers: destroy() deleting exactly once even when called twice, move construction not double-deleting, compile and link failures carrying the driver's log, shaders being detached after linking, introspection reusing the caller's vector, <code>GL_UNPACK_ALIGNMENT</code> reaching 1 before an R8 upload, sampling defaults being set at creation, out-of-range regions and short pixel spans being refused before they reach GL, and a <code>-1</code> attribute location being skipped rather than passed through.</p>
+<p><b>What it does not prove:</b> that a real driver accepts these enum combinations, that <code>GL_R8</code> exists on the target, or that anything renders. Those need a device.</p>
+<h2 id="not-yet-written">Not yet written</h2>
+<p><code>Framebuffer</code> for render targets, and uniform buffer objects beyond <code>BufferTarget::Uniform</code> existing as an enumerator. Neither has a second concrete use yet; see <a href="extension-policy.html">extension-policy.md</a>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Layout · squared</title>
+<meta name="description" content="squared: class Layout">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Layout.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Layout.md">on GitHub</a></p><h1 id="class-layout">class Layout</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L210">gui/layout.cppm:210</a></i></p>
+<p><b>brief</b> A screen or pane as data: its nodes, their words and numbers. A view: it owns nothing, so what it points at outlives it. A compiled layout points into the binary's read-only data; a C++ screen's points into scratch memory (<code>LayoutWriter</code>).</p>
+<p>The text is every word one after another, each ended by '\0', and starts with a '\0' of its own, so offset 0 is "none".</p>
+<h2 id="functions">Functions</h2>
+<h3 id="layout">Layout</h3>
+<p><i>public void Layout()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L215">gui/layout.cppm:215</a></i></p>
+<h3 id="layout">Layout</h3>
+<p><i>public void Layout(std::string_view name, LayoutKind kind, std::span&lt;const LayoutNode&gt; nodes, std::string_view text, std::span&lt;const float&gt; numbers, PaneShape pane)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L216">gui/layout.cppm:216</a></i></p>
+<h3 id="kind">kind</h3>
+<p><i>public LayoutKind kind()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L229">gui/layout.cppm:229</a></i></p>
+<h3 id="name">name</h3>
+<p><i>public std::string_view name()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L228">gui/layout.cppm:228</a></i></p>
+<p><b>brief</b> Its name: what <code>push</code> and a saved screen stack call it.</p>
+<h3 id="nodes">nodes</h3>
+<p><i>public Nodes nodes()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L232">gui/layout.cppm:232</a></i></p>
+<h3 id="numbers">numbers</h3>
+<p><i>public std::span&lt;const float&gt; numbers()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L233">gui/layout.cppm:233</a></i></p>
+<h3 id="pane">pane</h3>
+<p><i>public PaneShape pane()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L231">gui/layout.cppm:231</a></i></p>
+<p><b>brief</b> How it shows when it is a pane: its file's <code>place</code> and <code>modal</code>.</p>
+<h3 id="text">text</h3>
+<p><i>public std::string_view text()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L236">gui/layout.cppm:236</a></i></p>
+<p><b>brief</b> All of its text, as stored.</p>
+<h3 id="text">text</h3>
+<p><i>public std::string_view text(std::uint16_t offset)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/layout.cppm#L239">gui/layout.cppm:239</a></i></p>
+<p><b>brief</b> The words at <code>offset</code>; empty for 0, or outside the text.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Imports and file layout · squared</title>
+<meta name="description" content="squared: Imports and file layout">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/include-layout.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/include-layout.md">on GitHub</a></p><h1 id="imports-and-file-layout">Imports and file layout</h1>
+<p>How your code reaches squared's types, and where each one is written.</p>
+<p>Developer counterpart: <a href="../developer/file-layout.html">../developer/file-layout.md</a></p>
+<h2 id="one-import">One import</h2>
+<p>squared is modules, in C++23. An app writes one line:</p>
+<pre><code class="lang-cpp">import squared;</code></pre>
+<p>and has the App and its Stage, the widgets and layouts, the Telegraph with its keys, the application model, and the standard library: C++23's <code>std</code> module, the whole of it (<code>std::string</code>, <code>std::map</code>, <code>std::print</code>, ...).</p>
+<p>A narrower import names one module, <code>sq.&lt;module&gt;</code>, its namespace's name:</p>
+<pre><code class="lang-cpp">import sq.gui;      // sq::gui: the widgets, Skin, layouts, the scene graph
+import sq.files;    // sq::files: FileHandle, the file systems
+import std;         // the standard library, alone</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Module</th><th>Namespace</th><th>What</th></tr></thead><tbody><tr><td><code>sq.app</code></td><td><code>sq::app</code></td><td>the application model: Application, Event, the keys, text input</td></tr><tr><td><code>sq.assets</code></td><td><code>sq::assets</code></td><td>the asset manager</td></tr><tr><td><code>sq.console</code></td><td><code>sq::console</code></td><td>the developer Console</td></tr><tr><td><code>sq.data</code></td><td><code>sq::data</code></td><td>JSON</td></tr><tr><td><code>sq.dev</code></td><td><code>sq::dev</code></td><td>the dev log, frame allocations, crash traces</td></tr><tr><td><code>sq.files</code></td><td><code>sq::files</code></td><td>files and file systems</td></tr><tr><td><code>sq.gles</code></td><td><code>sq::gles</code></td><td>the GLES wrappers (gles backend)</td></tr><tr><td><code>sq.graphics</code></td><td><code>sq::graphics</code></td><td>textures, sprites, fonts, the camera</td></tr><tr><td><code>sq.gui</code></td><td><code>sq::gui</code></td><td>widgets, Skin, layouts, the scene graph</td></tr><tr><td><code>sq.math</code></td><td><code>sq::math</code></td><td>vectors and matrices</td></tr><tr><td><code>sq.messaging</code></td><td><code>sq::messaging</code></td><td>the Telegraph, names, keys</td></tr><tr><td><code>sq.stage</code></td><td><code>sq</code></td><td>the App and its Stage</td></tr><tr><td><code>sq.time</code></td><td><code>sq::time</code></td><td>clocks, timers, deadline queues</td></tr><tr><td><code>std</code></td><td><code>std</code></td><td>the standard library (C++23; libc++'s)</td></tr><tr><td><code>squared</code></td><td></td><td>all of the above an app needs: std, app, gui, messaging, stage</td></tr></tbody></table></div>
+<p>A module also gives you what its types are made of: <code>import sq.gui;</code> brings the <code>sq::graphics</code> types a widget's interface names, as an include of a widget header did.</p>
+<p>An import is not text: the module was compiled once, when squared was built, and your file reads from it only what it uses. That is why it is quicker than the headers were.</p>
+<h3 id="what-still-needs-an-include">What still needs an include</h3>
+<p><b>C macros.</b> A module carries no macros. <code>assert</code>, <code>errno</code> and its codes, <code>va_start</code>, <code>UINT32_MAX</code>, <code>SIGSEGV</code>, <code>offsetof</code>, <code>stdout</code>: include the C header that defines them, above the imports:</p>
+<pre><code class="lang-cpp">#include &lt;assert.h&gt;
+
+import squared;</code></pre>
+<p><b>Every include above every import.</b> libc++'s C headers (<code>&lt;stdio.h&gt;</code>, <code>&lt;stdlib.h&gt;</code>, <code>&lt;string.h&gt;</code>, <code>&lt;math.h&gt;</code>, ...) bring in parts of the C++ library too, and read after the standard library came in by import they clash with it: "type alias template redefinition". So a file includes first (system headers, then your own headers, which may import), and imports last.</p>
+<p>Nothing else needs an include: the <code>std</code> module is the whole standard library, <code>std::isdigit</code> and the other <code>&lt;cctype&gt;</code> functions included (on Android, with <code>-D__BIONIC_CTYPE_INLINE=inline</code>, which the build passes).</p>
+<h3 id="your-flags">Your flags</h3>
+<p>The build compiles your code the way the framework was compiled where it matters: C++23, libc++ and <code>-pthread</code>. A file compiled with another standard, or without RTTI or exceptions when squared has them, cannot read squared's modules ("configuration mismatch"): keep <code>CXXSTD</code> at <code>c++23</code>. A generated project's build does all of this (<code>mk/pkg_squared_core.mk</code>), and builds the framework first: the modules are read from <code>squared/build/release/modules/</code>, <code>std</code> among them (made once per compiler and flags, and shared by your projects: <a href="building.html">building.md</a>).</p>
+<h2 id="one-type-one-file">One type, one file</h2>
+<p><code>sq::gui::ScrollPane</code> is written in <code>squared/gui/scroll_pane.cppm</code>. The file name is the type name in <code>snake_case</code>, in the directory of its module, which is also its namespace. There are no exceptions, so you never have to search for where something is declared.</p>
+<p>Each module keeps the types you will use at its root, and the rest one level down in <code>src/</code>:</p>
+<pre><code>squared/gui/button.cppm             sq::gui::Button
+squared/gui/src/button_style.cppm   sq::gui::ButtonStyle: comes with Button</code></pre>
+<p>Both come with the module's import. The module pages list every type with its file. Anything under <code>src/detail/</code> is the framework's own.</p>
+<h2 id="modules-that-merged">Modules that merged</h2>
+<p>The 2D graphics types and the scene graph were their own modules until Sprint 1. Code written before then needs two renames:</p>
+<div class="tablewrap"><table><thead><tr><th>Was</th><th>Now</th></tr></thead><tbody><tr><td><code>&lt;squared/graphics2d/texture.hpp&gt;</code>, <code>sq::graphics2d::Texture</code></td><td><code>import sq.graphics;</code>, <code>sq::graphics::Texture</code></td></tr><tr><td><code>&lt;squared/scene2d/actor.hpp&gt;</code>, <code>sq::scene2d::Actor</code></td><td><code>import sq.gui;</code>, <code>sq::gui::Actor</code></td></tr></tbody></table></div>
+<p>Code written before 7b.4 writes includes: each <code>#include &lt;squared/&lt;module&gt;/...&gt;</code> becomes <code>import sq.&lt;module&gt;;</code>, and <code>#include &lt;squared/squared.hpp&gt;</code> becomes <code>import squared;</code>. Standard includes become <code>import std;</code> (or nothing: <code>import squared;</code> brings it), and <code>import sq.std;</code> (until 2026-11-02) becomes <code>import std;</code>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

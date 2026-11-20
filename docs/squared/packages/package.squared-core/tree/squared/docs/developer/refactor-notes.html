@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Refactor notes · squared</title>
+<meta name="description" content="squared: Refactor notes">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/refactor-notes.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/refactor-notes.md">on GitHub</a></p><h1 id="refactor-notes">Refactor notes</h1>
+<blockquote><p><b>History.</b> These notes record the one-type-per-file split, before the Sprint 1 layout move. Paths and module names below are as they were then: <code>&lt;module&gt;/include/squared/&lt;module&gt;/</code> has since become the module root and <code>src/</code>, <code>graphics2d</code> is part of <code>graphics</code>, and <code>scene2d</code> is part of <code>gui</code>. The current layout is in <a href="file-layout.html">file-layout.md</a>.</p></blockquote>
+<h2 id="what-changed">What changed</h2>
+<ul><li>The archive's flattened layout was restored to <code>&lt;module&gt;/include/squared/&lt;module&gt;/</code>, which is what every <code>#include</code> in the tree already expected.</li><li>Headers were moved to the module matching their namespace. <code>gui/include/</code> had been holding headers for four namespaces: <code>graphics</code>, <code>graphics2d</code>, <code>scene2d</code> and <code>gui</code>.</li><li><code>gui/module.cppm</code> (2,719 lines, 55 types) and <code>gui.cpp</code> (3,281 lines) were split into one file per type, along with <code>bitmap_font.cppm</code> (13 types), <code>texture.cppm</code> (7), <code>input.cppm</code> (9), <code>skin_loader.cppm</code> (6) and <code>timepiece.cppm</code> (3).</li><li>Include sets were recomputed per file, forward declaring where the rule in <a href="file-layout.html">file-layout.md</a> allows it.</li><li>Anonymous-namespace helpers shared by several now-separate translation units moved to <code>src/detail/</code> as <code>inline</code> entities in a <code>detail</code> namespace.</li><li>A make/g++ build and two bash scripts were added; there was no build system in the archive.</li></ul>
+<h2 id="what-did-not-change">What did not change</h2>
+<p>No declaration and no definition was rewritten, reordered within its own body, reformatted, or renamed. Behaviour is identical.</p>
+<p>This is verified rather than asserted. The splitting tools parse each original file into namespace-scope segments and re-emit each segment verbatim; a round-trip check reassembles every segment and compares against the original namespace body. All 19 headers and 10 sources round-trip exactly.</p>
+<h2 id="files-kept-whole">Files kept whole</h2>
+<p><code>gui/src/skin_loader.cpp</code> and <code>gui/src/skin_atlas_resolver.cpp</code> are copied byte for byte. They contain free functions and one 781-line single-translation-unit helper namespace, not classes, so there is nothing to split.</p>
+<h2 id="how-the-include-sets-were-proved">How the include sets were proved</h2>
+<p>The forward-declare-or-include rule is a heuristic and cannot be sound on its own, so the compiler decides. <code>tools/converge.py</code> generates the tree, compiles every header standalone and every source, parses the errors, records each demotion the compiler rejected, and re-runs. It converged in two passes and found four pairs that need a definition despite naming the type only by reference; they are listed in <a href="file-layout.html">file-layout.md</a>.</p>
+<p>Final state: 113 public headers compile standalone and 40 translation units compile, with <code>-std=c++20 -Wall -Wextra -Wpedantic</code>, zero failures and zero warnings.</p>
+<h2 id="verification-performed">Verification performed</h2>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>Result</th></tr></thead><tbody><tr><td>Segment round-trip against originals</td><td>19 headers, 10 sources, 0 mismatches</td></tr><tr><td>Every public header compiled standalone</td><td>113 headers, 0 failures</td></tr><tr><td>Every translation unit compiled</td><td>40 sources, 0 failures</td></tr><tr><td>Full <code>make</code> build</td><td>5 archives, 0 warnings</td></tr><tr><td><code>-fno-rtti</code> build</td><td>clean, 0 errors, 0 warnings</td></tr><tr><td><code>-fno-exceptions</code> probe</td><td>21 errors, catalogued by kind</td></tr></tbody></table></div>
+<h2 id="rtti-removal-pass">RTTI removal pass</h2>
+<p>A separate pass after the split, touching nine files:</p>
+<ul><li>new <code>scene2d/include/squared/scene2d/actor_interface_id.hpp</code></li><li><code>Actor</code> gains <code>actor_interface()</code> and the <code>actor_cast</code> templates</li><li><code>Group</code> and <code>gui::Widget</code> publish identifiers and override the query</li><li><code>Widget</code> gains <code>wants_text_input()</code>; <code>TextField</code> overrides it</li><li>17 <code>dynamic_cast</code> call sites replaced across <code>ui.cpp</code>, <code>widget.cpp</code> and <code>stack.cpp</code></li><li><code>ui.cpp</code> drops <code>import sq.gui;</code>, now unused</li></ul>
+<p>Verified: <code>make SQUARED_ABI=-fno-rtti</code> builds all five archives with zero warnings, 114 headers remain self-contained, and a behavioural test links under <code>-fno-rtti</code> and asserts <code>actor_cast</code> answers exactly what <code>dynamic_cast</code> answered. No <code>dynamic_cast</code> or <code>typeid</code> remains in the tree.</p>
+<h2 id="not-done">Not done</h2>
+<ul><li><b>clang-format and clang-tidy were not run.</b> Neither tool was available.</li><li>The priority-order findings in <a href="priority-audit.html">priority-audit.md</a> are reported, not fixed. Each one is an API or behavioural change and belongs in its own reviewable commit.</li><li>No test suite was present in the archive, so behavioural equivalence rests on the round-trip check and the compiler, not on tests.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

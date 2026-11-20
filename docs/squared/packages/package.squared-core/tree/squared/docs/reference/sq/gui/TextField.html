@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TextField · squared</title>
+<meta name="description" content="squared: class TextField">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/TextField.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/TextField.md">on GitHub</a></p><h1 id="class-textfield">class TextField</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L18">gui/text_field.cppm:18</a></i></p>
+<p><b>brief</b> Single-line editable text input with cursor and composition support.</p>
+<p>Inherits from Widget</p>
+<h2 id="members">Members</h2>
+<p>public static const ActorInterfaceId actor_interface_id</p>
+<h2 id="functions">Functions</h2>
+<h3 id="textfield">TextField</h3>
+<p><i>public void TextField(std::string text)</i></p>
+<p><b>brief</b> Construct a text field.</p>
+<p><b>text</b> Initial text content.</p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public const void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L28">gui/text_field.cppm:28</a></i></p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L23">gui/text_field.cppm:23</a></i></p>
+<h3 id="cursor">cursor</h3>
+<p><i>public std::size_t cursor()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L56">gui/text_field.cppm:56</a></i></p>
+<p><b>brief</b> Read the cursor position.</p>
+<p><b>return</b> Byte offset into the UTF-8 text, or text length at the end.</p>
+<h3 id="edited">edited</h3>
+<p><i>public bool edited()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L79">gui/text_field.cppm:79</a></i></p>
+<p><b>brief</b> Whether the text was changed and the change not finished yet (no Enter, no leaving): the edit <code>set_on_commit</code> has still to be told.</p>
+<h3 id="focus_changed">focus_changed</h3>
+<p><i>public void focus_changed(bool )</i></p>
+<p><b>brief</b> Track focus to drive the focused style and underline state.</p>
+<p><b>note</b> The parameter matches Widget::focus_changed: true when the widget gained focus.</p>
+<h3 id="focusable">focusable</h3>
+<p><i>public bool focusable()</i></p>
+<p><b>brief</b> Report focusability.</p>
+<p><b>return</b> true; text fields take keyboard focus.</p>
+<h3 id="focused">focused</h3>
+<p><i>public bool focused()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L73">gui/text_field.cppm:73</a></i></p>
+<p><b>brief</b> Whether the field has focus: it is being edited.</p>
+<p><b>return</b> true while focused.</p>
+<h3 id="key_down">key_down</h3>
+<p><i>public bool key_down(app::Key , app::KeyModifiers )</i></p>
+<p><b>brief</b> Move the cursor and edit the text with keys.</p>
+<p><b>note</b> Parameters match the Widget::key_down signature: a portable key name and the modifier state at the time of the event.</p>
+<p><b>return</b> true when the key was handled.</p>
+<h3 id="minimum_size">minimum_size</h3>
+<p><i>public Size minimum_size(Painter &amp; , const Skin &amp; )</i></p>
+<p><b>brief</b> Report the style-driven minimum size.</p>
+<p><b>note</b> Parameters match Widget::minimum_size: an active painter and the skin providing the text-field style.</p>
+<p><b>return</b> Minimum extent in logical units.</p>
+<h3 id="paint">paint</h3>
+<p><i>public void paint(Painter &amp; , const Skin &amp; , float , float )</i></p>
+<p><b>brief</b> Paint the field background, text, cursor, and composition.</p>
+<p><b>note</b> Parameters match the Widget::paint signature: the active painter, the skin providing the text-field style, and the stage-space origin.</p>
+<h3 id="pointer_event">pointer_event</h3>
+<p><i>public bool pointer_event(const PointerEvent &amp; )</i></p>
+<p><b>brief</b> Place the cursor from a pointer event.</p>
+<p><b>note</b> The parameter matches Widget::pointer_event: a pointer payload in widget-local coordinates.</p>
+<p><b>return</b> true when the field handled the event.</p>
+<h3 id="preferred_size">preferred_size</h3>
+<p><i>public Size preferred_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Report the text-plus-padding size.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing the selected text-field style and font.</p>
+<p><b>return</b> Preferred extent in logical units.</p>
+<h3 id="restore_edit">restore_edit</h3>
+<p><i>public void restore_edit(std::string_view text)</i></p>
+<p><b>brief</b> Put back an edit that was not finished, as <code>set_text</code> and <code>edited()</code> true: the Stage's, when a screen comes back. Told to <code>set_on_commit</code> once it is finished.</p>
+<h3 id="set_on_commit">set_on_commit</h3>
+<p><i>public void set_on_commit(CommitCallback callback, void * context)</i></p>
+<p><b>brief</b> What is told when an edit is finished: Enter (the keyboard's Done), or the field losing focus after its text changed.</p>
+<p><b>callback</b> Called with <code>context</code> and this field; nullptr for none.</p>
+<p><b>context</b> Passed back as it is.</p>
+<h3 id="set_style">set_style</h3>
+<p><i>public void set_style(std::string style)</i></p>
+<p><b>brief</b> Change the applied text-field style.</p>
+<p><b>style</b> Named text-field style to apply.</p>
+<h3 id="set_text">set_text</h3>
+<p><i>public void set_text(std::string_view text)</i></p>
+<p><b>brief</b> Replace the field text and reset the cursor; copied into the field's own, with no allocation when it is no longer than a text it held.</p>
+<p><b>text</b> New text content.</p>
+<h3 id="text">text</h3>
+<p><i>public const std::string &amp; text()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L50">gui/text_field.cppm:50</a></i></p>
+<p><b>brief</b> Read the current text.</p>
+<p><b>return</b> Reference to the stored text.</p>
+<h3 id="text_editing">text_editing</h3>
+<p><i>public bool text_editing(std::string_view , int , int )</i></p>
+<p><b>brief</b> Update the in-progress composition span.</p>
+<p><b>note</b> Parameters match the Widget::text_editing signature: the current composition text, its start offset, and its length.</p>
+<p><b>return</b> true when the composition was handled.</p>
+<h3 id="text_input">text_input</h3>
+<p><i>public bool text_input(std::string_view )</i></p>
+<p><b>brief</b> Insert committed UTF-8 text at the cursor.</p>
+<p><b>note</b> The parameter matches Widget::text_input: committed text to insert.</p>
+<p><b>return</b> true when the text was inserted.</p>
+<h3 id="wants_text_input">wants_text_input</h3>
+<p><i>public bool wants_text_input()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/text_field.cppm#L165">gui/text_field.cppm:165</a></i></p>
+<p><b>brief</b> Request the platform text-input service while focused.</p>
+<p><b>return</b> true; a focused text field always wants text input.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

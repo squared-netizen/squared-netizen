@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class AtlasRegion · squared</title>
+<meta name="description" content="squared: class AtlasRegion">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/AtlasRegion.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/AtlasRegion.md">on GitHub</a></p><h1 id="class-atlasregion">class AtlasRegion</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/atlas_region.cppm#L16">graphics/atlas_region.cppm:16</a></i></p>
+<p><b>brief</b> One named region and its libGDX-compatible atlas metadata.</p>
+<p>The TextureRegion and its Texture remain owned by the containing TextureAtlas. AtlasRegion pointers become invalid when that atlas is destroyed or successfully reloaded.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="index">index</h3>
+<p><i>public int index()</i></p>
+<p><b>brief</b> Read the duplicate-region index.</p>
+<p><b>return</b> Index for repeated names, or -1 when unindexed.</p>
+<h3 id="name">name</h3>
+<p><i>public const std::string &amp; name()</i></p>
+<p><b>brief</b> Read the logical region name.</p>
+<p><b>return</b> Reference to the region's name; stable while the atlas lives.</p>
+<h3 id="offset_x">offset_x</h3>
+<p><i>public int offset_x()</i></p>
+<p><b>brief</b> Read the trimmed region's horizontal placement.</p>
+<p><b>return</b> Horizontal offset in source pixels.</p>
+<h3 id="offset_y">offset_y</h3>
+<p><i>public int offset_y()</i></p>
+<p><b>brief</b> Read the trimmed region's vertical placement.</p>
+<p><b>return</b> Vertical offset in source pixels.</p>
+<h3 id="original_height">original_height</h3>
+<p><i>public int original_height()</i></p>
+<p><b>brief</b> Read the height before whitespace trimming.</p>
+<p><b>return</b> Original height in source pixels.</p>
+<h3 id="original_width">original_width</h3>
+<p><i>public int original_width()</i></p>
+<p><b>brief</b> Read the width before whitespace trimming.</p>
+<p><b>return</b> Original width in source pixels.</p>
+<h3 id="packed_height">packed_height</h3>
+<p><i>public int packed_height()</i></p>
+<p><b>brief</b> Read the trimmed logical height before atlas rotation.</p>
+<p><b>return</b> Height in source pixels.</p>
+<h3 id="packed_width">packed_width</h3>
+<p><i>public int packed_width()</i></p>
+<p><b>brief</b> Read the trimmed logical width before atlas rotation.</p>
+<p><b>return</b> Width in source pixels.</p>
+<h3 id="pads">pads</h3>
+<p><i>public const std::optional&lt;std::array&lt;int, 4&gt;&gt; &amp; pads()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/atlas_region.cppm#L92">graphics/atlas_region.cppm:92</a></i></p>
+<p><b>brief</b> Read optional nine-patch padding.</p>
+<p><b>return</b> Left, right, top, bottom padding when present, else empty.</p>
+<h3 id="region">region</h3>
+<p><i>public const TextureRegion &amp; region()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/atlas_region.cppm#L35">graphics/atlas_region.cppm:35</a></i></p>
+<p><b>brief</b> Access the drawable texture view.</p>
+<p><b>return</b> Reference to the region's texture view.</p>
+<h3 id="rotated_clockwise">rotated_clockwise</h3>
+<p><i>public bool rotated_clockwise()</i></p>
+<p><b>brief</b> Read the storage rotation flag.</p>
+<p><b>return</b> true when storage is rotated 90 degrees clockwise.</p>
+<h3 id="splits">splits</h3>
+<p><i>public const std::optional&lt;std::array&lt;int, 4&gt;&gt; &amp; splits()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/atlas_region.cppm#L83">graphics/atlas_region.cppm:83</a></i></p>
+<p><b>brief</b> Read optional nine-patch splits.</p>
+<p><b>return</b> Left, right, top, bottom splits when present, else empty.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

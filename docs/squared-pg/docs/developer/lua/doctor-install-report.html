@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqpg doctor reports an installed tool as a broken checkout · squared-pg</title>
+<meta name="description" content="squared-pg: sqpg doctor reports an installed tool as a broken checkout">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/lua/doctor-install-report.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/lua/doctor-install-report.md">on GitHub</a></p><hr>
+<p>title: "<code>sqpg doctor</code> reports an installed tool as a broken checkout" tags: [report, lua, doctor, install]</p>
+<hr>
+<h1 id="sqpg-doctor-reports-an-installed-tool-as-a-broken-checkout"><code>sqpg doctor</code> reports an installed tool as a broken checkout</h1>
+<pre><code>Report run:  2026-10-18
+Scope:       lua/squaredpg/doctor.lua, lua/squaredpg/lifecycle.lua,
+             app/src/main.cpp, engine/tests/test_cli.cpp
+Environment: Termux (aarch64 Android), sqsysroot at ~/sqsysroot
+Status:      fixed, deployed, regression test added</code></pre>
+<h2 id="summary">Summary</h2>
+<p><code>sqpg doctor</code>, run from the installed environment at <code>~/sqsysroot</code>, reported</p>
+<pre><code class="lang-text">components
+  STOP  sqcart                 absent
+  STOP  squared                absent</code></pre>
+<p>and exited <b>1</b>, while the section immediately below it reported <code>ok  sqcart installed</code>, and <code>sqcart</code> was in fact present at <code>~/sqsysroot/.sqpg/bin/sqcart</code> and on <code>PATH</code>. The report contradicted itself, named a fix that exists nowhere in an installation (<code>./tools/bootstrap.sh</code>), and the non-zero status made the whole command look like a failure.</p>
+<p>Cause: the components check was written for a <b>source checkout</b> and was handed an <b>installed tool</b>. The two layouts are different trees, and nothing told the check which one it was looking at.</p>
+<h2 id="symptoms">Symptoms</h2>
+<p>From <code>~/sqsysroot</code>, before the fix:</p>
+<pre><code class="lang-text">sqpg   doctor
+installation /data/data/com.termux/files/home/sqsysroot/.sqpg
+
+components
+  STOP  sqcart                 absent
+  STOP  squared                absent
+
+resources
+  ok    resources/templates    4 resource(s)
+  ...
+
+environment
+  ok    environment            /data/data/com.termux/files/home/sqsysroot
+  ok    sqpg                   installed
+  ok    sqcart                 installed
+  ok    PATH                   /data/data/com.termux/files/usr/bin/sqpg
+
+suggested:
+  ./tools/bootstrap.sh</code></pre>
+<p>Exit status: <code>1</code>.</p>
+<p>Three things were wrong in that output:</p>
+<ol><li><code>sqcart absent</code> — false; the binary is installed and linked on <code>PATH</code>.</li><li><code>squared absent</code> — meaningless for an installation; <code>resources/.squared</code> is a checkout artifact that is deliberately not installed.</li><li><code>./tools/bootstrap.sh</code> — no such file exists relative to <code>~/sqsysroot</code>, so the suggested fix could not be run.</li></ol>
+<h2 id="root-cause">Root cause</h2>
+<p><code>doctor.run</code> derives its subject from <code>sqpg.installation</code>:</p>
+<pre><code class="lang-lua">local source = sqpg.installation
+...
+check_components(source, rep)
+check_resources(source, rep)</code></pre>
+<p>(<code>lua/squaredpg/doctor.lua:329</code> and <code>doctor.lua:336-338</code>.)</p>
+<p>For the installed binary, <code>sqpg.installation</code> is <code>~/sqsysroot/.sqpg</code>, because the host walks up from the executable looking for <code>lua/workflows/</code> and <code>resources/</code> together (<code>app/src/main.cpp:93-134</code>) — and <code>initialize</code> lays <code>.sqpg</code> out exactly like a source tree on purpose, so that walk finds it with no configuration (<code>lua/squaredpg/lifecycle.lua:70-82</code>).</p>
+<p><code>check_components</code> then probed that root for the things only a checkout has:</p>
+<div class="tablewrap"><table><thead><tr><th>Probe</th><th>Present in a checkout</th><th>Installed by <code>initialize</code></th></tr></thead><tbody><tr><td><code>sqcart/</code> (git clone)</td><td>yes</td><td>no</td></tr><tr><td><code>resources/.squared/</code> (git clone)</td><td>yes</td><td>no</td></tr><tr><td><code>SQCART_VERSION</code>, <code>SQUARED_VERSION</code></td><td>yes</td><td>no</td></tr><tr><td><code>tools/bootstrap.sh</code></td><td>yes</td><td>no</td></tr><tr><td><code>resources/{templates,kits,packages,assets}</code></td><td>symlinks</td><td>real dirs (<code>cp -aL</code>)</td></tr><tr><td>the tools themselves, at <code>&lt;root&gt;/bin/{sqpg,sqcart}</code></td><td>not probed (checkout mode never looks)</td><td>yes (<code>lua/squaredpg/lifecycle.lua:88-170</code>)</td></tr></tbody></table></div>
+<p>Every component probe missed, so both rows fell into the <code>absent → level 3</code> branch, <code>worst</code> became 3, and <code>doctor.run</code> returned 1.</p>
+<p>The file already contained the sentence that should have applied:</p>
+<pre><code class="lang-lua">if not any then
+  rep:line(1, &quot;components&quot;, &quot;none; this looks like an installed tool, not a checkout&quot;)
+end</code></pre>
+<p>It was dead code. <code>any = true</code> was assigned in <i>every</i> branch of the loop — absent, present-but-not-a-repo, and repo — so <code>not any</code> was reachable only if the spec list were empty.</p>
+<h2 id="secondary-defect">Secondary defect</h2>
+<p>The resource counter ran</p>
+<pre><code class="lang-lua">&quot;find &quot; .. path .. &quot; -mindepth 1 -maxdepth 1 -type d | wc -l&quot;</code></pre>
+<p><code>find</code> in its default <code>-P</code> mode does not descend through a command-line symlink. In a checkout <code>resources/templates</code> is a symlink into <code>.squared/templates</code>, so every namespace in a checkout counted <b>0</b> and was silently omitted from the report. The installed tree, whose namespaces are real directories after <code>cp -aL</code>, counted correctly — so the same command printed <code>4 resource(s)</code> from <code>~/sqsysroot</code> and nothing at all for those namespaces from the checkout.</p>
+<h2 id="fix">Fix</h2>
+<p>All edits in this repository.</p>
+<h3 id="luasquaredpgdoctorlua"><code>lua/squaredpg/doctor.lua</code></h3>
+<ol><li><b><code>is_checkout(root)</code></b> (<code>doctor.lua:94-109</code>) — tests for the markers only a source tree carries: <code>tools/bootstrap.sh</code>, either pin file, <code>.git</code>, <code>sqcart/</code>, <code>resources/.squared</code>.</li><li><b><code>check_components</code> branches on it</b> (<code>doctor.lua:139-166</code>). For an installed layout it now reports what is actually true there: ```text components note  components             installed tool; pins and checkouts live in the source tree ok    sqpg                   installed in .sqpg/bin ok    sqcart                 installed in .sqpg/bin ok    git                    /data/data/com.termux/files/usr/bin/git ok    make                   /data/data/com.termux/files/usr/bin/make ``` A missing tool is a <code>warn</code> with the existing fix (`make -C sqcart &amp;&amp; sqpg initialize<code>); a missing host dependency is a </code>warn<code> with </code>install git` / <code>install make</code>. Those two are the only external commands the Lua layer invokes as features: <code>git</code> for <code>promote</code>/<code>demote</code> repository initialisation and for the component state reads, <code>make</code> for the workflow verbs. The checkout path is unchanged: absent/pin-mismatch/behind still warn at the same levels with the same bootstrap suggestions.</li><li><b>Dead branch removed</b> — the unreachable <code>if not any</code> clause and its three <code>any = true</code> assignments.</li><li><b><code>find -H</code></b> (<code>doctor.lua:224</code>) — symlinked resource roots now count.</li></ol>
+<h3 id="engineteststest_clicpp"><code>engine/tests/test_cli.cpp</code></h3>
+<p><code>doctor_reports_without_repairing()</code> gained a regression case (<code>engine/tests/test_cli.cpp:531-547</code>): after <code>initialize</code>, it runs the <i>installed</i> <code>.sqpg/bin/sqpg doctor</code> and asserts exit <code>0</code>, no <code>&quot;absent&quot;</code> anywhere in the output, and <code>sqcart</code> present.</p>
+<h2 id="verification">Verification</h2>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>Command</th><th>Result</th></tr></thead><tbody><tr><td>Installed environment</td><td><code>cd ~/sqsysroot &amp;&amp; sqpg doctor</code></td><td>exit <b>0</b>, <code>sqcart installed in .sqpg/bin</code>, no <code>STOP</code>, <code>nothing to report.</code></td></tr><tr><td>Checkout unchanged</td><td><code>./build/sqpg doctor</code> (in the repo)</td><td>unchanged output; exit 1 only for the genuine <code>squared</code> pin warning (<code>main 52858b4; pinned to 43bc63c</code>)</td></tr><tr><td>Resource counting</td><td><code>./build/sqpg doctor</code> in the repo</td><td><code>4 / 7 / 1 resource(s)</code> with <code>-&gt; .squared/*</code>, previously omitted</td></tr><tr><td>Unit tests</td><td><code>./build/test_cli</code></td><td><code>ok test_cli</code></td></tr><tr><td>Smoke</td><td><code>make smoke</code></td><td><code>all checks passed</code></td></tr><tr><td>Full suite</td><td><code>make check</code></td><td>only pre-existing failure, see below</td></tr></tbody></table></div>
+<p>Negative probes, run against a scratch <code>SQSYSROOT</code>:</p>
+<ul><li><code>sqcart</code> deleted from <code>.sqpg/bin</code> → <code>warn sqcart not installed in .sqpg/bin</code>, <code>warn sqcart not installed in the environment</code>, fix suggested, exit <code>1</code>.</li><li><code>PATH</code> stripped of <code>git</code> and <code>make</code> → <code>warn git not found on PATH</code>, <code>warn make not found on PATH</code>, <code>install git</code> / <code>install make</code> suggested, exit <code>1</code>.</li></ul>
+<h3 id="pre-existing-failure-unrelated">Pre-existing failure, unrelated</h3>
+<p><code>make check</code> fails at <code>engine/tests/test_generate.cpp:511 (FAIL header != nullptr)</code> followed by a segfault. It reproduces on a pristine tree with these changes stashed, and is not touched by this work.</p>
+<h2 id="deployment">Deployment</h2>
+<p>The Lua layer is read from disk at run time — the host builds <code>package.path</code> from the installation's <code>lua/workflows</code> directory (<code>app/src/main.cpp:321-328</code>). Editing <code>lua/squaredpg/doctor.lua</code> in the checkout therefore changes nothing for the installed tool until the tree is re-copied:</p>
+<pre><code class="lang-sh">cd ~/projects/squared-pg
+make -j4 &amp;&amp; ./build/test_cli
+./build/sqpg initialize        # from the checkout; the installed copy skips itself
+cmp lua/squaredpg/doctor.lua ~/sqsysroot/.sqpg/lua/squaredpg/doctor.lua
+cd ~/sqsysroot &amp;&amp; sqpg doctor</code></pre>
+<p>Running <code>sqpg initialize</code> from the <i>installed</i> tool is a no-op by design (<code>lua/squaredpg/lifecycle.lua:104-107</code>), which is why the command above is run from the checkout. This is the rough edge already recorded as Q-31/Q-32 in <code>docs/usermanual/getting-started.md</code>.</p>
+<h2 id="not-changed">Not changed</h2>
+<ul><li><b>Exit-status policy.</b> Unchanged: 1 on any warning or stop, 0 otherwise. The installed environment now earns a 0 because it is healthy, not because the rule was relaxed.</li><li><b>The <code>environment</code> section's tool checks.</b> They are keyed on <code>$SQSYSROOT</code>, not on the installation, and still carry the staleness comparison against a freshly built copy — so <code>sqpg</code>/<code>sqcart</code> are named twice in an installed report: once as inventory (components) and once as installed-plus-staleness (environment). Deliberate: the two sections answer different questions.</li><li><b><code>./tools/bootstrap.sh</code> suggestions in a checkout.</b> Still correct there; they were only ever wrong when aimed at an installation.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class FontResource · squared</title>
+<meta name="description" content="squared: class FontResource">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/FontResource.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/FontResource.md">on GitHub</a></p><h1 id="class-fontresource">class FontResource</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L18">gui/src/font_resource.cppm:18</a></i></p>
+<p><b>brief</b> Immutable portable bitmap-font resource selected by GUI styles.</p>
+<p>A descriptor-only resource records the safe asset path imported from a skin. A resolved resource additionally owns parsed BMFont metrics and non-owning texture-page regions. The textures referenced by those regions must outlive the resource. FontResource performs no I/O and has no HoloDisk or rendering-backend dependency.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="fontresource">FontResource</h3>
+<p><i>public void FontResource(std::string descriptor_path)</i></p>
+<p><b>brief</b> Construct a descriptor-only resource.</p>
+<p><b>descriptor_path</b> Contained relative BMFont descriptor path.</p>
+<p><b>throws</b>when the path is empty, absolute, contains a backslash, or contains an empty, <code>.</code> or <code>..</code> component.</p>
+<h3 id="fontresource">FontResource</h3>
+<p><i>public void FontResource(std::string descriptor_path, graphics::BitmapFont font, std::vector&lt;graphics::TextureRegion&gt; pages, float scale)</i></p>
+<p><b>brief</b> Construct a resolved bitmap-font resource.</p>
+<p><b>descriptor_path</b> Contained relative descriptor identity.</p>
+<p><b>font</b> Valid parsed BMFont value transferred into the resource.</p>
+<p><b>pages</b> Page regions in BMFont page-id order. Each region must be at least as large as the descriptor page dimensions and its texture must outlive this resource.</p>
+<p><b>scale</b> Uniform logical-unit scale; finite and greater than zero.</p>
+<p><b>throws</b>when any invariant is not satisfied.</p>
+<h3 id="bitmap_font">bitmap_font</h3>
+<p><i>public const graphics::BitmapFont * bitmap_font()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L52">gui/src/font_resource.cppm:52</a></i></p>
+<p><b>brief</b> Return parsed metrics, or null for a descriptor-only resource.</p>
+<h3 id="descriptor_path">descriptor_path</h3>
+<p><i>public const std::string &amp; descriptor_path()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L43">gui/src/font_resource.cppm:43</a></i></p>
+<p><b>brief</b> Return the descriptor asset path owned by this resource.</p>
+<h3 id="glyph_region">glyph_region</h3>
+<p><i>public graphics::TextureRegion glyph_region(const graphics::GlyphPlacement &amp; glyph)</i></p>
+<p><b>brief</b> Derive the texture view for one placement from this font.</p>
+<p><b>glyph</b> Placement produced from this resource's BitmapFont.</p>
+<p><b>return</b> Non-owning page subregion, or an empty region when unresolved or when the placement does not fit its declared page.</p>
+<h3 id="pages">pages</h3>
+<p><i>public std::span&lt;const graphics::TextureRegion&gt; pages()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L58">gui/src/font_resource.cppm:58</a></i></p>
+<p><b>brief</b> Return page regions in BMFont page-id order.</p>
+<h3 id="resolved">resolved</h3>
+<p><i>public bool resolved()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L49">gui/src/font_resource.cppm:49</a></i></p>
+<p><b>brief</b> Return true when parsed metrics and matching pages are present.</p>
+<h3 id="scale">scale</h3>
+<p><i>public float scale()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/font_resource.cppm#L73">gui/src/font_resource.cppm:73</a></i></p>
+<p><b>brief</b> Return the uniform conversion from source pixels to GUI units.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

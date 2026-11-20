@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec decision log · squared-pg</title>
+<meta name="description" content="squared-pg: Spec decision log">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/Spec decisions.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/Spec decisions.md">on GitHub</a></p><hr>
+<p>title: Spec decisions tags: [spec, meta]</p>
+<hr>
+<h1 id="spec-decision-log">Spec decision log</h1>
+<p>Back to [[Specification Index]]. Open items live in [[Spec open questions]].</p>
+<p>Newest first. Every decision records the alternatives rejected.</p>
+<hr>
+<h2 id="d-028--invariant-register-names-a-detection-mechanism-per-invariant">D-028 — Invariant register names a detection mechanism per invariant</h2>
+<p><b>Q-25</b> · [[2.16 Architectural invariants]]</p>
+<p>The invariant register (§2.16.2) gives every invariant a detection mechanism, so an invariant without a test is a documented gap rather than a silent assumption. The one known weak spot — I-10 "no undocumented global state" — is only partially checkable mechanically; the shortfall is recorded in §2.16.3 as an open limitation until a suitable static check is adopted.</p>
+<p>Rejected: keeping I-10 aspirational with no stated detection mechanism (an untestable guarantee is documentation, not a guarantee).</p>
+<h2 id="d-020--merged-ownership-class-is-reserved-not-implemented-in-v1">D-020 — <code>merged</code> ownership class is reserved, not implemented in v1</h2>
+<p><b>Q-20</b> · [[2.7 Project generation model]]</p>
+<p>In-place region merging is where generators corrupt user work. v1 supports <code>generated</code>, <code>seeded</code>, <code>user</code> and <code>metadata</code> only. Templates needing a file the user edits <i>and</i> the generator maintains MUST emit a <code>generated</code> fragment <code>include</code>d by a <code>seeded</code> file.</p>
+<p>Rejected: marker-comment regions (fragile across formatters); structured-key merging (viable later, needs a format-aware writer per build system).</p>
+<h2 id="d-019--no-coroutines-in-v1">D-019 — No coroutines in v1</h2>
+<p><b>Q-19</b> · [[2.4 Engine lifecycle]]</p>
+<p>The execution model is synchronous. Async asset loading was the only candidate and does not justify the complexity on the Termux target. Revisit only with a measured need.</p>
+<h2 id="d-018--generator-internal-resources-get-their-own-namespace">D-018 — Generator-internal resources get their own namespace</h2>
+<p><b>Q-18</b> · [[1.5 Resources]] · [[2.10 Assets and generator resources]]</p>
+<p><code>resources/generator/</code> holds resources <code>squared-pg</code> consumes for itself. <code>resources/assets/</code> remains project-bound application assets only.</p>
+<p>Rejected: dumping them at <code>resources/</code> root (indistinguishable from misc data); a <code>_internal</code> prefix inside <code>assets/</code> (violates namespace distinctness).</p>
+<h2 id="d-017--errors-carry-a-coarse-category-and-a-stable-specific-code">D-017 — Errors carry a coarse category and a stable specific code</h2>
+<p><b>Q-17</b> · [[2.15 Error and transaction model]]</p>
+<p>Two fields. <code>category</code> is a closed enum for control flow; <code>code</code> is a stable dotted string for diagnosis and documentation, e.g. <code>category: package</code>, <code>code: package.version.unsatisfiable</code>.</p>
+<p>Rejected: single flat enum (either too coarse to diagnose or too large to switch on).</p>
+<h2 id="d-016--two-tier-lua-trust-model">D-016 — Two-tier Lua trust model</h2>
+<p><b>Q-16</b> · [[2.14 Extensibility model]]</p>
+<p>Workflows are <code>trusted</code> (repository <code>lua/</code>, user config directory) or <code>sandboxed</code> (anything else). Sandboxed workflows run without <code>os.execute</code>, <code>package.loadlib</code>, <code>debug</code>, and raw <code>io</code> writes; they reach the filesystem only through engine services.</p>
+<p>Rejected: no sandbox (unsafe once workflows are shareable); sandbox everything (breaks the CLI's own workflows).</p>
+<h2 id="d-015--engine-instances-are-single-threaded-and-workspace-exclusive">D-015 — Engine instances are single-threaded and workspace-exclusive</h2>
+<p><b>Q-15</b> · [[2.4 Engine lifecycle]] · [[2.15 Error and transaction model]]</p>
+<p>An engine instance has thread affinity to its creating thread and is not thread-safe. Multiple instances MAY coexist in a process. One <code>lua_State</code> per engine. One writer per workspace, enforced by an advisory lock. The job wrapper MAY use a worker thread but only one operation executes per engine at a time.</p>
+<p>Rejected: internally locked thread-safe engine (cost without a use case on the target platform).</p>
+<h2 id="d-014--engine-domain-knowledge-is-must-not-may">D-014 — Engine domain knowledge is MUST, not MAY</h2>
+<p><b>Q-14</b> · [[2.2 Engine responsibility and role]]</p>
+<p>The contradicting MAY is deleted.</p>
+<h2 id="d-013--lua-filesystem-prohibition-scoped-to-generator-owned-resources">D-013 — Lua filesystem prohibition scoped to generator-owned resources</h2>
+<p><b>Q-13</b> · [[2.5 Lua control layer]] · [[2.6 Engine-Lua boundary]]</p>
+<p>Lua MAY read user-space input (config files, streams, stdin). Lua MUST NOT touch generator resources or mutate the workspace except through engine services.</p>
+<h2 id="d-012--validation-split-envelope-vs-type-block">D-012 — Validation split: envelope vs type block</h2>
+<p><b>Q-12</b> · [[2.4 Engine lifecycle]]</p>
+<p>Resource Service validates manifest envelope well-formedness, identity syntax, and integrity. The owning typed service validates the type-specific block.</p>
+<h2 id="d-011--immutable-resource-index">D-011 — Immutable resource index</h2>
+<p><b>Q-11</b> · [[2.4 Engine lifecycle]]</p>
+<p>Initialization builds an immutable identity→manifest index. Lazy loading may only fetch payloads for already-indexed identities. The index MUST NOT change during a session. This is what makes hybrid eager/lazy loading deterministic.</p>
+<h2 id="d-010--transaction-references-corrected">D-010 — Transaction references corrected</h2>
+<p><b>Q-10</b> · [[2.4 Engine lifecycle]]</p>
+<p>Transactions are [[2.15 Error and transaction model]]. §2.14 is extensibility.</p>
+<h2 id="d-009--typed-operation-registry-is-canonical">D-009 — Typed operation registry is canonical</h2>
+<p><b>Q-09</b> · [[2.4 Engine lifecycle]]</p>
+<p>A compiled, typed C++ operation registry is the core dispatch. The Lua table form <code>engine.execute{operation=...}</code> is binding sugar over it. Preserves compile-time checking inside the engine.</p>
+<p>Rejected: stringly-typed core (loses type checking on the engine's own internals).</p>
+<h2 id="d-008--operations-are-documented-compositions-of-services">D-008 — Operations are documented compositions of services</h2>
+<p><b>Q-08</b> · [[2.4 Engine lifecycle]]</p>
+<p>No capability may exist only at the operation layer. Every operation is expressible as a documented sequence of service calls, which keeps the service layer the single source of truth and makes operations testable as compositions.</p>
+<h2 id="d-007--synchronous-core-execution-optional-job-wrapper">D-007 — Synchronous core execution, optional job wrapper</h2>
+<p><b>Q-07</b> · [[2.4 Engine lifecycle]]</p>
+<p>The duplicated §2.4.6 is unified. The synchronous model is normative. The job wrapper is optional, MUST NOT change the operation contract, and MUST produce identical behaviour.</p>
+<h2 id="d-006--resource-definition-split-from-resource-composition">D-006 — Resource <i>definition</i> split from resource <i>composition</i></h2>
+<p>[[2.7 Project generation model]] · [[2.8 Templates]] · [[2.9 Kits]] · [[2.10 Assets and generator resources]] · [[2.11 Packages]]</p>
+<p>§2.8–2.11 define what a resource <i>is</i> — manifest, identity, versioning, discovery, validation. §2.7 defines how resources are <i>composed into a project</i>.</p>
+<h2 id="d-006a--212-states-the-guarantee-27-owns-the-mechanism">D-006a — §2.12 states the guarantee, §2.7 owns the mechanism</h2>
+<p>[[2.12 Generated-project boundary]] · [[2.7 Project generation model]]</p>
+<p>Ownership classes and provenance stay in §2.7.10. §2.12 becomes the short, checkable statement of the boundary guarantee: what a generated project may never contain and may never require.</p>
+<h2 id="d-005--ownership-classes-and-file-provenance">D-005 — Ownership classes and file provenance</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>Five classes plus a provenance table recording path, class, originating resource and version, and content hash. Promotes workspace metadata from SHOULD to MUST.</p>
+<p>Rejected: timestamp comparison (unreliable across VCS and copies); never overwriting anything (makes updates impossible).</p>
+<h2 id="d-004--undeclared-ownership-class-defaults-to-seeded">D-004 — Undeclared ownership class defaults to <code>seeded</code></h2>
+<p>[[2.7 Project generation model]]</p>
+<p>The safe default is never to overwrite.</p>
+<h2 id="d-003--generation-plan-is-reified-and-shared-with-execution">D-003 — Generation plan is reified and shared with execution</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>Plan and apply consume the same command list, so they cannot diverge.</p>
+<h2 id="d-002--determinism-split-into-resolution-vs-output">D-002 — Determinism split into resolution vs output</h2>
+<p>[[Spec conventions]]</p>
+<h2 id="d-001--single-declared-user-working-directory">D-001 — Single declared user working directory</h2>
+<p>[[2.7 Project generation model]] · [[2.8 Templates]]</p>
+<p>Reference convention <code>sq_app/</code>. No <code>generated</code>-class file may be written into it. Derived directly from the project vision.</p>
+<hr>
+<h2 id="foundational-decisions-recorded-during-the-completion-pass">Foundational decisions recorded during the completion pass</h2>
+<h2 id="d-021--manifests-are-json">D-021 — Manifests are JSON</h2>
+<p><b>Q-03</b> · [[2.8 Templates]] and siblings</p>
+<p><code>manifest.json</code> at each resource root, parsed with the vendored yyjson. JSON is already a build dependency, is offline, has an unambiguous grammar, and needs no new vendored parser.</p>
+<p>Rejected: Lua tables as manifests (executable data, defeats sandboxing and static validation); TOML/YAML (new vendored dependency for no gain).</p>
+<h2 id="d-022--identifier-and-version-grammar">D-022 — Identifier and version grammar</h2>
+<p><b>Q-04</b> · [[2.8 Templates]] · [[2.11 Packages]]</p>
+<p>Identifiers are <code>&lt;type&gt;.&lt;segment&gt;(.&lt;segment&gt;)*</code>, segments matching <code>[a-z][a-z0-9]*(-[a-z0-9]+)*</code>. Versions are SemVer 2.0.0. Reference syntax is <code>identity@constraint</code>. Selection takes the highest satisfying version.</p>
+<h2 id="d-023--engine-capability-tokens">D-023 — Engine capability tokens</h2>
+<p><b>Q-05</b> · [[2.14 Extensibility model]]</p>
+<p>Named, SemVer-versioned, compiled-in, enumerable. Manifests declare <code>requires_capabilities</code>. Unsatisfied requirements fail at resolution, never at materialization.</p>
+<h2 id="d-024--same-filesystem-staging-with-a-write-ahead-journal">D-024 — Same-filesystem staging with a write-ahead journal</h2>
+<p><b>Q-06</b> · [[2.15 Error and transaction model]]</p>
+<p>Staging always occurs on the target filesystem, so cross-device rename cannot arise. New projects build in a sibling temp directory and land with one rename. Regeneration stages per file under <code>.squared/staging/</code> and applies through a journal that is written and flushed before the apply phase begins. An interrupted transaction is detected and resolved on next open.</p>
+<p>Rejected: copy-then-delete (not atomic); <code>/tmp</code> staging (cross-device on Android).</p>
+<h2 id="d-025--the-c-public-api-is-the-boundary-lua-is-its-first-consumer">D-025 — The C++ public API is the boundary; Lua is its first consumer</h2>
+<p><b>Q-01</b> · [[2.1 Architectural model]] · [[2.5 Lua control layer]]</p>
+<p>Embedders MAY call the engine C++ API directly or host the Lua layer. The rule formerly in §2.5.4 is restated as: the CLI MUST NOT implement generation policy in native code.</p>
+<h2 id="d-026--authoritative-dependency-direction">D-026 — Authoritative dependency direction</h2>
+<p><b>Q-02</b> · [[2.13 Dependency graph]]</p>
+<p><code>third-party/</code> ← <code>engine/</code> ← <code>lua/</code> ← hosts. <code>resources/</code> is inert data with no outgoing dependencies, reached only through the Resource Service. Generated projects are sinks. Unblocks [[1.11 Dependency direction]]. (Directory naming follows the repository's current <code>third-party/</code>; see [[1.6 Third-party dependencies]].)</p>
+<h2 id="d-027--23-is-conceptual-279-sets-the-reference-phase-order">D-027 — §2.3 is conceptual, §2.7.9 sets the reference phase order</h2>
+<p>[[2.3 Generation pipeline]] · [[2.7 Project generation model]]</p>
+<p>§2.3 describes the workflow-facing pipeline. §2.7.9 sets the <i>reference</i> phase order, which a workflow SHOULD follow (Lua may legitimately reorder within the resolve-before-mutate and transaction constraints). §2.3 links rather than restates.</p>
+<hr>
+<h2 id="decisions-recorded-during-the-first-implementation-pass">Decisions recorded during the first implementation pass</h2>
+<blockquote><p>[!note] Stance These record where the implementation diverged from Item 2 as written. Per the repository <code>AGENTS.md</code>, the repository is ground truth during initial implementation and the specification is amended to match. Each entry names the sections that need amending.</p></blockquote>
+<h2 id="d-029--the-cli-host-lives-at-app-the-lua-binding-at-enginelua">D-029 — The CLI host lives at <code>app/</code>; the Lua binding at <code>engine/lua/</code></h2>
+<p>[[1.1 Repository identity]] · [[2.1 Architectural model]] · [[2.6 Engine-Lua boundary]]</p>
+<p>§1.1 divides the repository into <code>engine/</code>, <code>lua/</code>, <code>third-party/</code>, <code>tools/</code> and <code>docs/</code>, which leaves the CLI host and the binding layer without a home.</p>
+<ul><li><b><code>app/</code></b> — the <code>sqpg</code> host. It is a <i>consumer</i> of the engine (§2.1.6), not part of it; placing it under <code>engine/</code> would blur the line §2.2.5 draws.</li><li><b><code>engine/lua/</code></b> — the binding layer. §2.6.3 requires it to be generated from or validated against the operation registry, which makes it engine-side. It builds as a separate target so an embedder may link the engine alone and never pay for a Lua runtime.</li></ul>
+<p>Rejected: putting the binding in <code>lua/</code>, which is Lua source by §1.4 and would have put C++ there; putting the CLI in <code>engine/</code>, which §2.2.5 forbids in spirit.</p>
+<p>Amend §1.1 to list both.</p>
+<h2 id="d-030--resources-are-cartridges-the-manifest-envelope-is-the-cartridge-formats">D-030 — Resources are cartridges; the manifest envelope is the cartridge format's</h2>
+<p>[[2.8 Templates]] · [[2.10 Assets and generator resources]]</p>
+<p>§2.8.3 defines an envelope (<code>schema_version</code>, <code>type</code>, <code>requires_engine</code>, <code>requires_capabilities</code>) and §2.8.1 an identifier grammar (<code>[a-z][a-z0-9]*(-[a-z0-9]+)*</code>, unbounded segments). The repository already contains manifests in the <i>cartridge</i> format (<code>format_version</code>, <code>kind</code>, <code>engine</code>, <code>requires_features</code>; segments <code>[a-z][a-z0-9_]*</code>, two to eight), a tested reader for them, and a CLI that writes them.</p>
+<p>The engine implements the cartridge form and opens every resource through <code>sqcart</code>. <code>ResourceId::parse</code> accepts both <code>_</code> and <code>-</code> as segment separators so that identities written against either document validate.</p>
+<p>Rationale: a second manifest reader would be a second chance to disagree about what a manifest means, and disagreement between the tool that packs cartridges and the tool that consumes them has the worst possible symptoms.</p>
+<p>Rejected: implementing §2.8.3 alongside the cartridge envelope (two readers); rewriting sqcart to §2.8.3 (discards a tested, shipped implementation).</p>
+<p>Amend §2.8.1–2.8.3 to state that generator resources are cartridges and inherit the container format's envelope and identity grammar.</p>
+<h2 id="d-031--resource-payload-root">D-031 — Resource payload root</h2>
+<p>[[2.8 Templates]] · [[2.9 Kits]] · [[2.10 Assets and generator resources]]</p>
+<p>Templates declare their payload root as <code>template.tree</code>. The cartridge format gives kits, packages and asset bundles no equivalent field, so the engine's convention is: <code>tree/</code> when the cartridge has entries beneath it, the cartridge root otherwise. <code>SQ-INF/</code> is never payload.</p>
+<p>Amend §2.9 and §2.10 to state the convention, or add a <code>tree</code> field to those bodies in the format.</p>
+<h2 id="d-032--architecture-fields-absent-from-the-cartridge-format-are-read-from-raw-json">D-032 — Architecture fields absent from the cartridge format are read from raw JSON</h2>
+<p>[[2.7 Project generation model]] · [[2.8 Templates]] · [[2.9 Kits]]</p>
+<p>The generator architecture needs manifest fields the container format does not model: <code>working_directory</code>, <code>integration_areas</code>, <code>integration_arity</code>, <code>processor</code>, parameter <code>default</code>/<code>default_from</code>, <code>executable</code>, <code>external.acquisition</code>, <code>conflicts_with</code>.</p>
+<p>These are read from <code>Manifest::raw_json()</code>, which format §5.4 guarantees is preserved verbatim. This keeps the divergence one-directional: the engine knows more than the format, and the format never learns about generation — which is the scope rule <code>sqcart/AGENTS.md</code> already states.</p>
+<p>Where such a field is absent or malformed the engine falls back to a documented conservative default (<code>working_directory</code> → <code>sq_app</code>, <code>processor</code> → <code>substitute</code>, arity → <code>single</code>). An <i>unknown</i> processor is a hard <code>capability.unsatisfied</code> failure, because §2.14.1 requires an unsatisfied capability to fail at resolution.</p>
+<h2 id="d-033--v1-implements-new-workspace-generation-only">D-033 — v1 implements new-workspace generation only</h2>
+<p>[[2.7 Project generation model]] · [[2.15 Error and transaction model]]</p>
+<p><code>project.generate</code> refuses an existing workspace with <code>filesystem.workspace.exists</code>. Regeneration (§2.7.11) requires the write-ahead journal (§2.15.9), per-file staging, crash recovery across the four journal states, and the <code>damaged</code> terminal state (§2.15.13).</p>
+<p>Refusing loudly is the correct failure: a half-implemented journal would corrupt user work in exactly the situations the journal exists to protect.</p>
+<p>Already in place for it: provenance hashes written on every generation, a reified plan (the same type an update plan needs), and enforced ownership classes. Missing: the journal and the apply-in-place loop.</p>
+<p>Package and asset <i>materialization</i> are deferred on the same principle — resolution is implemented and reported, materialization is not, and there is no package or asset in the repository to design it against.</p>
+<h2 id="d-034--the-engine-supplies-built-in-substitution-parameters">D-034 — The engine supplies built-in substitution parameters</h2>
+<p>[[2.7 Project generation model]] · [[2.8 Templates]]</p>
+<p>The template parameter contract is validated against the <b>effective</b> parameters: the template's declared defaults, then engine built-ins derived from the request, then the workflow's values.</p>
+<p>Built-ins: <code>project_name</code>, <code>namespace</code>, <code>working_directory</code>, <code>generator_version</code>, <code>template_id</code>, <code>template_version</code>, <code>framework_version</code>, <code>kit_list</code>. Every one derives from the request or the engine — never from the environment or the clock, because §2.7.13 requires byte-identical output from equivalent inputs.</p>
+<p>Without this, every workflow would have to restate <code>project_name = name</code> to pass a check the engine was about to satisfy itself. §2.8.7 should say that the engine contributes built-ins and that validation sees the effective set.</p>
+<h2 id="d-035--requires_capabilities-is-an-opaque-array-in-the-cartridge-envelope">D-035 — <code>requires_capabilities</code> is an opaque array in the cartridge envelope</h2>
+<p>[[2.8 Templates]] · [[2.14 Extensibility model]] · supersedes part of D-030</p>
+<p>§2.14.1 requires an unsatisfied capability to fail at resolution. Until now a manifest had nowhere to state one: the capability registry was enumerable and undemandable, and eight of the nine tokens could not be required by anything.</p>
+<p>The cartridge format gains <code>requires_capabilities</code>: an array of opaque tokens in the envelope, beside <code>requires_features</code>. sqcart validates <b>shape only</b> — <code>name</code> or <code>name@range</code>, dotted lowercase, no duplicates — and exposes it as <code>Manifest::requires_capabilities()</code>. It never interprets a token and must not: a reader that vetted the vocabulary would need teaching every consumer's, and every new generator capability would become a sqcart release.</p>
+<p>The parallel with <code>requires_features</code> is deliberate, and so is the distinction:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Guards</th><th>Fails at</th><th>Fixed by</th></tr></thead><tbody><tr><td><code>requires_features</code></td><td>the reader</td><td>open</td><td>a newer sqcart</td></tr><tr><td><code>requires_capabilities</code></td><td>the consumer</td><td>resolution</td><td>a newer consumer</td></tr></tbody></table></div>
+<p>The precedent is a jar manifest's vendor-specific attribute sections: the archiver carries them and never reads them, which is what keeps it a general tool. This is the mechanism that lets sqcart stay one.</p>
+<p>Rejected: adding a generator-specific <code>requires_capabilities</code> field that sqcart <i>understands</i> (puts generator vocabulary in a general format); reading it from raw JSON as D-032 does for the structural fields (a mistyped token would silently pass, and silent passing is the worst failure mode for a mechanism whose entire purpose is failing loudly).</p>
+<p>Note the limit: this shape works because a capability requirement is a flat list of strings. It does <b>not</b> generalise to the D-032 fields, two of which are maps and one of which carries arbitrary JSON values. Those stay in the kind body, read from raw JSON. Validating them, if it becomes worth doing, is a generator-side JSON Schema — generator semantics checked by the generator.</p>
+<h2 id="d-036--version-range-operands-may-be-partial">D-036 — Version range operands may be partial</h2>
+<p>[[2.8 Templates]]</p>
+<p><code>^1.0</code>, <code>&gt;=0.1</code> and <code>~1.2</code> now parse, padding to <code>^1.0.0</code>, <code>&gt;=0.1.0</code>, <code>~1.2.0</code>. A manifest's own <code>version</code> field is <b>not</b> padded: <code>&quot;version&quot;: &quot;1.0&quot;</code> remains a defect.</p>
+<p>This was a latent bug, not a feature request. Callers write <code>if (range &amp;&amp; range-&gt;satisfied_by(v))</code>, so an unparsed range meant the constraint <i>silently never applied</i> — and the repository's own manifests wrote <code>requires_engine: &quot;^0.1&quot;</code>, so the engine-compatibility warning had never once fired. A compatibility check that quietly does nothing is worse than one that errors, because nothing signals it.</p>
+<h2 id="d-037--ndk-detection-belongs-to-the-template-not-the-rendering-kit">D-037 — NDK detection belongs to the template, not the rendering kit</h2>
+<p>[[2.8 Templates]] · [[2.9 Kits]]</p>
+<p><code>template.android.cpp</code> locates the NDK, exports <code>SQ_NDK_INC</code> / <code>SQ_NDK_LIB</code>, and compiles <code>android_native_app_glue.c</code> from it. <code>kit.opengl</code> consumes those and adds only <code>-lEGL -lGLESv3</code> plus its own header.</p>
+<p>An earlier draft put detection in the kit. That is wrong for a reason worth recording: the template requires <b>no</b> rendering kit — that is what makes <code>kit.opengl</code> and a future <code>kit.sfml</code> alternatives rather than one being baked in — so a project with no kit would have had no glue and could not build. NativeActivity is the template's architecture; EGL is the kit's contribution on top of it.</p>
+<p>The general rule: an integration point's <i>substrate</i> belongs to whoever cannot be absent. A second rendering kit inherits a working NativeActivity build rather than re-solving detection, and there is one copy of the detection logic rather than one per kit.</p>
+<h2 id="d-038--declared-parameter-defaults-are-applied-after-engine-built-ins">D-038 — Declared parameter defaults are applied after engine built-ins</h2>
+<p>[[2.8 Templates]] · amends D-034</p>
+<p><code>effective_parameters</code> layers workflow values, then engine built-ins, then the template's declared defaults — each put-if-absent, so an earlier layer still wins.</p>
+<p>Built-ins first is what lets a template write <code>&quot;default_from&quot;: &quot;project_name&quot;</code>, where <code>project_name</code> is engine-supplied rather than workflow-supplied. <code>template.android.cpp</code> uses exactly that for <code>app_label</code>, and with the previous order the reference resolved against nothing and substitution failed.</p>
+<p>A template default for a name the engine also provides is now redundant rather than in conflict, which is the right relationship: the engine's built-ins are facts about the request, and a template cannot know better.</p>
+<h2 id="d-039--sdk-levels-are-build-settings-not-generation-parameters">D-039 — SDK levels are build settings, not generation parameters</h2>
+<p>[[2.7 Project generation model]]</p>
+<p><code>AndroidManifest.xml</code> carries no <code>&lt;uses-sdk&gt;</code>. <code>minSdkVersion</code>, <code>targetSdkVersion</code> and the ABI are make variables in <code>mk/squared_generated.mk</code>, passed to <code>aapt2 link</code> at package time.</p>
+<p>Baking them at generation time would mean regenerating a project to retarget it, which §2.7.11's absence makes worse than it sounds: with no in-place update, regenerating means losing the workspace. Declaring them in both places would create two sources of truth, and aapt2 takes the manifest's.</p>
+<p>The general test: if a value can change over a project's life without changing what the project <i>is</i>, it belongs in the build, not in the generated content.</p>
+<h2 id="d-040--a-kit-adds-an-external-sysroot-with--idirafter-never--i">D-040 — A kit adds an external sysroot with <code>-idirafter</code>, never <code>-I</code></h2>
+<p>[[2.9 Kits]]</p>
+<p><code>kit.opengl</code> reaches the NDK's Khronos headers with <code>-idirafter $(SQ_NDK_INC)</code>, and names <code>libEGL.so</code> and <code>libGLESv3.so</code> by absolute path rather than as <code>-l</code> names with <code>-L</code>.</p>
+<p>Both are corrections made after the first on-device build failed.</p>
+<p><b>Headers.</b> Termux's clang ships a complete sysroot including every <code>android/*</code> header, so the NDK is needed only for what Termux lacks. Adding it with <code>-I</code> puts a second complete set of C headers <i>ahead of libc++</i>, and <code>&lt;cctype&gt;</code> finds the NDK's <code>ctype.h</code> instead of libc++'s wrapper — libc++ detects the mismatch and stops the build. <code>-idirafter</code> appends to the end of the search path, so an external sysroot supplies only headers nothing else provides.</p>
+<p><b>Libraries.</b> <code>-L</code> fixes the libglvnd shadowing problem but creates a second one: it also places the NDK's <code>libc</code>, <code>libm</code> and <code>libdl</code> stubs ahead of the host's for every implicit <code>-l</code> the driver adds. Naming the two files outright avoids both. A search order cannot go wrong when there is no search.</p>
+<p>Generalises to every kit whose external dependency ships its own sysroot — which is most of them, since that is what <code>acquisition: &quot;system&quot;</code> usually means. A kit contributes <i>additions</i> to a host toolchain and must not reorganise it.</p>
+<h2 id="d-041--a-templates-identity-names-what-it-produces-not-where-it-runs">D-041 — A template's identity names what it produces, not where it runs</h2>
+<p>[[2.8 Templates]] · renames <code>template.termux.cpp</code></p>
+<p><code>template.termux.cpp</code> becomes <code>template.terminal.cpp</code>, with <code>platforms: [&quot;termux&quot;, &quot;linux&quot;, &quot;macos&quot;, &quot;desktop&quot;]</code>.</p>
+<p>The template was never Termux-specific — it is portable C++20 and <code>make</code>, and it builds and runs unchanged on desktop Linux. Naming it for the platform it was first written on made <code>sqpg list</code> tell a Debian user the tool was not for them, which is an adoption failure caused entirely by a string.</p>
+<p>The rule: <b>an identity names the artifact; a <code>platforms</code> list names the hosts.</b> <code>template.android.cpp</code> keeps its name because Android is what it produces, not merely where it was authored.</p>
+<p>Renaming a resource identity is a breaking change. Done now, at 0.1.0 with one consumer, because it only gets more expensive.</p>
+<h2 id="d-042--the-workflow-assumes-no-target-platform">D-042 — The workflow assumes no target platform</h2>
+<p>[[2.5 Lua control layer]] · [[2.7 Project generation model]]</p>
+<p><code>workflow.generate.default</code> no longer defaults <code>platforms</code> to <code>[&quot;termux&quot;]</code>. An empty platform set means "no restriction", so compatibility checks admit any resource rather than filtering against a guess.</p>
+<p>Detection from the host was considered and rejected. The host a project is <i>generated</i> on is not necessarily the host it <i>targets</i> — <code>template.android.cpp</code> is generated on Termux and targets Android — so <code>uname</code> would be wrong in exactly the case that matters. A workflow that wants filtering says so.</p>
+<h2 id="d-043--the-installation-root-is-found-by-marker-not-by-directory-name">D-043 — The installation root is found by marker, not by directory name</h2>
+<p>[[2.1 Architectural model]]</p>
+<p><code>sqpg</code> locates its resources and workflows by walking upward from its own executable until it finds a directory containing both <code>lua/workflows</code> and <code>resources</code>, then falling back to <code>&lt;prefix&gt;/share/squared-pg</code>.</p>
+<p>The previous version special-cased the directory names <code>build</code> and <code>bin</code>. That meant <code>cmake -B build-cmake</code> — or CLion's default <code>cmake-build-debug</code>, or any other name — produced a binary that could not find its own workflows. It was found by the CMake build's smoke test failing while every other test passed, which is the whole reason for having a second build path.</p>
+<p>Recognising the thing being looked for survives a build directory called anything. Executable location now also handles macOS (<code>_NSGetExecutablePath</code>) and the BSDs (<code>KERN_PROC_PATHNAME</code>); <code>argv[0]</code> is the last resort rather than the first, since for a binary on <code>PATH</code> it is a bare name that resolves to nothing.</p>
+<h2 id="d-044--repository-tooling-is-bash-fish-is-an-optional-translation">D-044 — Repository tooling is bash; fish is an optional translation</h2>
+<p>[[1.7 Tools]]</p>
+<p><code>tools/*.fish</code> becomes <code>tools/*.sh</code>, written in bash 3.2-compatible form. §1.7's preference for fish is amended: fish may be provided <i>alongside</i> a bash script for readability, but the bash form is canonical and is what CI runs.</p>
+<p>The reason is not taste. Two real bugs shipped in <code>tools/release.fish</code> because neither the author nor CI could execute it:</p>
+<ul><li><code>version</code> is read-only in fish — it holds fish's own version — so <code>--argument-names root version</code> is a parse-time error in every function declaring it.</li><li>fish does not expose a caller's local variables to the functions it calls, unlike bash, so a top-level <code>set --local root</code> was invisible inside every function and <code>$root</code> expanded to nothing.</li></ul>
+<p>Neither is exotic. Both would have been caught by running the script once. The problem was that the script could not be run where it was written, and a release script that has never been executed is a release script that does not work — which is exactly what happened, twice.</p>
+<p>Bash is present on every target host: Termux, Linux, macOS. The 3.2 compatibility constraint is real and comes from macOS, which still ships that version and is in the CI matrix: no associative arrays, no <code>mapfile</code>, no <code>${var,,}</code>.</p>
+<p><code>tools/fish-lint.py</code> stays. Any fish that is written should still be checked, and it catches both classes above — including the scoping one, which no parser can see because it is not a syntax error.</p>
+<p>The installer inside a release artifact remains POSIX <code>sh</code>: it runs on a stranger's machine, where every additional requirement is one more thing that can be missing.</p>
+<hr>
+<h2 id="d-045--workflow-reporting-routes-through-a-host-channel">D-045 — Workflow reporting routes through a host channel</h2>
+<p>[[2.14 Extensibility model]]</p>
+<p><code>squaredpg.report</code> writes to a host-provided channel rather than to <code>io.stderr</code> directly.</p>
+<p>Raised while resolving AUD-K-003. Enforcing the <code>sandboxed</code> trust tier would mean removing <code>io</code> from a workflow's environment, which would break reporting for <i>every</i> workflow, not only sandboxed ones. Routing now costs almost nothing and removes the hardest dependency from work that may never happen.</p>
+<p>It buys more than that. A channel is capturable, which makes report assertions possible without scraping stderr, and it is what structured <code>--json</code> output needs regardless.</p>
+<hr>
+<h2 id="d-046--a-workspaces-tier-is-its-location-not-a-metadata-field">D-046 — A workspace's tier is its location, not a metadata field</h2>
+<p>[[2.7 Project generation model]]</p>
+<p><code>~/sqsysroot/sandbox/x</code> is in the sandbox because of where it is. Promotion is a rename.</p>
+<p>The alternative — a <code>tier</code> field with the directories as convention — makes promotion a one-line metadata edit, which is suspiciously cheap for something that changes what an agent may do. It also permits the layout to lie: a field can disagree with the filesystem, and a directory cannot disagree with itself.</p>
+<p>The cost is that a workspace moves out from under an open editor. Once per project, on a deliberate act.</p>
+<hr>
+<h2 id="d-047--the-workflow-verbs-are-drivers-not-implementations">D-047 — The workflow verbs are drivers, not implementations</h2>
+<p>[[2.5 Lua control layer]]</p>
+<p><code>format</code>, <code>lint</code>, <code>check</code>, <code>test</code>, <code>docs</code>, <code>dist</code> find the workspace and run <code>make &lt;verb&gt;</code>. <code>sqpg lint</code> does not know what a linter is.</p>
+<p>Three properties follow, and they are the reason:</p>
+<ul><li>the engine keeps its no-external-runtime-dependency property, since a driver's whole job is executing other people's tools;</li><li>a generated workspace stays independent of squared-pg — <code>make lint</code> works with no <code>sqpg</code> installed, which is §2.7.11's invariant;</li><li>the vocabulary is fixed while the implementation is not.</li></ul>
+<p><code>--explain</code> prints the command instead of running it, which is what stops the layer becoming a black box experts route around.</p>
+<p><b>No <code>profile</code> and no <code>debug</code>.</b> They are interactive and session-shaped, and a vocabulary of things that run unattended and exit with a status is the wrong container for them.</p>
+<p>This is the decision with the longest reach in the set. Reversing it later means moving six commands.</p>
+<hr>
+<h2 id="d-048--quarantine-copies-promote-and-demote-move">D-048 — <code>quarantine</code> copies; <code>promote</code> and <code>demote</code> move</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>Asymmetric on purpose. Promotion and demotion act on a tree the environment already owns, so a rename is right and reversible. Quarantine acts on someone else's tree — a clone the author may still want where it is — and moving it would be this tool deciding its environment outranks the rest of the filesystem.</p>
+<p>The asymmetry is arguable and a <code>--move</code> flag would be easy to add.</p>
+<hr>
+<h2 id="d-049--the-default-workflow-is-workflowsqpgdefault">D-049 — The default workflow is <code>workflow.sqpg.default</code></h2>
+<p>[[2.5 Lua control layer]]</p>
+<p>Renamed from <code>workflow.generate.default</code>. It is no longer generation-only: it carries the environment lifecycle and the workflow verbs as well.</p>
+<p>A name that lies is the thing the corpus argument is against. The cost is anyone with the old id in a script, which in alpha is nobody.</p>
+<hr>
+<h2 id="d-050--demotion-preserves-history-promotion-removes-the-sandbox-boundary">D-050 — Demotion preserves history; promotion removes the sandbox boundary</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>Not symmetric, and the asymmetry is the point.</p>
+<p>Promotion deletes the sandbox <code>AGENTS.md</code> because squared-pg wrote it and it would now be false. Demotion refuses to delete <code>.git</code> because the author's history lives in it, and removing the only copy to satisfy a tier rule would be the worst thing this tool could do.</p>
+<p>The rule: this tool may delete what it wrote and what has become untrue. It may not delete what it did not write.</p>
+<hr>
+<h2 id="d-051--ownership-uses-an-explicit-default-not-glob-specificity">D-051 — Ownership uses an explicit <code>default</code>, not glob specificity</h2>
+<p>[[2.7 Project generation model]] · [[2.8 Templates]]</p>
+<p>At most one ownership list may match a path; an unmatched path takes <code>ownership.default</code>, which is <code>seeded</code> when absent.</p>
+<p><b>This replaced working behaviour.</b> <code>classify_path</code> had resolved overlaps with a specificity heuristic — +2 per literal character, −4 per <code>*</code>, −8 per <code>**</code> — and it was correct: every shipped template classified identically under it, and <code>user: [&quot;**&quot;]</code> behaved exactly as <code>default: &quot;user&quot;</code> does now. What AUD-L-004 found was not a broken template but two implementations disagreeing, <code>sqcart</code> enforcing exactly-one while the engine scored patterns.</p>
+<p>It was replaced because nobody can predict a scoring table's outcome without consulting it. Whether <code>mk/**</code> outranks <code>**/*.mk</code> is a question you compute — it does, −2 against −4 — and ownership is a thing template authors meet on their first day.</p>
+<p>What was given up: wildcard carve-outs. <code>generated: [&quot;mk/**&quot;]</code> with <code>user: [&quot;mk/local.mk&quot;]</code> worked under specificity; it is now an overlap warning, and the author writes non-overlapping patterns instead.</p>
+<p>The manifest's vocabulary is not the engine's: manifest <code>user</code> maps to <code>OwnershipClass::seeded</code>, because a file the generator is materialising cannot be <code>user</code>. <code>ownership_class_from_manifest</code> is the one place that translation happens.</p>
+<hr>
+<h2 id="d-052--workspaceverify-reports-it-never-repairs">D-052 — <code>workspace.verify</code> reports; it never repairs</h2>
+<p>[[2.16 Architectural invariants]]</p>
+<p>The first reader of the provenance table, which every generation had written and nothing had ever read.</p>
+<p>It does not restore files. A verify that quietly repaired would be the regeneration path §2.7.11 defers, arriving by a side door — and the value of the report is that the author decides.</p>
+<p>Findings exit non-zero so it composes into a <code>check</code> target.</p>
+<hr>
+<h2 id="d-053--consumer-schemas-are-normative-in-the-consuming-projects-spec">D-053 — Consumer schemas are normative in the consuming project's spec</h2>
+<p>[[2.8 Templates]] · [[2.9 Kits]] · [[2.14 Extensibility model]]</p>
+<p>Cartridge format 2.0 moved every generator concept into <code>consumers.squared_pg</code>, which <code>sqcart</code> carries as opaque text. That was right and it left the schema homeless: the only definition of what a template or kit could declare was the engine's parser.</p>
+<p>§2.8.6 and §2.9.2 are now that definition — every member, its type, its default when absent, and which code reads it.</p>
+<p>Two rules that existed only in code and are now written down:</p>
+<ul><li><b>A malformed member is treated as absent</b> and takes its default. Not an error, because §5.6 means nothing validates the section, and a generator refusing an unrecognised value could not open a cartridge written for a newer version of itself.</li><li><b><code>processor</code> is the exception</b> and fails with <code>capability.unsatisfied</code>. The other members describe <i>what</i> to generate; <code>processor</code> describes <i>how</i> to transform content, and the wrong transform produces a workspace that looks correct and is not.</li></ul>
+<p>Fields read by nothing are listed as reserved rather than omitted, because an author copying a shipped manifest will copy them: <code>project_types</code>, <code>requires.kits.optional</code>, <code>runtime.model</code>.</p>
+<hr>
+<h2 id="d-054--the-environment-is-control-layer-configuration-never-engine-discovery">D-054 — The environment is control-layer configuration, never engine discovery</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>An environment (<code>~/sqsysroot</code>) is resolved by the Lua control layer, from <code>$SQSYSROOT</code> or <code>$HOME</code>, and passed to the engine as explicit absolute paths.</p>
+<p>§2.7.2 forbids ambient inputs to generation, and a discovered root is ambient. The prohibition survives because of <i>where</i> the lookup happens: the engine has no concept of an environment and cannot be made to acquire one. <code>sqpg promote demo</code> may resolve <code>demo</code> against a discovered root; <code>project.generate</code> receives a path and nothing else.</p>
+<p>The tier invariant is stated as <b>nothing in sandbox is irreplaceable</b>, and every other rule derives from it. Stating a consequence — "sandbox has no git" — invites relitigating each consequence separately.</p>
+<p><b>Divergence from the design proposal:</b> demotion moves a dirty tree and warns rather than refusing. Refusing would make <code>git</code> a hard dependency of the tier system and would refuse most sandbox trees, which have no repository to be dirty, while protecting against a loss that cannot occur — the rename is reversible and the working tree is carried intact.</p>
+<hr>
+<h2 id="d-055--sqpg-for-the-tool-squared-means-a-workspace-record">D-055 — <code>.sqpg</code> for the tool; <code>.squared</code> means a workspace record</h2>
+<p>[[2.7 Project generation model]] · [[2.1 Architectural model]]</p>
+<p>The environment's tool directory is <code>~/sqsysroot/.sqpg/</code>. A workspace's provenance record stays at <code>&lt;workspace&gt;/.squared/metadata.json</code>.</p>
+<p>The two had the same name, and the collision produced a defect rather than merely confusion. <code>env.find_workspace</code> tested for <code>.squared-pg</code> — a directory that has never existed — because the name <code>.squared</code> was visibly taken by the tool directory when that code was written. The check never once matched, and every workspace found came through a fallback that tested for a Makefile beside an <code>mk/</code> directory. That matches any C project laid out that way and misses a real workspace without one; it worked by coincidence.</p>
+<p><b>A workspace is now recognised by its record and by nothing else.</b></p>
+<p>Three things ride along, all from the same root:</p>
+<ul><li><b><code>sqpg initialize</code> installs <code>sqcart</code>.</b> It copied the binary, the workflows and the resources, and omitted the one tool an authoring workspace's <code>check</code> and <code>dist</code> targets shell out to — so the second entry in the generated Makefile's lookup path could never succeed and every author set <code>$SQCART</code> by hand. Absence is reported, not fatal: a squared-pg without sqcart is still a working generator.</li><li><b>The top-level build produces <code>sqcart</code>.</b> It compiled sqcart's sources into the engine library but never linked its CLI, so a fresh clone could not author a cartridge and nothing said why. A sub-make, not duplicated link rules: sqcart is self-contained and vendoring its link line would mean two places to change when it gains a source file.</li><li><b>Generation refuses a target inside an existing workspace.</b> The way in is <code>sqpg new x</code> from inside a workspace, where <code>-o</code> defaults to <code>./x</code> and nothing looked upward. The result could not be promoted and sat inside the outer workspace's provenance scope. Every ancestor is checked, not only the parent.</li></ul>
+<p>Migration is <code>rm -rf ~/sqsysroot/.squared &amp;&amp; sqpg initialize</code>.</p>
+<hr>
+<h2 id="d-056--selfdestruct-competes-with-rm--rf-it-does-not-replace-it">D-056 — <code>selfdestruct</code> competes with <code>rm -rf</code>; it does not replace it</h2>
+<p>[[2.7 Project generation model]]</p>
+<p>A command that deletes a workspace, a tier, or the whole environment, behind two confirmations.</p>
+<p><b>It closes no hole.</b> <code>rm -rf ~/sqsysroot</code> remains one tab-completion away, and that is how a previous project was lost. A safe command only helps if it is the one reached for, so the design goal is not "make deletion hard" — it is <b>make deletion worth doing here</b>.</p>
+<p>The inventory is therefore the point, not the ceremony. Before anything is removed it reports, for every repository in scope, whether it has uncommitted changes, unpushed commits, or no remote at all — and says plainly that this is the part <code>rm -rf</code> would not have told you. That is a reason to type the longer command.</p>
+<p>Two factors, neither producible by accident:</p>
+<ul><li><b>A derived token.</b> The first invocation prints the inventory and a token computed from it. The second must supply it. Derived rather than stored, so there is no state to forge or go stale, and it stops matching when the inventory changes — a command line copied from an earlier session will not run against a tree that has moved on.</li><li><b>A typed phrase on stdin.</b> No shell completion produces <code>destroy the sandbox</code>.</li></ul>
+<p>There is no <code>--yes</code>, no <code>--force</code>, no environment variable. A bypass would be used, and then this is <code>rm</code> with extra steps.</p>
+<p>Non-interactive use is allowed: a pipe may supply the phrase. The protection is not that a human is present but that neither factor arrives by accident.</p>
+<p><b>Scope of the token, stated because the first draft overclaimed it.</b> The token certifies that <i>the inventory you were shown is still true</i>. It changes when a workspace appears or vanishes, a file count moves, or a repository becomes dirty or gains a remote. It does not change when a file's contents change without moving any of those — "65 files, uncommitted changes, no remote" is still true after another line is added to one of them. The user-facing text says exactly this, because the first version said "the moment any of it changes", which the implementation could not keep.</p>
+<p>Emptying a tier recreates it. An environment without its tiers is broken and the next <code>sqpg new</code> would fail on a missing directory. <code>--environment</code> does not recreate <code>.sqpg</code>: restoring it would mean copying back a binary the caller just asked to delete, and it is one <code>sqpg initialize</code> away.</p>
+<hr>
+<h2 id="d-058--a-duplicate-identity-warns-at-indexing-and-fails-at-resolution">D-058 — A duplicate identity warns at indexing and fails at resolution</h2>
+<p>[[2.8 Templates]]</p>
+<p>§2.8.1 made a duplicate <code>(id, version)</code> an initialization failure. The index now keeps the first copy, records the conflict, and reports it as a warning; a <i>request</i> for that identity fails.</p>
+<p><b>The prohibition is preserved where it matters.</b> Nothing is silently overridden: an ambiguous identity is refused at the point where a wrong answer would do harm, rather than at the point where any answer would do.</p>
+<p>What the old rule cost, from a real session: a duplicate produced by a mis-shaped install stopped <code>sqpg</code> before it did anything — including <code>sqpg list</code>, which is the command you reach for to find out where the duplicate is. <b>An index that refuses to be inspected because it contains a problem is the worst possible shape for diagnosing that problem.</b></p>
+<p>Both diagnostics name both paths. "Two resources declare the same identity" without saying which two leaves the reader to rediscover what the tool already knew.</p>
+<p>Which copy is kept is the first in discovery order, which §2.8.4 already requires to be deterministic — not because the first deserves to win, but because an unstable answer would make the conflict report itself unreproducible.</p>
+<hr>
+<h2 id="d-059--resources-reads-as-the-resource-directory">D-059 — <code>resources/</code> reads as the resource directory</h2>
+<p>[[2.7 Project generation model]]</p>
+<pre><code>resources/
+  .squared/     the squared clone, hidden
+  templates/ kits/ packages/ assets/   -&gt; links into it
+  generator/    squared-pg&#x27;s own</code></pre>
+<p>Three layouts were tried. The root (wrong: <code>squared</code> is not source), then <code>resources/squared/</code> (wrong: <code>resources/squared/resources/kits</code> is three levels to say one thing).</p>
+<p>The error in both was letting the directory tree record which repository each file came from. Git already knows that, and the layout's job is to say what things <i>are</i>.</p>
+<p>The engine tests <code>is_directory</code>, which follows symlinks, so a linked namespace scans exactly like a real one and the index cannot tell the difference. Host roots went back to two.</p>
+<p><code>sqpg initialize</code> copies named entries with <code>-L</code> rather than <code>resources/.</code> — the latter carried the hidden clone along and gave an installed tree holding every template twice, through the links and through the clone they point into.</p>
+<p><code>tools/bootstrap.sh</code> accepts the four kinds at <code>.squared/</code> or at <code>.squared/resources/</code>, so the <code>squared</code> repository can flatten its own layout whenever without a coordinated release. The pins already make the two versions independent; a bootstrap that understood only one would have undone that.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

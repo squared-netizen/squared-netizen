@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>assets &amp;amp;mdash; internals · squared</title>
+<meta name="description" content="squared: assets &amp;amp;mdash; internals">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/assets.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/assets.md">on GitHub</a></p><h1 id="assets-ampmdash-internals">assets &amp;mdash; internals</h1>
+<p>Typed asset cache over <code>sq::files::FileSystem</code>.</p>
+<p>Programmer counterpart: <a href="../programmer/assets.html">../programmer/assets.md</a></p>
+<ul><li>Public types: 9</li><li>Translation units: 1</li></ul>
+<h2 id="no-rtti-and-how">No RTTI, and how</h2>
+<p>The obvious implementation keys the loader and cache tables on <code>std::type_index</code>. That is unavailable: <code>typeid</code> is rejected outright under <code>-fno-rtti</code>, for any type, and squared builds that way.</p>
+<p><code>asset_type_id&lt;T&gt;()</code> returns the address of <code>detail::asset_type_tag&lt;T&gt;</code>, an inline variable. An inline variable has one address across every translation unit, so the result is unique per type, stable for the life of the program, <code>constexpr</code>, and free at run time. No registration, no macro, no central list.</p>
+<p>This is the same problem <code>gui::actor_cast</code> solves, answered the same way.</p>
+<h2 id="what-it-is-and-is-not">What it is, and is not</h2>
+<p>It is a cache: identity, deduplication, lifetime, dependency edges, bounded by <code>AssetManagerOptions</code>.</p>
+<p>It is <b>not</b> the framework's memory manager, and should not become one. Most of squared's memory is not assets &amp;mdash; <code>gui::Skin</code>'s hash maps, <code>SpriteBatch</code>'s vertex buffer, per-frame scratch, the widget tree. Routing those through here would mean one type understanding allocation patterns it has no business knowing.</p>
+<p>The useful version of that instinct: the manager is the framework's <i>largest client</i> of memory, so giving it an arena sized from <code>maximum_asset_bytes</code> would make it the first subsystem to actually satisfy the memory rule. Nothing in the tree does yet; everything uses global <code>new</code>.</p>
+<h2 id="dependency-tracking">Dependency tracking</h2>
+<p><code>load_erased</code> keeps three stacks: the nesting depth, one pending edge list per depth, and the keys currently in progress.</p>
+<p>A loader that calls <code>context.load&lt;T&gt;()</code> pushes an edge onto the innermost pending list, including on a cache hit &amp;mdash; a dependency that was already loaded is still a dependency. When the loader returns, that list becomes the entry's <code>dependencies</code>.</p>
+<p>The in-progress stack is what turns a cycle into a <code>DependencyCycle</code> result instead of a stack overflow. The depth limit catches deep-but-acyclic chains.</p>
+<p><code>unload_erased</code> copies the edge list before erasing the entry, because the entry owns it, then recurses. Cascaded dependencies that are still referenced survive through their <code>shared_ptr</code>; only the cache entry goes.</p>
+<h2 id="standard-library-deviations">Standard library deviations</h2>
+<div class="tablewrap"><table><thead><tr><th>Facility</th><th>Where</th><th>Why it stays</th></tr></thead><tbody><tr><td><code>std::shared_ptr</code></td><td><code>AssetHandle&lt;T&gt;</code></td><td>Genuinely shared, genuinely dynamic: a texture outlives the skin that requested it when a widget still holds it. 16 bytes plus a control block per distinct asset, never per frame.</td></tr><tr><td><code>std::function</code></td><td><code>AssetLoader&lt;T&gt;</code>, <code>ErasedLoader</code></td><td>One per asset type, registered once at startup. A concept-constrained template would force the cache to be a template and give every asset type its own copy of the class.</td></tr><tr><td><code>std::unordered_map</code></td><td>loaders and cache tables</td><td>Keyed by <code>AssetTypeId</code> and path. Bounded by <code>maximum_cached_assets</code>; the same interning argument that applies to <code>gui::Skin</code> applies here, and matters less because assets are counted in hundreds.</td></tr></tbody></table></div>
+<h2 id="type-erasure">Type erasure</h2>
+<p>Cached assets are <code>std::shared_ptr&lt;const void&gt;</code>, cast back with <code>std::static_pointer_cast&lt;const T&gt;</code>. That is safe because the cache is keyed by <code>AssetTypeId</code>: an entry found under <code>asset_type_id&lt;T&gt;()</code> was stored by the loader registered for <code>T</code>, and nothing else can reach it. The typed <code>register_loader&lt;T&gt;</code> wraps the user's callback in the erased signature at registration, so the erasure happens once per type rather than per load.</p>
+<h2 id="not-carried-over">Not carried over</h2>
+<p>The original had <code>mount_archive</code> and <code>unmount_archive</code>. Those belong to the file system, not the asset cache &amp;mdash; mounting is about where bytes come from, which is exactly what <code>sq::files::FileSystem</code> is for. Adding a zip-backed <code>FileSystem</code> gives every consumer archive support, not only the ones going through the manager.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

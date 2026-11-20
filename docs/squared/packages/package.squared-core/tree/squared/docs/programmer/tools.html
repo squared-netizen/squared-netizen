@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools · squared</title>
+<meta name="description" content="squared: Tools">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/tools.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/tools.md">on GitHub</a></p><h1 id="tools">Tools</h1>
+<p>Scripts that ship with the framework in <code>squared/tools/</code>. In a generated project, the ones meant for everyday use also have a wrapper of the same name in the workspace's <code>tools/</code>, so you run them from the workspace root.</p>
+<p>Developer side: <a href="../developer/tools.html">developer/tools.md</a>.</p>
+<h2 id="docssh">docs.sh</h2>
+<p><code>make docs</code> (or <code>squared/tools/docs.sh</code>) writes the API reference, <a href="../reference/index.html">docs/reference/</a>: a page for every public type, with each function's signature, its comment, and a link to the line in the header. It is made from the headers' comments by clang-doc (<code>pkg install clang</code> in Termux), and committed, so it reads on GitHub without a build.</p>
+<pre><code class="lang-sh">make docs          # write docs/reference/
+make docs-check    # is it current? exit 1 if a header changed since
+squared/tools/docs.sh --missing   # what has no comment yet</code></pre>
+<p>Do not edit the pages: change the comment in the header and run it again.</p>
+<p>A run prints a dot per header as clang-doc reads it, then a dot per page as the pages are tidied, with the count every 50:</p>
+<pre><code>docs: clang-doc 21 over 96 public headers
+.................................................. 50/96
+.............................................. 96/96
+docs: tidying 167 pages
+...</code></pre>
+<p>If clang-doc cannot compile a header, nothing is written: it prints the first few errors and where its log is (<code>build/release/docs/clang-doc.log</code>). <code>docs: clang-doc cannot compile #include &lt;cstdint&gt;</code> means it cannot see the C++ standard library at all; the lines under it are where it looked.</p>
+<h2 id="sqgen">sqgen</h2>
+<p>Compiles an app's <code>sq_app/names.json</code> and <code>sq_app/layouts/*.json</code> into C++: typed keys (<code>names.hpp</code>) and constant layout tables (<code>layouts.hpp</code>, <code>layouts.cpp</code>). The app's build runs it for you whenever those files exist, so you rarely run it yourself:</p>
+<p>sqgen [--names FILE] [--layouts DIR] --out DIR</p>
+<p>A C++ program in <code>squared/tools/sqgen/</code>, built for your machine. Its files, its problems and its exit status: <a href="layouts.html#sqgen-the-build-step">layouts.md</a>.</p>
+<h2 id="docs-archivesh">docs-archive.sh</h2>
+<p>Zips documentation into one archive, for reading on another device or sharing.</p>
+<p>From the workspace root, it archives every docs tree in the workspace: <code>docs/</code> (generated output), <code>squared/docs/</code>, <code>sq_app/docs/</code>, <code>sq_android/docs/</code>, and any other top-level directory's <code>docs/</code>. Empty trees are skipped.</p>
+<p>tools/docs-archive.sh --list                      # what would go in; writes nothing tools/docs-archive.sh                             # -&gt; ~/&lt;project&gt;-docs-&lt;date&gt;.zip tools/docs-archive.sh ~/storage/shared/Download   # somewhere you can share from</p>
+<p>Run directly, <code>squared/tools/docs-archive.sh</code> archives only the framework's docs, as <code>squared-docs-&lt;version&gt;-&lt;date&gt;.zip</code>.</p>
+<div class="tablewrap"><table><thead><tr><th>argument</th><th>meaning</th></tr></thead><tbody><tr><td><code>destination</code></td><td>directory to write to (default <code>$HOME</code>); created if missing</td></tr><tr><td><code>--list</code></td><td>print the archive name, destination, trees and files, then stop</td></tr><tr><td><code>--workspace DIR</code></td><td>archive DIR's docs trees (the wrapper does this for you)</td></tr></tbody></table></div>
+<p>Failures, each with a message on stderr and a non-zero exit:</p>
+<div class="tablewrap"><table><thead><tr><th>exit</th><th>cause</th></tr></thead><tbody><tr><td>1</td><td><code>zip</code> not installed (<code>pkg install zip</code>), no docs found, destination not creatable or writable, zip failed</td></tr><tr><td>2</td><td>unknown option, two destinations, <code>--workspace</code> without a directory</td></tr></tbody></table></div>
+<p>The archive leaves out Obsidian state (<code>.obsidian/</code>, <code>.trash/</code>), editor scratch files and <code>*.bak.*</code> backups. Running it twice on the same day writes <code>...-2.zip</code> rather than overwriting.</p>
+<h2 id="dexgensh">dexgen.sh</h2>
+<p>Maintainer tool: checks, rewrites or prints the shim dex: squared's classes Android calls into (<code>dev.squared.ModelService</code>, which <code>BACKGROUND=1</code> packs into an app; the Console's monitor activity). You do not need it to build an app. It builds <code>dexgen</code> through the framework's make (<code>make dexgen</code>, as the tests are built: it imports <code>std</code>).</p>
+<p>squared/tools/dexgen.sh             # the committed dex regenerates byte for byte squared/tools/dexgen.sh --dump      # print it</p>
+<p>Exit status: 0 good, 1 a check failed, 2 usage or a failed build. Details: <a href="../developer/shims.html">developer/shims.md</a>.</p>
+<h2 id="shim_spikesh">shim_spike.sh</h2>
+<p>A device test, for Sprint 4 only: builds your project's <code>DEV_LOG</code> APK plus a copy with a second launcher icon, "&lt;project&gt; console", that runs the same app in its own process. Your project's files are not changed; the copy is <code>build/spike/&lt;project&gt;-spike.apk</code>.</p>
+<p>squared/tools/shim_spike.sh         # in the project</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

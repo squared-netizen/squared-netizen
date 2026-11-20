@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android apps with SFML · squared-pg</title>
+<meta name="description" content="squared-pg: Android apps with SFML">
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
+  <a href="../../../../docs/index.html">Docs</a>
+  <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared-pg</a> · <code>docs/usermanual/android-sfml.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/usermanual/android-sfml.md">on GitHub</a></p><hr>
+<p>title: Android apps with SFML tags: [usermanual, android, sfml]</p>
+<hr>
+<h1 id="android-apps-with-sfml">Android apps with SFML</h1>
+<p>An Android application in C++20, with SFML as the platform layer. No Java, no Gradle, no Android Studio — <code>make apk</code> produces a signed, installable APK using clang, aapt2 and apksigner.</p>
+<h2 id="generate">Generate</h2>
+<pre><code class="lang-sh">cd ~/sqsysroot/sandbox
+sqpg new droid -t template.android.sfml -k kit.sfml \
+  -p project_name=droid -p package_name=com.example.droid
+cd droid</code></pre>
+<p><code>project_name</code> becomes the library name, the C++ namespace and the log tag, so it must be a C identifier. <code>package_name</code> is the application id and must be unique on the device.</p>
+<h2 id="check-before-building">Check before building</h2>
+<pre><code class="lang-sh">make sfml-status      # the SFML payload: archives, entry point, NDK stubs
+make android-status   # the toolchain: NDK, aapt2, apksigner, keystore</code></pre>
+<p>Run these first if anything goes wrong. Between them they report every external thing the build depends on.</p>
+<h2 id="build-package-install">Build, package, install</h2>
+<pre><code class="lang-sh">make          # build/libdroid.so
+make apk      # package and sign
+make install  # hand it to the package installer
+make logcat   # follow this app&#x27;s log</code></pre>
+<p>First <code>make apk</code> generates a debug keystore at <code>~/.android/debug.keystore</code> if you have none.</p>
+<h2 id="where-your-code-goes">Where your code goes</h2>
+<pre><code>sq_app/          your application. Use SFML here.
+  include/app.hpp
+  src/app.cpp
+sq_android/      the platform layer. Yours, rarely edited.
+  main.cpp
+  AndroidManifest.xml
+  assets/        files packaged into the APK
+  res/</code></pre>
+<p><b>Write code in <code>sq_app/</code>.</b> The generated <code>App</code> class has seven methods the platform layer calls:</p>
+<div class="tablewrap"><table><thead><tr><th>Method</th><th>When</th></tr></thead><tbody><tr><td><code>start()</code></td><td>once, after the window exists</td></tr><tr><td><code>stop()</code></td><td>once, at shutdown</td></tr><tr><td><code>resume()</code> / <code>pause()</code></td><td>foreground / background</td></tr><tr><td><code>resize(w, h)</code></td><td>at startup and on every change</td></tr><tr><td><code>render()</code></td><td>every frame</td></tr><tr><td><code>touch(phase, x, y)</code></td><td>on touch</td></tr></tbody></table></div>
+<p><code>render(target)</code> hands you an <code>sf::RenderTarget</code>. Draw into it; the platform layer presents.</p>
+<h2 id="assets">Assets</h2>
+<p>Put files in <code>sq_android/assets/</code>. They are packaged into the APK by <code>make apk</code> and opened by <b>bare name relative to that directory</b>:</p>
+<pre><code class="lang-cpp">sf::Texture texture;
+texture.loadFromFile(&quot;ui/panel.png&quot;);   // sq_android/assets/ui/panel.png
+
+sf::Font font;
+font.openFromFile(&quot;font.ttf&quot;);
+
+sf::Music music;
+music.openFromFile(&quot;tune.ogg&quot;);</code></pre>
+<p>Subdirectories survive. Nothing outside <code>sq_android/assets/</code> reaches a running app.</p>
+<p><code>make android-status</code> reports how many files were found. To see exactly what shipped:</p>
+<pre><code class="lang-sh">unzip -l build/&lt;name&gt;.apk | grep assets/</code></pre>
+<p>The generated demo loads <code>font.ttf</code> if one is present and draws the project name with it, so dropping a font in is the quickest way to confirm the path works end to end.</p>
+<h2 id="two-rules-that-are-not-style-preferences">Two rules that are not style preferences</h2>
+<p><b>Use SFML in <code>sq_app/</code>; do not use <code>&lt;android/...&gt;</code> there.</b> SFML already abstracts the platform, so reaching past it gives up portability between devices. Anything genuinely needing the Android API belongs in <code>sq_android/main.cpp</code>.</p>
+<p><b>Do not remove <code>-Wl,-u,ANativeActivity_onCreate</code> from the link.</b> Nothing in your project references that symbol — Android looks it up by name when it loads the library — so without <code>-u</code> the linker drops it. Everything still builds and the app dies at launch with nothing in the log. <code>make</code> checks for it and fails the build if it is missing.</p>
+<h2 id="the-thread-you-are-on">The thread you are on</h2>
+<p>Your code does not run on Android's UI thread. SFML receives the lifecycle callbacks there and runs your <code>main()</code> on a thread it owns.</p>
+<p>In practice: <code>App</code> sees one consistent thread and needs no locking. Blocking will not trigger an ANR the way blocking the UI thread would — but it still stops drawing and stops draining events, so do not block.</p>
+<h2 id="retargeting-without-regenerating">Retargeting without regenerating</h2>
+<p>SDK levels and ABI are build settings, not generation parameters:</p>
+<pre><code class="lang-sh">make SQ_MIN_SDK=21 apk
+make SQ_ABI=armeabi-v7a        # needs a toolchain that targets it</code></pre>
+<p><code>AndroidManifest.xml</code> deliberately carries no <code>&lt;uses-sdk&gt;</code>; the levels reach aapt2 through flags. See <code>make android-help</code> for every override.</p>
+<h2 id="what-works-today">What works today</h2>
+<p>SFML's System, Window, Graphics and Audio modules: the window, a GLES 3.0 context, touch input, the lifecycle, 2D drawing, text with real fonts, and sound.</p>
+<p><code>sf::Texture</code>, <code>sf::Sprite</code>, <code>sf::Font</code>, <code>sf::Text</code>, <code>sf::Sound</code> and <code>sf::Music</code> all work. Write them in <code>sq_app/</code>.</p>
+<p><b>Network is not built.</b> <code>sf::Http</code>, <code>sf::Ftp</code> and the socket classes have headers but no implementation, so code using them compiles and then fails to link.</p>
+<h2 id="if-it-does-not-link">If it does not link</h2>
+<p>Run <code>make sfml-status</code>. The common causes, in order:</p>
+<ol><li><b>The kit payload is missing.</b> A fresh clone has the manifest but not the archives. <code>sfml-status</code> says <code>BUILD-INFO MISSING</code>.</li><li><b>Wrong ABI.</b> The archives are built for one ABI at one API level; <code>sfml-status</code> prints which.</li><li><b>Network symbols.</b> That module is not built.</li></ol>
+<h2 id="if-it-installs-and-dies-at-launch">If it installs and dies at launch</h2>
+<p>Almost always one of two things, both of which the build already guards against, so check <code>make</code> actually completed:</p>
+<ul><li><code>ANativeActivity_onCreate</code> missing from the library (<code>make verify-link</code>)</li><li><code>libc++_shared.so</code> not bundled — Android does not ship it, and the packaging step refuses to build an APK without it</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

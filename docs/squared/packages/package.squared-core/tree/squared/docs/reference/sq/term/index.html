@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace term · squared</title>
+<meta name="description" content="squared: namespace term">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/term/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/term/index.md">on GitHub</a></p><h1 id="namespace-term">namespace term</h1>
+<h2 id="namespaces">Namespaces</h2>
+<ul><li><a href="detail/index.html">detail</a></li></ul>
+<h2 id="records">Records</h2>
+<ul><li><a href="CellAttributes.html">CellAttributes</a></li><li><a href="CellFlags.html">CellFlags</a></li><li><a href="Cell.html">Cell</a></li><li><a href="Cursor.html">Cursor</a></li><li><a href="KeyBytes.html">KeyBytes</a></li><li><a href="ProcessExit.html">ProcessExit</a></li><li><a href="PtyConfig.html">PtyConfig</a></li><li><a href="PtyError.html">PtyError</a></li><li><a href="Pty.html">Pty</a></li><li><a href="Rgb.html">Rgb</a></li><li><a href="ScreenPublisher.html">ScreenPublisher</a></li><li><a href="ScreenView.html">ScreenView</a></li><li><a href="TerminalConfig.html">TerminalConfig</a></li><li><a href="TerminalEvents.html">TerminalEvents</a></li><li><a href="TerminalModes.html">TerminalModes</a></li><li><a href="Terminal.html">Terminal</a></li><li><a href="TextPoint.html">TextPoint</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="key_bytes">key_bytes</h3>
+<p><i>KeyBytes key_bytes(app::Key key, app::KeyModifiers modifiers, TerminalModes modes)</i></p>
+<p><b>brief</b> The bytes a named key sends, as xterm sends them: arrows <code>CSI A</code> (<code>SS3 A</code> in application cursor mode, DECCKM), Home and End, Insert, Delete, Page Up and Down (<code>CSI 5 ~</code>), F1 to F12, with Shift, Alt and Ctrl as xterm's modifier parameter (<code>CSI 1 ; 5 A</code> for Ctrl-Up); Backspace DEL (Ctrl: BS), Enter CR, Tab HT (Shift: <code>CSI Z</code>), Escape ESC, Alt putting ESC before the last four. Empty for <code>unknown</code> and <code>space</code> (a space is text).</p>
+<h3 id="key_text_bytes">key_text_bytes</h3>
+<p><i>KeyBytes key_text_bytes(std::string_view text, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> The bytes a key that types <code>text</code> sends with Ctrl or Alt held (<code>Widget::key_text</code>): Ctrl makes a control character of <code>@</code> to <code>_</code>, the letters, <code>?</code> (DEL), space and <code>2</code> (NUL), <code>3</code> to <code>7</code> (ESC to US), <code>8</code> (DEL) and <code>/</code> (US); Alt puts ESC before it. Text with no control character is sent as it is (with ESC for Alt); text over 14 bytes sends nothing.</p>
+<h3 id="operatorltgt">operator&lt;=&gt;</h3>
+<p><i>std::strong_ordering operator&lt;=&gt;(const TextPoint &amp; , const TextPoint &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/text_point.cppm#L18">term/text_point.cppm:18</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(CellAttributes , CellAttributes )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/cell_attributes.cppm#L28">term/cell_attributes.cppm:28</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(CellFlags , CellFlags )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/cell_flags.cppm#L24">term/cell_flags.cppm:24</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(Cursor , Cursor )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/cursor.cppm#L14">term/cursor.cppm:14</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(ProcessExit , ProcessExit )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/process_exit.cppm#L16">term/process_exit.cppm:16</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(Rgb , Rgb )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/rgb.cppm#L15">term/rgb.cppm:15</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(TerminalModes , TerminalModes )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal_modes.cppm#L31">term/terminal_modes.cppm:31</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(const Cell &amp; , const Cell &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/cell.cppm#L28">term/cell.cppm:28</a></i></p>
+<h3 id="paste_text">paste_text</h3>
+<p><i>std::size_t paste_text(std::string_view text, TerminalModes modes, std::span&lt;char&gt; out)</i></p>
+<p><b>brief</b> Pasted text as the program in the terminal is sent it, into <code>out</code>; the bytes it takes, all of them, whatever <code>out</code> holds.</p>
+<p>As Termux sends a paste: ESC and the C1 controls (U+0080 to U+009F) are taken out, so a paste cannot end a bracketed paste early or start a control sequence of its own; CR LF and LF become CR, what Enter sends; and, when the program asked for bracketed paste (<code>CSI ? 2004 h</code>), it is sent between <code>CSI 200 ~</code> and <code>CSI 201 ~</code>, so a shell takes it as text rather than running each line. Invalid UTF-8 passes as it is.</p>
+<p><code>out</code> takes whole characters, in order, until one does not fit: call it with an empty <code>out</code> for the size, then with that much. No allocation.</p>
+<p>std::string bytes( sq::term::paste_text( text, modes, {} ), '\0' );</p>
+<p>sq::term::paste_text( text, modes, bytes );</p>
+<h2 id="enums">Enums</h2>
+<p>| enum class PtyErrorCode |</p>
+<p>--</p>
+<p>| none | | already_running | | no_program | | open_master | | open_slave | | fork |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/pty_error.cppm#L9">term/pty_error.cppm:9</a></i></p>
+<p><b>brief</b> Which step of starting a program failed.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

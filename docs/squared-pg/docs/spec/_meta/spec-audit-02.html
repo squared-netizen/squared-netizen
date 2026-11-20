@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec audit 02 · squared-pg</title>
+<meta name="description" content="squared-pg: Spec audit 02">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/spec-audit-02.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/spec-audit-02.md">on GitHub</a></p><hr>
+<p>title: Spec audit 02 tags: [spec, meta, audit]</p>
+<hr>
+<h1 id="spec-audit-02">Spec audit 02</h1>
+<pre><code>Audit run:  2026-09-05
+Scope:      the delta since spec-audit-01 was applied (2026-09-02)
+            — decisions D-029..D-044, and the specification gaps opened by
+              the sysroot/tier design proposal
+Status:     each finding awaits an APPROVED / REJECTED mark before any edit
+Method:     read-only. No spec note has been modified by this pass.</code></pre>
+<p>Audit 01 audited the vault against itself and against the repository as it stood. It was applied, and its findings are closed.</p>
+<p>This pass audits the <i>delta</i>: sixteen decisions were recorded during the first implementation pass and the Android work, every one of which names a section to amend, and <b>none of the amendments has been made</b>. The specification and the implementation now disagree in sixteen documented places.</p>
+<p>That is a different kind of finding from audit 01's. There is no ambiguity to resolve and no wording to repair — the decision text already says what the correct wording is. The work is transcription, and the risk is that it keeps being deferred until the spec stops being the thing you can read to understand the system.</p>
+<h2 id="summary">Summary</h2>
+<div class="tablewrap"><table><thead><tr><th>Class</th><th>Count</th><th>Blocking</th><th>Serious</th><th>Minor</th></tr></thead><tbody><tr><td>K — decision recorded, amendment not applied</td><td>16</td><td>3</td><td>9</td><td>4</td></tr><tr><td>L — specification absent for planned work</td><td>5</td><td>0</td><td>5</td><td>0</td></tr><tr><td>M — numbering and register integrity</td><td>3</td><td>1</td><td>1</td><td>1</td></tr><tr><td><b>Total</b></td><td><b>24</b></td><td><b>4</b></td><td><b>11</b></td><td><b>9</b></td></tr></tbody></table></div>
+<p>Severity: blocking = the spec as written contradicts shipped, tested behaviour; serious = an implementer reading the spec would build the wrong thing; minor = editorial.</p>
+<hr>
+<h2 id="k--decision-recorded-amendment-not-applied">K — Decision recorded, amendment not applied</h2>
+<p>Each entry names the decision, the sections it says to amend, and what the amendment is. The decision text in <code>Spec decisions</code> is the source; nothing here is new reasoning.</p>
+<h3 id="aud-k-001--281283-describe-a-manifest-envelope-nothing-implements">AUD-K-001 — §2.8.1–2.8.3 describe a manifest envelope nothing implements</h3>
+<p><b>Status:</b> APPLIED (D-030). Cartridge format 2.0: resources are cartridges and inherit the container envelope; the <code>-</code> separator was narrowed to <code>_</code>.</p>
+<p>§2.8.3 defines <code>schema_version</code> / <code>type</code> / <code>requires_engine</code> / <code>requires_capabilities</code>; §2.8.1 defines an identifier grammar with hyphens and no segment limit. The engine implements neither. It opens every resource through sqcart, so resources are cartridges and inherit the container format's envelope (<code>format_version</code> / <code>kind</code> / <code>engine</code> / <code>requires_features</code>) and its identity grammar (<code>[a-z][a-z0-9_]*</code>, two to eight segments).</p>
+<p>Amendment: rewrite §2.8.1–2.8.3 to state that generator resources are cartridges. <code>ResourceId::parse</code> accepts both <code>_</code> and <code>-</code> separators, so identities written against either document validate; say so.</p>
+<p>This is the largest single divergence in the vault and the one most likely to mislead someone authoring a resource from the spec.</p>
+<h3 id="aud-k-002--2711-regeneration-is-specified-the-engine-refuses-it">AUD-K-002 — §2.7.11 regeneration is specified; the engine refuses it</h3>
+<p><b>Status:</b> APPLIED (D-033, D-054). 2.7.11 reduced to a stub naming the bounded mutation path; the full mechanism moved to a design document.</p>
+<p><code>project.generate</code> refuses an existing workspace with <code>filesystem.workspace.exists</code>. §2.7.11 reads as though update is available.</p>
+<p>Amendment: mark §2.7.11 and §2.15.9's journal as <b>not implemented in v1</b>, with the reason (a half-implemented journal corrupts user work in exactly the cases the journal exists to protect) and the list of what already exists for it — provenance hashes, the reified plan, enforced ownership classes.</p>
+<h3 id="aud-k-003--2144s-sandboxed-trust-tier-is-refused-not-enforced">AUD-K-003 — §2.14.4's sandboxed trust tier is refused, not enforced</h3>
+<p><b>Status:</b> APPLIED (D-045). 2.14.4 states that <code>sandboxed</code> is declared, recognised and refused. Reporting was routed through a host channel so enforcement, if it ever arrives, does not have to unpick <code>io.stderr</code>.</p>
+<p>The host reads <code>trust</code> and <i>refuses</i> a workflow declaring <code>sandboxed</code> (exit 3) rather than granting it the full standard library. §2.14.4 describes it as a working tier.</p>
+<p>Amendment: §2.14.4 states the current behaviour and what enforcement requires — a restricted <code>_ENV</code>, a whitelist-backed <code>require</code>, and a host-provided I/O channel, the last of which ripples because <code>squaredpg.report</code> writes to <code>io.stderr</code> directly.</p>
+<h3 id="aud-k-004--11-omits-app-and-enginelua">AUD-K-004 — §1.1 omits <code>app/</code> and <code>engine/lua/</code></h3>
+<p><b>Status:</b> APPLIED (D-053). 1.1 lists all nine top-level entries and explains why <code>app/</code> and <code>engine/lua/</code> sit where they do. It also asserted <code>resources/</code> was unprovisioned, which had been false for months.</p>
+<p>Amendment: §1.1 lists both, with the reasoning — the CLI host is a consumer of the engine and not part of it; the binding layer is generated from the operation registry and is therefore engine-side.</p>
+<h3 id="aud-k-005--29210-do-not-state-the-payload-root-convention">AUD-K-005 — §2.9/§2.10 do not state the payload root convention</h3>
+<p><b>Status:</b> APPLIED (D-031). <code>tree</code> became a required <i>envelope</i> member in cartridge format 2.0 -- not a kind body field, because a reader must locate the payload without knowing the kind.</p>
+<p>Templates declare <code>template.tree</code>; kits, packages and asset bundles have no equivalent field, so the engine's convention is <code>tree/</code> when present and the cartridge root otherwise.</p>
+<p>Amendment: state the convention in §2.9 and §2.10, or add a <code>tree</code> field to those bodies in the cartridge format. The second is cleaner and is a change to a different document.</p>
+<h3 id="aud-k-006--272829-do-not-mention-the-raw-json-extension-fields">AUD-K-006 — §2.7/§2.8/§2.9 do not mention the raw-JSON extension fields</h3>
+<p><b>Status:</b> CLOSED — obsolete · <b>Severity:</b> serious · <b>D-032</b> · <b>Superseded by AUD-L-006</b></p>
+<p><i>Closed by the cartridge format 2.0 rewrite, not by applying its amendment.</i></p>
+<p>The finding's premise was a contrast: eight fields were second-class, read through <code>Manifest::raw_json()</code> because the cartridge format had nowhere to put them, while the fields the format <i>did</i> model got a typed API.</p>
+<p>Format 2 deleted the typed API. Kind bodies are gone; everything squared-pg needs lives in <code>consumers.squared_pg</code> and is read the same way. The eight are not exceptions any more — they are simply fields, and the category the amendment was written to describe no longer exists.</p>
+<p>Applying the amendment as drafted would have documented a distinction that is no longer true, which is how an audit stops meaning anything.</p>
+<p>What the finding got right survives in its successor: those eight are undocumented, nothing validates them, and <code>processor</code> fails hard where the others fall back. AUD-L-006 covers all three, and covers them for the whole schema rather than for eight members of it.</p>
+<h3 id="aud-k-007--287-does-not-say-the-engine-contributes-built-in-parameters">AUD-K-007 — §2.8.7 does not say the engine contributes built-in parameters</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-034, D-038</b></p>
+<p>The template parameter contract is validated against the <i>effective</i> set: declared defaults, then engine built-ins, then workflow values — in that order, so <code>default_from</code> can reference <code>project_name</code>.</p>
+<p>Amendment: §2.8.7 lists the built-ins, states the layering order and the put-if-absent rule, and says validation sees the effective set.</p>
+<h3 id="aud-k-008--2141-has-no-mechanism-for-requiring-a-capability">AUD-K-008 — §2.14.1 has no mechanism for requiring a capability</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-035</b></p>
+<p>The registry was enumerable and undemandable until <code>requires_capabilities</code> was added to the cartridge envelope. §2.14.1 requires unsatisfied capabilities to fail at resolution but never says how one is declared.</p>
+<p>Amendment: §2.14.1 documents the field, the <code>name</code> / <code>name@range</code> token form, and the distinction from <code>requires_features</code> — reader versus consumer, open versus resolve, newer sqcart versus newer generator.</p>
+<h3 id="aud-k-009--282-does-not-admit-partial-version-operands">AUD-K-009 — §2.8.2 does not admit partial version operands</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-036</b></p>
+<p><code>^1.0</code>, <code>&gt;=0.1</code> and <code>~1.2</code> now parse, padding to three components. A manifest's own <code>version</code> is not padded.</p>
+<p>Amendment: §2.8.2 states the padding rule and why it is not optional — callers write <code>if (range &amp;&amp; range-&gt;satisfied_by(v))</code>, so an unparsed range means the constraint silently never applies.</p>
+<h3 id="aud-k-010--29-does-not-say-who-owns-an-integration-points-substrate">AUD-K-010 — §2.9 does not say who owns an integration point's substrate</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-037</b></p>
+<p>NDK detection and native-app-glue belong to <code>template.android.cpp</code>, not to <code>kit.opengl</code>, because the template promises to build with no rendering kit.</p>
+<p>Amendment: §2.9 states the general rule — an integration point's <i>substrate</i> belongs to whoever cannot be absent — with the concrete case as the example.</p>
+<h3 id="aud-k-011--27-does-not-distinguish-build-settings-from-generation-parameters">AUD-K-011 — §2.7 does not distinguish build settings from generation parameters</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-039</b></p>
+<p><code>minSdkVersion</code>, <code>targetSdkVersion</code> and the ABI are build variables, not template parameters. Baking them at generation would mean regenerating to retarget — which, with §2.7.11 unimplemented, means losing the workspace.</p>
+<p>Amendment: §2.7 states the test — if a value can change over a project's life without changing what the project <i>is</i>, it belongs in the build.</p>
+<h3 id="aud-k-012--29-does-not-warn-about-reorganising-a-host-toolchain">AUD-K-012 — §2.9 does not warn about reorganising a host toolchain</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>D-040</b></p>
+<p>A kit adds an external sysroot with <code>-idirafter</code>, never <code>-I</code>, and names libraries by path rather than by <code>-l</code> with <code>-L</code>. Both were corrections after on-device build failures.</p>
+<p>Amendment: §2.9 states that a kit contributes <i>additions</i> to a host toolchain and must not reorganise it, with both failure modes as evidence.</p>
+<h3 id="aud-k-013--281-does-not-say-an-identity-names-the-artifact">AUD-K-013 — §2.8.1 does not say an identity names the artifact</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> minor · <b>D-041</b></p>
+<p><code>template.termux.cpp</code> became <code>template.terminal.cpp</code>; the platform belongs in <code>platforms</code>, not in the identity.</p>
+<p>Amendment: §2.8.1 adds the rule. <code>template.android.cpp</code> keeps its name because Android is what it <i>produces</i>.</p>
+<h3 id="aud-k-014--256-does-not-say-a-workflow-may-assume-no-platform">AUD-K-014 — §2.5.6 does not say a workflow may assume no platform</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> minor · <b>D-042</b></p>
+<p>Amendment: §2.5.6 notes that an empty platform set means no restriction, and that host detection is the wrong default because the generation host is not necessarily the target.</p>
+<h3 id="aud-k-015--21-does-not-say-how-a-host-locates-its-installation">AUD-K-015 — §2.1 does not say how a host locates its installation</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> minor · <b>D-043</b></p>
+<p>By marker — walking up for a directory containing both <code>lua/workflows</code> and <code>resources</code>, then <code>&lt;prefix&gt;/share/squared-pg</code> — never by directory name.</p>
+<p>Amendment: §2.1 or §1.2 states it, with the failure it replaced: recognising the names <code>build</code> and <code>bin</code> broke every other build directory.</p>
+<h3 id="aud-k-016--17-prefers-fish-the-tooling-is-bash">AUD-K-016 — §1.7 prefers fish; the tooling is bash</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> minor · <b>D-044</b></p>
+<p>Amendment: §1.7 states bash as canonical, fish as an optional translation, and the reason — two bugs shipped in a fish script that could not be executed where it was written.</p>
+<hr>
+<h2 id="l--specification-absent-for-planned-work">L — Specification absent for planned work</h2>
+<p>The sysroot and tier proposal (<code>docs/developer/design/sysroot-and-tiers.md</code>) introduces concepts the vault does not contain. These are not divergences; they are gaps that must be filled <i>before</i> implementation, or the same after-the-fact-decision pattern repeats.</p>
+<h3 id="aud-l-001--the-sysroot-is-not-a-specified-concept">AUD-L-001 — the sysroot is not a specified concept</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious</p>
+<p>A host environment containing the generator, a sandbox and a project area. Needs a section stating that it is <b>configuration, never discovery</b> — §2.7.2 forbids ambient state, and a sysroot is ambient unless it arrives explicitly.</p>
+<h3 id="aud-l-002--workspace-tiers-are-not-specified">AUD-L-002 — workspace tiers are not specified</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious</p>
+<p><code>sandbox</code> and <code>project</code>, their invariants, and the fact that most of them are documentation rather than engine-enforceable. §2.7.3 is the natural home.</p>
+<h3 id="aud-l-003--promote-and-demote-are-not-specified">AUD-L-003 — promote and demote are not specified</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious</p>
+<p>Both mutate an existing workspace, which §2.7.11 does not cover and the engine refuses. The design proposes a narrower path — rename, additive writes, provenance-checked replacement — which needs specifying as distinct from regeneration rather than folded into it.</p>
+<p>Demotion is destructive and the spec must say what it may never do: no silent <code>.git</code> deletion, refuse on a dirty tree, archive rather than remove.</p>
+<h3 id="aud-l-004--workspace-conformance-is-not-specified">AUD-L-004 — workspace conformance is not specified</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious</p>
+<p><code>workspace.verify</code> as an operation distinct from <code>workspace.inspect</code>, and the invariant list it checks. §2.16's register is the natural relative — it already names a detection mechanism per invariant (D-028), and this is where several of those mechanisms would live.</p>
+<h3 id="aud-l-006--squared-pgs-consumer-schema-is-unspecified">AUD-L-006 — squared-pg's consumer schema is unspecified</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>Supersedes AUD-K-006</b> · <b>D-053</b></p>
+<p>Cartridge format 2.0 moved every generator concept out of the container format and into <code>consumers.squared_pg</code>, which sqcart carries as opaque text and never validates (format spec §5.6).</p>
+<p>That was correct, and it left the schema homeless. <b>The only definition of what a squared-pg template or kit may declare is the engine's parser.</b> An author learns that <code>integration_arity</code> exists by reading <code>resolve_services.cpp</code>. The <code>ownership.default</code> field added by D-051 is likewise normative nowhere.</p>
+<p>The gap is not eight fields; it is the schema. Three consequences worth stating in the amendment:</p>
+<ul><li><b>Nothing validates it.</b> A malformed field falls back to its default rather than failing — except <code>processor</code>, which is a hard <code>capability.unsatisfied</code>. That asymmetry is deliberate and undocumented.</li><li><b>Three declared fields are read by nothing:</b> <code>provides</code> and <code>project_types</code> on every resource that has them, and <code>runtime</code> on every kit. <code>runtime</code> is the loop-inversion field added during the 2.0 bump against <code>kit.sfml</code>, which does not exist yet. The other two predate this and have no such excuse.</li><li><b><code>sqcart verify</code> no longer has jurisdiction</b>, so the checks it used to perform on ownership have no successor for a resource examined in isolation. <code>workspace.verify</code> (D-052) covers a <i>generated workspace</i>; a template on its own is still unchecked.</li></ul>
+<p>Amendment: §2.8 and §2.9 gain normative descriptions of <code>consumers.squared_pg</code> for templates and kits — every member, its type, its default when absent, and whether a malformed value falls back or fails. Fields read by nothing are listed as reserved-and-unread rather than quietly omitted.</p>
+<p><b>Applied.</b> Writing it surfaced a larger divergence than the finding described: §2.9.2 named <b>six kit members no implementation has ever read</b> — <code>supported_templates</code>, <code>supported_platforms</code>, <code>supported_framework</code>, <code>requires_packages</code>, <code>writes_integration_points</code>, plus <code>files</code> and <code>migrations</code> for features that do not exist.</p>
+<p>A kit written to that text would not have failed. The fallback rule would have absorbed every one of those names as absent, resolving as unconstrained platforms, every template compatible, no integration areas. Silent, wrong, and undetectable without reading the parser — which is the failure mode a normative document exists to prevent.</p>
+<p>The divergence survived audit-01 and the first pass of audit-02 because both compared the spec against <i>intent</i>. Nothing had compared this section against the code.</p>
+<h3 id="aud-l-005--the-metadata-record-version-is-not-versioned-in-the-spec">AUD-L-005 — the metadata record version is not versioned in the spec</h3>
+<p><b>Status:</b> APPLIED · <b>Severity:</b> serious · <b>Q-24</b></p>
+<p>A <code>tier</code> field takes the record from v1 to v2. §2.7.3 describes the record but not its evolution. Q-24 (metadata format migration) becomes live the moment a field is added.</p>
+<p>The honest reading of a v1 record under a v2 engine is "tier unknown", not "tier sandbox"; the spec should say so, because the alternative is a v1 workspace silently acquiring sandbox restrictions it never agreed to.</p>
+<hr>
+<h2 id="m--numbering-and-register-integrity">M — Numbering and register integrity</h2>
+<h3 id="aud-m-001--d-028-was-assigned-twice">AUD-M-001 — D-028 was assigned twice</h3>
+<p><b>Status:</b> <b>resolved during this pass</b> · <b>Severity:</b> blocking</p>
+<p>Audit 01 added D-028 ("Invariant register names a detection mechanism per invariant", resolving Q-25). The first implementation pass, unaware of it, began its own block at D-028.</p>
+<p>Sixteen decisions were renumbered D-029..D-044 and every citation updated across the vault, the developer documentation and the source comments. The audit's D-028 and its references in §2.16, <code>Spec status</code> and <code>spec-audit-01</code> are untouched.</p>
+<p>Recorded here rather than fixed silently: a decision register that has renumbered once needs the fact visible, or a reader following an old citation lands on the wrong decision.</p>
+<h3 id="aud-m-002--spec-status-does-not-reflect-sixteen-new-decisions">AUD-M-002 — <code>Spec status</code> does not reflect sixteen new decisions</h3>
+<p><b>Status:</b> APPLIED (D-054) · <b>Severity:</b> serious</p>
+<p>The status dashboard was accurate when audit 01 was applied. Every §2.7, §2.8, §2.9 and §2.14 row now has an unapplied amendment against it.</p>
+<p>Amendment: add a column, or a note per row, naming the pending decisions. A dashboard that does not show known pending work is worse than none.</p>
+<h3 id="aud-m-003--the-open-questions-register-has-grown-without-triage">AUD-M-003 — the open questions register has grown without triage</h3>
+<p><b>Status:</b> APPLIED (D-054) · <b>Severity:</b> minor</p>
+<p>Q-26 through Q-29 were added during implementation. Q-23 (framework acquisition) is now partly answered by the framework layering the project author described, and Q-21 (template composition) has been measured and found weaker than assumed — one file of twenty is duplicated between the two templates.</p>
+<p>Amendment: update both entries with what is now known, rather than leaving them as they were first written.</p>
+<hr>
+<h2 id="recommended-order">Recommended order</h2>
+<ol><li><b>AUD-K-001, K-002, K-003</b> — the three blocking divergences. The spec currently contradicts shipped, tested behaviour in each.</li><li><b>AUD-M-002, M-003</b> — the registers, so the dashboard is trustworthy before more work lands.</li><li><b>AUD-K-004…K-016</b> — mechanical transcription; the decision text already says what to write.</li><li><b>AUD-L-001…L-005</b> — before any sysroot code, not after.</li></ol>
+<p>Class K is not thinking work. It is an afternoon of transcription that has been deferred for a fortnight, and every deferral makes the vault a slightly less reliable description of the thing it describes.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

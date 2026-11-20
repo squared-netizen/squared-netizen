@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class InputEvent · squared</title>
+<meta name="description" content="squared: class InputEvent">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/InputEvent.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/InputEvent.md">on GitHub</a></p><h1 id="class-inputevent">class InputEvent</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L19">gui/src/input_event.cppm:19</a></i></p>
+<p><b>brief</b> Mutable event routed through a Stage actor path.</p>
+<p>Source fields are supplied by the caller. Stage supplies target, current actor, phase, and actor-local pointer coordinates during dispatch.</p>
+<h2 id="members">Members</h2>
+<p>public InputType type</p>
+<p>public std::int64_t pointer_id</p>
+<p>public float stage_x</p>
+<p>public float stage_y</p>
+<p>public int button</p>
+<p>public Key key</p>
+<p>public KeyModifiers modifiers</p>
+<p>public Navigation navigation</p>
+<p>public std::int32_t input_device_id</p>
+<p>public bool repeat</p>
+<h2 id="functions">Functions</h2>
+<h3 id="cancel">cancel</h3>
+<p><i>public void cancel()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L64">gui/src/input_event.cppm:64</a></i></p>
+<p><b>brief</b> Handle and stop the event, recording the current actor.</p>
+<p>Cancellation is used when a pointer contact is abandoned (for example after a gesture is cancelled by the OS) so actors can release capture.</p>
+<h3 id="cancelled">cancelled</h3>
+<p><i>public bool cancelled()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L90">gui/src/input_event.cppm:90</a></i></p>
+<p><b>brief</b> Read the cancelled flag.</p>
+<p><b>return</b> true when the event was cancelled.</p>
+<h3 id="current_target">current_target</h3>
+<p><i>public Actor * current_target()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L102">gui/src/input_event.cppm:102</a></i></p>
+<p><b>brief</b> Read the actor currently receiving the event.</p>
+<p><b>return</b> Actor receiving the event during this dispatch step.</p>
+<h3 id="handle">handle</h3>
+<p><i>public void handle()</i></p>
+<p><b>brief</b> Mark the event handled without stopping propagation.</p>
+<h3 id="handled">handled</h3>
+<p><i>public bool handled()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L78">gui/src/input_event.cppm:78</a></i></p>
+<p><b>brief</b> Read the handled flag.</p>
+<p><b>return</b> true when any listener or handler handled the event.</p>
+<h3 id="handled_by">handled_by</h3>
+<p><i>public Actor * handled_by()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L108">gui/src/input_event.cppm:108</a></i></p>
+<p><b>brief</b> Read the actor that first handled or cancelled the event.</p>
+<p><b>return</b> Actor that first handled or cancelled the event, or null.</p>
+<h3 id="local_x">local_x</h3>
+<p><i>public float local_x()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L120">gui/src/input_event.cppm:120</a></i></p>
+<p><b>brief</b> Read the horizontal position relative to the current target.</p>
+<p><b>return</b> Local horizontal position in logical units.</p>
+<h3 id="local_y">local_y</h3>
+<p><i>public float local_y()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L126">gui/src/input_event.cppm:126</a></i></p>
+<p><b>brief</b> Read the vertical position relative to the current target.</p>
+<p><b>return</b> Local vertical position in logical units.</p>
+<h3 id="phase">phase</h3>
+<p><i>public InputPhase phase()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L114">gui/src/input_event.cppm:114</a></i></p>
+<p><b>brief</b> Read the current dispatch phase.</p>
+<p><b>return</b> Current capture, target, or bubble phase.</p>
+<h3 id="stop">stop</h3>
+<p><i>public void stop()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L56">gui/src/input_event.cppm:56</a></i></p>
+<p><b>brief</b> Stop propagation; later phases and listeners are skipped.</p>
+<h3 id="stopped">stopped</h3>
+<p><i>public bool stopped()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L84">gui/src/input_event.cppm:84</a></i></p>
+<p><b>brief</b> Read the stopped flag.</p>
+<p><b>return</b> true when propagation has been stopped or cancelled.</p>
+<h3 id="target">target</h3>
+<p><i>public Actor * target()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/src/input_event.cppm#L96">gui/src/input_event.cppm:96</a></i></p>
+<p><b>brief</b> Read the dispatch target.</p>
+<p><b>return</b> Stage-selected or caller-supplied dispatch target.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

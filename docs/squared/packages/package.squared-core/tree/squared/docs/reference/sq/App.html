@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class App · squared</title>
+<meta name="description" content="squared: class App">
+<link rel="stylesheet" href="../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/App.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/App.md">on GitHub</a></p><h1 id="class-app">class App</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L108">stage/app.cppm:108</a></i></p>
+<p><b>brief</b> The app: the Telegraph, the model at its far end, and the Stage at its near one. One for the whole process.</p>
+<p>The platform makes it once and keeps it while the process lives, so an activity Android recreates reattaches to the same App and the model keeps running. It calls <code>squared_main</code> once, when the first window is there and the skin is loaded; the app pushes its first screen there and starts its model with <code>run</code>. Quitting (<code>quit()</code>, a <code>quit</code> tap) stops the model, after it saves, and empties the stack: the next launch in the same process starts afresh. Back at the root screen sends the app to the background instead.</p>
+<p>It is the platform's <code>sq::app::Application</code>: an app does not call those methods, the platform does.</p>
+<p>What it keeps: the screens, in what Android keeps for the activity (its saved instance state, 7.8), shown again only when Android brings the app back after ending its process; a swipe from the recent apps or a quit starts it fresh. And a model's own save (<code>sq::Save</code>), in the app's private files (<code>squared/model.state</code>), written on the model's thread after each <code>background</code> and given back to it before its next <code>start</code>, whatever ended the last run.</p>
+<p>Inherits from Application</p>
+<h2 id="members">Members</h2>
+<p>public Stage stage</p>
+<h2 id="functions">Functions</h2>
+<h3 id="app">App</h3>
+<p><i>public void App()</i></p>
+<h3 id="app">App</h3>
+<p><i>public void App(App &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L122">stage/app.cppm:122</a></i></p>
+<h3 id="app">App</h3>
+<p><i>public void App(const App &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L120">stage/app.cppm:120</a></i></p>
+<h3 id="background">background</h3>
+<p><i>public void background()</i></p>
+<h3 id="create">create</h3>
+<p><i>public bool create(app::Runtime &amp; runtime)</i></p>
+<h3 id="dispose">dispose</h3>
+<p><i>public void dispose()</i></p>
+<h3 id="foreground">foreground</h3>
+<p><i>public void foreground()</i></p>
+<h3 id="handle_event">handle_event</h3>
+<p><i>public void handle_event(const app::Event &amp; event)</i></p>
+<h3 id="hides_bars">hides_bars</h3>
+<p><i>public bool hides_bars()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L208">stage/app.cppm:208</a></i></p>
+<h3 id="keep_running">keep_running</h3>
+<p><i>public bool keep_running(const RunningNotice &amp; notice)</i></p>
+<p><b>brief</b> Keep running while the app is off the screen, with a notification saying so (Android: a foreground service, so the system neither freezes nor ends the process): for a model whose work goes on, a shell, a download. Again to change the text.</p>
+<p>While it runs, a new launch (a swipe from the recent apps, then the app opened again) comes back to the model that runs, rather than starting afresh. Quitting stops it, and so does <code>stop_running</code>. Exit in the notification is a quit.</p>
+<p>False when the platform cannot (a host build), or the app has not declared it (Android: dev.squared.ModelService in the manifest; see the template's README). Nothing is allocated.</p>
+<p>app.keep_running( { .title = "sqterm", .text = "1 session" } );</p>
+<h3 id="keeps_running">keeps_running</h3>
+<p><i>public bool keeps_running()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L183">stage/app.cppm:183</a></i></p>
+<h3 id="low_memory">low_memory</h3>
+<p><i>public void low_memory()</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public App &amp; operator=(App &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L123">stage/app.cppm:123</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public App &amp; operator=(const App &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L121">stage/app.cppm:121</a></i></p>
+<h3 id="quit">quit</h3>
+<p><i>public void quit()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L160">stage/app.cppm:160</a></i></p>
+<p><b>brief</b> Quit: the model saves and stops, and the platform closes the app.</p>
+<h3 id="quit_requested">quit_requested</h3>
+<p><i>public bool quit_requested()</i></p>
+<h3 id="render">render</h3>
+<p><i>public void render(graphics::Context &amp; graphics)</i></p>
+<h3 id="resize">resize</h3>
+<p><i>public void resize(int width, int height)</i></p>
+<h3 id="run">run</h3>
+<p><i>public bool run(Args &amp;&amp;... args)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L139">stage/app.cppm:139</a></i></p>
+<p><b>brief</b> Start the model <code>M</code> at the far end of the Telegraph, made from <code>args</code> on its own thread (named "model"), or on this one with <code>messaging::on_ui_thread</code> first, one turn a frame. One model to an app: false, and reported, for a second.</p>
+<p>A model with <code>save( sq::Save &amp; )</code> keeps what it writes there: it is called after each <code>background</code>, and the last save's values come back to its <code>receive</code>, as <code>set</code>s, before its <code>start</code>.</p>
+<p>Allocates the runner, the model inside it, once; and a model that saves, its last save, read here and freed once given back.</p>
+<h3 id="running">running</h3>
+<p><i>public bool running()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L157">stage/app.cppm:157</a></i></p>
+<p><b>brief</b> Whether a model runs.</p>
+<h3 id="safe_area_changed">safe_area_changed</h3>
+<p><i>public void safe_area_changed(const app::SafeArea &amp; area)</i></p>
+<h3 id="save_state">save_state</h3>
+<p><i>public std::size_t save_state(std::span&lt;std::byte&gt; out)</i></p>
+<h3 id="set_background_service">set_background_service</h3>
+<p><i>public void set_background_service(app::BackgroundService * service)</i></p>
+<h3 id="set_clipboard_service">set_clipboard_service</h3>
+<p><i>public void set_clipboard_service(app::ClipboardService * service)</i></p>
+<h3 id="set_report">set_report</h3>
+<p><i>public void set_report(app::Report report)</i></p>
+<h3 id="set_saved_state">set_saved_state</h3>
+<p><i>public void set_saved_state(std::span&lt;const std::byte&gt; saved)</i></p>
+<h3 id="set_text_input_service">set_text_input_service</h3>
+<p><i>public void set_text_input_service(app::TextInputService * service)</i></p>
+<p>sq::app::Application, for the platform.</p>
+<h3 id="stop_running">stop_running</h3>
+<p><i>public void stop_running()</i></p>
+<h3 id="surface_created">surface_created</h3>
+<p><i>public void surface_created(graphics::Context &amp; graphics)</i></p>
+<h3 id="take_background_request">take_background_request</h3>
+<p><i>public bool take_background_request()</i></p>
+<h3 id="telegraph">telegraph</h3>
+<p><i>public messaging::TelegraphUi &amp; telegraph()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/stage/app.cppm#L186">stage/app.cppm:186</a></i></p>
+<p><b>brief</b> The UI end of the Telegraph (the Stage's).</p>
+<h3 id="update">update</h3>
+<p><i>public void update(std::chrono::nanoseconds delta)</i></p>
+<h3 id="app">~App</h3>
+<p><i>public void ~App()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

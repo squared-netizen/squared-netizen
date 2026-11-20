@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Program · squared</title>
+<meta name="description" content="squared: class Program">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gles/Program.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gles/Program.md">on GitHub</a></p><h1 id="class-program">class Program</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L23">gles/program.cppm:23</a></i></p>
+<p><b>brief</b> One linked GL program, owned.</p>
+<p>8 bytes. Shaders are attached, linked and detached; nothing of them is kept.</p>
+<p>Attribute and uniform lists are queried on demand rather than cached, filling a caller-owned vector. A program that is drawn with a thousand times a second is introspected once, by a tool or a person, so the list costs nothing until somebody asks.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="program">Program</h3>
+<p><i>public void Program()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L26">gles/program.cppm:26</a></i></p>
+<h3 id="program">Program</h3>
+<p><i>public void Program(Program &amp;&amp; other)</i></p>
+<h3 id="program">Program</h3>
+<p><i>public void Program(const Program &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L29">gles/program.cppm:29</a></i></p>
+<h3 id="attributes">attributes</h3>
+<p><i>public GlesError attributes(std::vector&lt;AttributeInfo&gt; &amp; out)</i></p>
+<p><b>brief</b> List the vertex attributes this program actually uses.</p>
+<p><b>out</b> Cleared, then filled with one entry per active attribute.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<p><b>note</b> The caller owns the vector so it can be reused. Nothing is cached.</p>
+<h3 id="build">build</h3>
+<p><i>public GlesError build(std::string_view vertex_source, std::string_view fragment_source)</i></p>
+<p><b>brief</b> Compile and link in one step.</p>
+<p><b>vertex_source</b> GLSL vertex source.</p>
+<p><b>fragment_source</b> GLSL fragment source.</p>
+<p><b>return</b> A no-error GlesError on success, or the first failure, carrying the log of whichever stage failed.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Release the GL object. Safe to call more than once.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Forget the GL name without deleting it, after context loss.</p>
+<h3 id="link">link</h3>
+<p><i>public GlesError link(const Shader &amp; vertex, const Shader &amp; fragment)</i></p>
+<p><b>brief</b> Link a vertex and a fragment shader into a program.</p>
+<p><b>vertex</b> Compiled vertex shader.</p>
+<p><b>fragment</b> Compiled fragment shader.</p>
+<p><b>return</b> A no-error GlesError on success, or LinkFailed carrying the driver's log verbatim.</p>
+<h3 id="name">name</h3>
+<p><i>public std::uint32_t name()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L111">gles/program.cppm:111</a></i></p>
+<p><b>brief</b> Return the raw GL name, or zero.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Program &amp; operator=(Program &amp;&amp; other)</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Program &amp; operator=(const Program &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L30">gles/program.cppm:30</a></i></p>
+<h3 id="set_float">set_float</h3>
+<p><i>public void set_float(std::int32_t location, float value)</i></p>
+<p><b>brief</b> Set a float uniform. The program must be current.</p>
+<h3 id="set_int">set_int</h3>
+<p><i>public void set_int(std::int32_t location, std::int32_t value)</i></p>
+<p><b>brief</b> Set an int or sampler uniform. The program must be current.</p>
+<h3 id="set_mat4">set_mat4</h3>
+<p><i>public void set_mat4(std::int32_t location, const float * values)</i></p>
+<p><b>brief</b> Set a mat4 uniform from 16 floats in column-major order.</p>
+<p><b>location</b> Uniform location.</p>
+<p><b>values</b> Sixteen floats; GL expects column-major, which is the order sq::math::Matrix4 already stores.</p>
+<h3 id="set_vec2">set_vec2</h3>
+<p><i>public void set_vec2(std::int32_t location, float x, float y)</i></p>
+<p><b>brief</b> Set a vec2 uniform. The program must be current.</p>
+<h3 id="set_vec4">set_vec4</h3>
+<p><i>public void set_vec4(std::int32_t location, float x, float y, float z, float w)</i></p>
+<p><b>brief</b> Set a vec4 uniform. The program must be current.</p>
+<h3 id="uniform_location">uniform_location</h3>
+<p><i>public std::int32_t uniform_location(std::string_view name)</i></p>
+<p><b>brief</b> Return the location of a uniform.</p>
+<p><b>name</b> Uniform name as written in the shader.</p>
+<p><b>return</b> The location, or -1 when the program has no such active uniform.</p>
+<p><b>note</b> -1 is not an error. A uniform the shader declares but never reads is removed by the linker, and that is the usual reason setting one appears to do nothing.</p>
+<h3 id="uniforms">uniforms</h3>
+<p><i>public GlesError uniforms(std::vector&lt;UniformInfo&gt; &amp; out)</i></p>
+<p><b>brief</b> List the uniforms this program actually uses.</p>
+<p><b>out</b> Cleared, then filled with one entry per active uniform.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<h3 id="use">use</h3>
+<p><i>public void use()</i></p>
+<p><b>brief</b> Make this program current.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/program.cppm#L108">gles/program.cppm:108</a></i></p>
+<p><b>brief</b> Report whether this program holds a linked GL object.</p>
+<h3 id="program">~Program</h3>
+<p><i>public void ~Program()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

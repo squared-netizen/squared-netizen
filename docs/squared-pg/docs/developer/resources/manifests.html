@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manifest handling · squared-pg</title>
+<meta name="description" content="squared-pg: Manifest handling">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/resources/manifests.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/resources/manifests.md">on GitHub</a></p><h1 id="manifest-handling">Manifest handling</h1>
+<p>Programmer counterpart: <a href="../../programmer/resources/manifests.html">manifest reference</a>.</p>
+<h2 id="the-divergence-d-030">The divergence (D-030)</h2>
+<p>The specification defines a manifest envelope in §2.8.3:</p>
+<pre><code class="lang-json">{ &quot;schema_version&quot;: 1, &quot;id&quot;: &quot;...&quot;, &quot;type&quot;: &quot;template&quot;, &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;requires_engine&quot;: &quot;^1.0&quot;, &quot;requires_capabilities&quot;: [], &quot;template&quot;: { } }</code></pre>
+<p>The cartridge format specification — which the shipped seed manifests, the sqcart reader, and the sqcart test fixtures all implement — defines a different one:</p>
+<pre><code class="lang-json">{ &quot;format&quot;: &quot;squared-cartridge&quot;, &quot;format_version&quot;: 1, &quot;id&quot;: &quot;...&quot;,
+  &quot;kind&quot;: &quot;template&quot;, &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;engine&quot;: { &quot;id&quot;: &quot;squared-pg&quot;, &quot;version&quot;: &quot;&gt;=0.1.0 &lt;0.2.0&quot; },
+  &quot;requires_features&quot;: [], &quot;template&quot;: { } }</code></pre>
+<p>The identifier grammars differ too: §2.8.1 writes segments as <code>[a-z][a-z0-9]*(-[a-z0-9]+)*</code> with no segment-count limit; cartridge format §5.2 writes <code>[a-z][a-z0-9_]*</code> with two to eight segments.</p>
+<p><b>The engine implements the cartridge form.</b> AGENTS.md's temporary stance makes the repository ground truth during initial implementation, and the repository already contains working manifests, a tested reader, and a CLI that writes them. Implementing §2.8.3 would have meant either a second manifest reader or rewriting sqcart, and both are worse than recording the divergence.</p>
+<p><code>ResourceId::parse</code> accepts both <code>_</code> and <code>-</code> as segment separators — underscores because manifests use them, hyphens because the specification asks for them. That is the one place the two are reconciled rather than one being chosen.</p>
+<p><b>This needs a spec amendment</b>, either aligning §2.8.1–2.8.3 with the cartridge format or stating that generator resources are cartridges and inherit its envelope. The latter is the smaller change and matches what the code does.</p>
+<h2 id="extension-fields">Extension fields</h2>
+<p>The generator architecture needs fields the cartridge format does not model:</p>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Body</th><th>Purpose</th><th>Spec</th></tr></thead><tbody><tr><td><code>working_directory</code></td><td>template</td><td>the one user working directory</td><td>§2.7.3, §2.8.6</td></tr><tr><td><code>integration_areas</code></td><td>template</td><td>anchors kits may write</td><td>§2.8.6</td></tr><tr><td><code>integration_arity</code></td><td>template</td><td><code>single</code> or <code>multi</code> per area</td><td>§2.9.3</td></tr><tr><td><code>processor</code></td><td>template</td><td><code>copy</code> or <code>substitute</code></td><td>§2.8.8</td></tr><tr><td><code>parameters[].default</code></td><td>template</td><td>literal default</td><td>§2.8.7</td></tr><tr><td><code>parameters[].default_from</code></td><td>template</td><td>derived default</td><td>§2.8.7</td></tr><tr><td><code>executable</code></td><td>any</td><td>globs to mark executable</td><td>—</td></tr><tr><td><code>external.acquisition</code></td><td>kit</td><td><code>package</code>, <code>system</code> or <code>vendored</code></td><td>§2.9.4</td></tr><tr><td><code>conflicts_with</code></td><td>kit</td><td>declared incompatibility</td><td>§2.9.3</td></tr></tbody></table></div>
+<p>These are read from <code>Manifest::raw_json()</code> via <code>detail::manifest_extension</code>, which the format guarantees is preserved verbatim (§5.4, default tier: ignore unrecognised members).</p>
+<p>Reading them from raw JSON rather than forking sqcart's manifest model keeps the divergence in one direction — the engine knows more than the format, and the format never has to know about generation. That is the same scope rule <code>sqcart/AGENTS.md</code> states: sqcart knows the manifest schema, never resolution, selection, generation or workflow behaviour.</p>
+<p>The cost is that these fields are unvalidated by sqcart. Where one is malformed the engine falls back to a documented default rather than failing: <code>working_directory</code> to <code>sq_app</code>, <code>processor</code> to <code>substitute</code>, arity to <code>single</code>. Each fallback is the conservative choice.</p>
+<h2 id="where-a-fallback-is-not-used">Where a fallback is <i>not</i> used</h2>
+<p>An unknown <code>processor</code> is a hard failure (<code>capability.unsatisfied</code>), because §2.14.1 requires an unsatisfied capability to fail at resolution and silently falling back to <code>copy</code> would ship a workspace full of <code>{{project_name}}</code>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

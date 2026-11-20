@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class SpriteBatch · squared</title>
+<meta name="description" content="squared: class SpriteBatch">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/SpriteBatch.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/SpriteBatch.md">on GitHub</a></p><h1 id="class-spritebatch">class SpriteBatch</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L22">graphics/sprite_batch.cppm:22</a></i></p>
+<p><b>brief</b> Efficiently draw ordered textured quads with the selected backend.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="spritebatch">SpriteBatch</h3>
+<p><i>public void SpriteBatch()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L26">graphics/sprite_batch.cppm:26</a></i></p>
+<p><b>brief</b> Construct a batch owning no backend objects.</p>
+<h3 id="spritebatch">SpriteBatch</h3>
+<p><i>public void SpriteBatch(SpriteBatch &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L29">graphics/sprite_batch.cppm:29</a></i></p>
+<h3 id="spritebatch">SpriteBatch</h3>
+<p><i>public void SpriteBatch(const SpriteBatch &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L27">graphics/sprite_batch.cppm:27</a></i></p>
+<h3 id="begin">begin</h3>
+<p><i>public bool begin(const OrthographicCamera &amp; camera)</i></p>
+<p><b>brief</b> Begin an ordered batch using the camera projection.</p>
+<p><b>camera</b> Camera whose projection matrix drives the batch.</p>
+<p><b>return</b> true when the batch started; false if not initialized.</p>
+<h3 id="clear_clip">clear_clip</h3>
+<p><i>public void clear_clip()</i></p>
+<p><b>brief</b> Stop restricting drawing. Flushes first, for the same reason.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Release all owned backend objects.</p>
+<h3 id="draw">draw</h3>
+<p><i>public void draw(const Sprite &amp; sprite)</i></p>
+<p><b>brief</b> Draw one transformed Sprite.</p>
+<p><b>sprite</b> Sprite whose region and transform are drawn.</p>
+<h3 id="draw">draw</h3>
+<p><i>public void draw(const TextureRegion &amp; region, float x, float y, float width, float height, sq::graphics::Color color)</i></p>
+<p><b>brief</b> Draw one region without rotation.</p>
+<p><b>region</b> Region to sample; must remain valid for the batch.</p>
+<p><b>x</b> Horizontal position in logical pixels.</p>
+<p><b>y</b> Vertical position in logical pixels.</p>
+<p><b>width</b> Drawn width in logical pixels.</p>
+<p><b>height</b> Drawn height in logical pixels.</p>
+<p><b>color</b> Tint multiplied with the sampled texture; defaults to opaque white.</p>
+<h3 id="drawing">drawing</h3>
+<p><i>public bool drawing()</i></p>
+<p><b>brief</b> Report whether begin() has been called without a matching end().</p>
+<h3 id="end">end</h3>
+<p><i>public void end()</i></p>
+<p><b>brief</b> Flush queued sprites and finish the batch.</p>
+<h3 id="flush">flush</h3>
+<p><i>public void flush()</i></p>
+<p><b>brief</b> Flush queued sprites without ending the batch.</p>
+<h3 id="initialize">initialize</h3>
+<p><i>public bool initialize(std::size_t maximum_sprites)</i></p>
+<p><b>brief</b> Allocate GPU buffers and compile the built-in sprite shader.</p>
+<p><b>maximum_sprites</b> Maximum sprites buffered before an automatic flush.</p>
+<p><b>return</b> true when backend initialization succeeded.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Mark shaders and buffers stale without issuing graphics calls.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public SpriteBatch &amp; operator=(SpriteBatch &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L30">graphics/sprite_batch.cppm:30</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public SpriteBatch &amp; operator=(const SpriteBatch &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite_batch.cppm#L28">graphics/sprite_batch.cppm:28</a></i></p>
+<h3 id="queued_sprites">queued_sprites</h3>
+<p><i>public std::size_t queued_sprites()</i></p>
+<p><b>brief</b> Read how many sprites are queued and not yet drawn.</p>
+<p><b>return</b> Zero outside begin()/end(), or straight after a flush.</p>
+<h3 id="release">release</h3>
+<p><i>public void release()</i></p>
+<p><b>brief</b> Release GPU objects while preserving batch capacity for restoration.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(bool context_preserved)</i></p>
+<p><b>brief</b> Rebuild, stating explicitly whether the context survived.</p>
+<p><b>context_preserved</b> true when the GPU objects are still valid.</p>
+<p><b>note</b> No default. The previous one was <code>false</code>, which made <code>restore()</code> read as cheap and behave destructively: it reloaded everything, moved every texture's generation, and invalidated every TextureRegion copied out of an atlas - on the first frame, before anything had been lost.</p>
+<p><b>note</b> Prefer the overload taking a Context. It reads the answer from the object that knows it, so the polarity cannot be got backwards.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(const graphics::Context &amp; graphics)</i></p>
+<p><b>brief</b> Rebuild released shaders and buffers in the current context.</p>
+<p><b>context_preserved</b> Whether the GPU context survived loss; true skips recomputing fast-path state where possible.</p>
+<p><b>return</b> true when backend objects were restored.</p>
+<h3 id="set_clip">set_clip</h3>
+<p><i>public void set_clip(int x, int y, int width, int height)</i></p>
+<p><b>brief</b> Restrict drawing to a rectangle of the framebuffer.</p>
+<p><b>x</b> Left edge in framebuffer pixels.</p>
+<p><b>y</b> Bottom edge in framebuffer pixels, measured from the bottom.</p>
+<p><b>width</b> Width in pixels; zero or negative clips everything away.</p>
+<p><b>height</b> Height in pixels.</p>
+<p><b>note</b> Pixels, not logical units, and bottom-left origin - this is the scissor rectangle as the graphics API means it. Converting from whatever coordinate system the caller uses is the caller's job, because only the caller knows its own camera and drawable size.</p>
+<p><b>note</b> Flushes first. The scissor cannot change part-way through a draw call, so everything already queued must be drawn under the old one. That is why this lives on the batch: the flush and the change are inseparable, and anywhere else they could be desynchronised.</p>
+<h3 id="skipped_draws">skipped_draws</h3>
+<p><i>public std::size_t skipped_draws()</i></p>
+<p><b>brief</b> Read how many draws were refused since the last begin().</p>
+<p>A draw is refused when its region is no longer valid - its texture was discarded, reloaded, or restored under it. Drawing it would sample whatever now occupies that texture unit, so it is skipped.</p>
+<p>Skipping silently is correct and invisible, which is the problem: an interface that draws nothing looks exactly like one that was never asked to draw. This is the difference, and it is one assertion in a test rather than an afternoon of bisecting.</p>
+<h3 id="sprite_capacity">sprite_capacity</h3>
+<p><i>public std::size_t sprite_capacity()</i></p>
+<p><b>brief</b> Read how many sprites one batch may hold before it must flush.</p>
+<p><b>return</b> The capacity given to initialize().</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Check initialization state.</p>
+<p><b>return</b> true when initialization succeeded.</p>
+<h3 id="spritebatch">~SpriteBatch</h3>
+<p><i>public void ~SpriteBatch()</i></p>
+<p><b>brief</b> Destroy all owned backend objects.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

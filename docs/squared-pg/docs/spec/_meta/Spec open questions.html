@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec open questions · squared-pg</title>
+<meta name="description" content="squared-pg: Spec open questions">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/Spec open questions.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/Spec open questions.md">on GitHub</a></p><hr>
+<p>title: Spec open questions tags: [spec, meta, dashboard]</p>
+<hr>
+<h1 id="spec-open-questions">Spec open questions</h1>
+<p>Back to [[Specification Index]]. Resolutions are recorded in [[Spec decisions]].</p>
+<h2 id="resolved">Resolved</h2>
+<p>All twenty questions raised during the first review pass have preliminary answers, written into the sections and recorded as decisions. Q-25, raised while writing the resolutions, is now also resolved (D-028). Preliminary means <i>decided and specified</i>, not <i>unchallengeable</i> — each is reopenable with a new decision entry.</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>Question</th><th>Resolution</th><th>Decision</th></tr></thead><tbody><tr><td>Q-01</td><td>Embedder access contradiction</td><td>C++ API is the boundary; Lua is first consumer</td><td>D-025</td></tr><tr><td>Q-02</td><td>Dependency direction</td><td><code>third_party</code> ← <code>engine</code> ← <code>lua</code> ← hosts; <code>resources</code> inert</td><td>D-026</td></tr><tr><td>Q-03</td><td>Manifest schema</td><td>JSON <code>manifest.json</code>, common envelope + type block</td><td>D-021</td></tr><tr><td>Q-04</td><td>Identifier and version grammar</td><td>dotted lowercase segments; SemVer 2.0.0; <code>id@constraint</code></td><td>D-022</td></tr><tr><td>Q-05</td><td>Engine capability registry</td><td>named, versioned, compiled-in, enumerable</td><td>D-023</td></tr><tr><td>Q-06</td><td>Transaction mechanics</td><td>same-filesystem staging + write-ahead journal</td><td>D-024</td></tr><tr><td>Q-07</td><td>Duplicate §2.4.6</td><td>synchronous core normative; job wrapper optional</td><td>D-007</td></tr><tr><td>Q-08</td><td>Service vs operation duplication</td><td>operations are documented service compositions</td><td>D-008</td></tr><tr><td>Q-09</td><td>Stringly-typed dispatch</td><td>typed C++ registry canonical, Lua form is sugar</td><td>D-009</td></tr><tr><td>Q-10</td><td>Broken §2.14 references</td><td>corrected to §2.15</td><td>D-010</td></tr><tr><td>Q-11</td><td>Hybrid eager/lazy determinism</td><td>immutable resource index</td><td>D-011</td></tr><tr><td>Q-12</td><td>Resource Service validation boundary</td><td>envelope vs type block</td><td>D-012</td></tr><tr><td>Q-13</td><td>Lua filesystem prohibition too broad</td><td>scoped to generator-owned resources</td><td>D-013</td></tr><tr><td>Q-14</td><td>Engine domain MAY/MUST contradiction</td><td>MAY deleted</td><td>D-014</td></tr><tr><td>Q-15</td><td>Threading and concurrency</td><td>single-threaded, workspace-exclusive</td><td>D-015</td></tr><tr><td>Q-16</td><td>Lua trust boundary</td><td>two-tier trusted/sandboxed</td><td>D-016</td></tr><tr><td>Q-17</td><td>Error identifiers</td><td>category enum + stable dotted code</td><td>D-017</td></tr><tr><td>Q-18</td><td>Generator-internal asset home</td><td><code>resources/generator/</code></td><td>D-018</td></tr><tr><td>Q-19</td><td>Coroutines</td><td>not in v1</td><td>D-019</td></tr><tr><td>Q-20</td><td>Merged-file regions</td><td><code>merged</code> reserved, not implemented in v1</td><td>D-020</td></tr><tr><td>Q-25</td><td>Invariant testability</td><td>invariant register names a detection mechanism per invariant; I-10 partially checkable, gap in §2.16.3</td><td>D-028</td></tr></tbody></table></div>
+<h2 id="open">Open</h2>
+<p>These arose while writing the resolutions and are deliberately left open.</p>
+<h3 id="q-21--template-composition-in-v1">Q-21 · Template composition in v1?</h3>
+<p>[[2.8 Templates]]</p>
+<p>Composition is specified but optional. The four reference templates (<code>headless</code>, <code>terminal</code>, <code>ncurses</code>, <code>android.cpp</code>) share substantial structure, which argues for composition; but a v1 that requires each template to be self-contained is simpler and cannot produce composition-order bugs. Decide when the reference templates are authored.</p>
+<h3 id="q-22--build-system-abstraction-depth">Q-22 · Build-system abstraction depth</h3>
+<p>[[2.11 Packages]] · [[2.7 Project generation model]]</p>
+<p>Packages declare build integration as structured data, which the generator turns into CMake. Android additionally needs Gradle. Is there one build-integration model with per-system emitters, or does each kit own its build emission? Current text assumes emitters; confirm when <code>kit.android</code> is authored.</p>
+<h3 id="q-23--squared-framework-acquisition">Q-23 · Squared framework acquisition</h3>
+<p>[[2.7 Project generation model]]</p>
+<p>The spec requires framework integration to be reproducible and offline, but does not say where the framework itself comes from — vendored in <code>resources/packages/</code>, a sibling checkout, or a declared external path. Needs deciding before the first end-to-end generation.</p>
+<h3 id="q-24--workspace-metadata-format-stability">Q-24 · Workspace metadata format stability</h3>
+<p>[[2.7 Project generation model]] · [[2.15 Error and transaction model]]</p>
+<p><code>.squared/</code> is versioned, but there is no migration story for the metadata format itself. What happens when a newer generator opens an older workspace record? Proposal: forward-compatible reader, refuse-and-report on major mismatch.</p>
+<hr>
+<h2 id="raised-by-the-first-implementation-pass">Raised by the first implementation pass</h2>
+<ul><li><b>Q-26</b> — the <code>sandboxed</code> trust tier (§2.14.4) is declared in <code>workflow.json</code> but not enforced: the host does not yet construct a restricted Lua environment. A tier that is declared but unenforced is worse than none, because it invites the assumption that it works. Close this before third-party workflows are a real thing.</li><li><b>Q-27</b> — §2.8.1's identifier grammar and cartridge format §5.2's disagree on separators and segment counts (D-029). The engine accepts both. Decide which is normative and amend the other.</li><li><b>Q-29</b> — the engine can express "requires kit X" but not "requires at least one kit providing X". <code>template.android.cpp</code> needs the latter: it wants <i>a</i> rendering backend without naming <code>kit.opengl</code> specifically, so that <code>kit.sfml</code> is a drop-in alternative. <code>__has_include</code> covers it in the generated source; whether resolution should also express it is open.</li><li><b>Q-28</b> — the reference workflow defaults <code>platforms</code> to <code>[&quot;termux&quot;]</code> and <code>framework</code> to <code>&quot;1.0.0&quot;</code>. Both are workflow policy under §2.5.6, but the framework default in particular is a placeholder standing in for Q-23 (where the Squared framework comes from), and it should not outlive it.</li></ul>
+<hr>
+<h2 id="triage-2026-09-07-aud-m-003-d-054">Triage, 2026-09-07 (AUD-M-003, D-054)</h2>
+<p>The register had grown to Q-29 without review. Current state:</p>
+<div class="tablewrap"><table><thead><tr><th>Q</th><th>Subject</th><th>State</th></tr></thead><tbody><tr><td>Q-21</td><td>Template composition scope</td><td><b>weaker than assumed.</b> Measured: one file of twenty is duplicated between the two templates. Composition was proposed to solve a duplication problem that has not appeared. Keep open, do not act.</td></tr><tr><td>Q-22</td><td>Build emission model depth</td><td>open, unchanged</td></tr><tr><td>Q-23</td><td>Squared framework acquisition</td><td><b>partly answered.</b> The framework is delivered as packages, so acquisition becomes package materialisation rather than a new mechanism. <code>requires.framework</code> may become an ordinary dependency on <code>package.sq.core</code>.</td></tr><tr><td>Q-24</td><td>Metadata format migration</td><td><b>half answered</b> by §2.7.3b: how an older record is <i>read</i> is settled. Whether one is ever rewritten forward is not.</td></tr><tr><td>Q-25</td><td>Invariant testability gaps</td><td><b>answered</b> by the register in §2.16.2 (D-028) and strengthened for I-16 by §2.16.5. I-10 remains the acknowledged weak row.</td></tr><tr><td>Q-26</td><td>Lua sandbox enforcement</td><td>open. Declared, recognised and refused (D-045). No concrete consumer.</td></tr><tr><td>Q-27–Q-29</td><td><i>(added during implementation)</i></td><td>untriaged at the time this note was written; review before the next audit opens</td></tr></tbody></table></div>
+<p>The rule that prevents a recurrence is in [[Spec conventions]]: a question added during implementation is triaged when the audit that would have caught it closes, not later.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

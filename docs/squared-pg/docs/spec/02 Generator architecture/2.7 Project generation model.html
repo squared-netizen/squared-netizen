@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.7 Project generation model · squared-pg</title>
+<meta name="description" content="squared-pg: 2.7 Project generation model">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.7 Project generation model.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.7 Project generation model.md">on GitHub</a></p><hr>
+<p>section: "2.7" title: Project generation model status: review tags: [spec, architecture, generation, ownership]</p>
+<hr>
+<h1 id="27-project-generation-model">2.7 Project generation model</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.6 Engine-Lua boundary]] · Next: [[2.8 Templates]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines how <code>squared-pg</code> transforms configuration, templates, kits, packages, and assets into a complete, buildable, user-owned Squared project workspace — and who owns what, when.</p>
+<p>A generated project is not a collection of files. It is a <b>developer workspace</b>: application code, framework integration, platform support, build configuration, resources, and the metadata required to understand how it was produced.</p>
+<p>This section defines composition and ownership. Resource <i>definitions</i> — manifest schema, identity grammar, versioning, discovery — are [[2.8 Templates]], [[2.9 Kits]], [[2.10 Assets and generator resources]] and [[2.11 Packages]] (D-006). The boundary <i>guarantee</i> is [[2.12 Generated-project boundary]]; the mechanism behind it is §2.7.10 here (D-006a). Error taxonomy and transaction mechanics are [[2.15 Error and transaction model]].</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; 2.7.0 Terminology</li><li>&#9745; 2.7.1 Generated project definition</li><li>&#9745; 2.7.2 Generation inputs</li><li>&#9745; 2.7.3 Workspace model</li><li>&#9745; 2.7.4 Template integration</li><li>&#9745; 2.7.5 Kit integration</li><li>&#9745; 2.7.6 Package integration</li><li>&#9745; 2.7.7 Asset integration</li><li>&#9745; 2.7.8 Squared framework integration</li><li>&#9745; 2.7.9 Generation phases</li><li>&#9745; 2.7.10 Generated file ownership and provenance</li><li>&#9745; 2.7.11 Regeneration and update model</li><li>&#9745; 2.7.12 Ownership transition</li><li>&#9745; 2.7.13 Project generation invariants</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="270-terminology">2.7.0 Terminology</h3>
+<p>The following terms are used with fixed meaning throughout this section. Canonical cross-project definitions live in [[Spec glossary]]; this table fixes the meaning of each term <b>within this section</b> and stays in sync with the glossary (per the glossary's drift rule).</p>
+<div class="tablewrap"><table><thead><tr><th>Term</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Workspace</b></td><td>The complete generated directory tree, including all layers. Synonymous with <i>generated project</i>.</td></tr><tr><td><b>Working directory</b></td><td>The user working directory: the subtree the user authors code in. A subset of the workspace; see §2.7.3 (<code>The user working directory</code>).</td></tr><tr><td><b>Resource</b></td><td>Any generator-owned, manifest-identified unit: template, kit, package, or asset.</td></tr><tr><td><b>Materialization</b></td><td>Writing a resolved resource's content into the workspace.</td></tr><tr><td><b>Provenance</b></td><td>The recorded relationship between a generated path and the resource that produced it.</td></tr><tr><td><b>Ownership class</b></td><td>The regeneration policy attached to a generated path (§2.7.10).</td></tr><tr><td><b>Finalization</b></td><td>The commit point at which workspace ownership transfers to the user.</td></tr></tbody></table></div>
+<p><code>SquaredProject</code> refers to the engine's in-memory project model. <i>Squared project</i> refers to the generated artifact.</p>
+<hr>
+<h3 id="271-generated-project-definition">2.7.1 Generated project definition</h3>
+<p>A generated Squared project is the primary output of <code>squared-pg</code>.</p>
+<p>A generated project MUST be:</p>
+<ul><li><b>self-contained</b> — buildable from its own tree plus its declared external dependencies;</li><li><b>independent</b> — free of any runtime or build-time dependency on <code>squared-pg</code> internals;</li><li><b>reproducible</b> — derivable again from its recorded generation configuration;</li><li><b>legible</b> — understandable by a developer with no knowledge of the generator's implementation;</li><li><b>continuable</b> — suitable for ongoing development, version control, and relocation.</li></ul>
+<h4 id="project-identity">Project identity</h4>
+<p>Every generated project MUST have a stable project identity established at generation time.</p>
+<p>Project identity MUST include:</p>
+<ul><li>project name;</li><li>project type (derived from the template);</li><li>target platform set;</li><li>generator version;</li><li>Squared framework version.</li></ul>
+<p>Project identity MUST NOT be derived from the workspace's filesystem location. Moving a workspace MUST NOT change its identity.</p>
+<h4 id="generator-responsibility-boundary">Generator responsibility boundary</h4>
+<p>The engine performs generation capabilities. Lua selects and sequences them.</p>
+<pre><code class="lang-text">Lua Workflow
+    |
+    | select project configuration
+    v
+Engine
+    |
+    +--&gt; create workspace
+    +--&gt; apply template
+    +--&gt; integrate kits
+    +--&gt; resolve and materialize packages
+    +--&gt; integrate Squared framework
+    +--&gt; materialize assets
+    +--&gt; generate build configuration
+    +--&gt; validate workspace
+    +--&gt; finalize</code></pre>
+<p>The engine MUST NOT decide:</p>
+<ul><li>what kind of project the user wants;</li><li>which template is selected;</li><li>which kits are applied;</li><li>which packages are included;</li><li>which assets are materialized;</li><li>the order in which generation stages execute.</li></ul>
+<p>Those decisions belong to Lua or an embedding application (§2.5).</p>
+<h4 id="relationship-to-the-generator">Relationship to the generator</h4>
+<pre><code class="lang-text">squared-pg
+    |
+    | generates
+    v
+Generated Squared Project
+    |
+    | consumes
+    v
+Squared Framework</code></pre>
+<p><code>squared-pg</code> establishes the relationship between the project and the framework. It does not participate in it. After finalization, <code>squared-pg</code> MUST NOT be required to build, run, test, or distribute the generated project.</p>
+<p>The single permitted exception is the update workflow defined in §2.7.11, which is opt-in and MUST NOT be required for normal development.</p>
+<hr>
+<h3 id="272-generation-inputs">2.7.2 Generation inputs</h3>
+<p>All generation inputs MUST be explicit.</p>
+<p>Generation MUST NOT depend on:</p>
+<ul><li>ambient environment variables;</li><li>the current working directory;</li><li>host-specific filesystem layout;</li><li>interactive prompting from within the engine;</li><li>network availability;</li><li>the location of the generator installation.</li></ul>
+<h4 id="required-inputs">Required inputs</h4>
+<p>A generation request MUST supply:</p>
+<ul><li>project name;</li><li>output workspace location;</li><li>template identity;</li><li>Squared framework version constraint.</li></ul>
+<h4 id="optional-inputs">Optional inputs</h4>
+<p>A generation request MAY supply:</p>
+<ul><li>kit identities;</li><li>package identities and version constraints;</li><li>asset identities;</li><li>target platform set;</li><li>template parameters;</li><li>package feature configuration;</li><li>build configuration options;</li><li>workflow-specific options.</li></ul>
+<h4 id="input-assembly">Input assembly</h4>
+<p>Lua is responsible for assembling generation inputs from command-line arguments, configuration files, streams, or an embedding application (§2.5.5, §2.5.6).</p>
+<p>The engine receives structured configuration data and MUST validate it against the resolved template, kit, and package contracts before any workspace mutation occurs.</p>
+<p>If required inputs are missing, the engine MUST return a structured validation error identifying each missing input. The engine MUST NOT supply defaults for identity-bearing inputs (project name, template, output location), and MUST NOT prompt.</p>
+<p>Lua MAY then request additional input, amend the configuration, select an alternative workflow, or terminate.</p>
+<h4 id="input-normalization">Input normalization</h4>
+<p>The engine MUST normalize inputs before validation:</p>
+<ul><li>resource identifiers to canonical form;</li><li>version constraints to canonical form;</li><li>paths to absolute form;</li><li>platform names to the declared platform vocabulary.</li></ul>
+<p>Normalization MUST be deterministic and MUST NOT consult the filesystem for anything other than path resolution.</p>
+<hr>
+<h3 id="273-workspace-model">2.7.3 Workspace model</h3>
+<h4 id="structural-variance">Structural variance</h4>
+<p>The engine MUST NOT assume a single workspace layout.</p>
+<p>Workspace structure is determined by:</p>
+<ul><li>the selected template;</li><li>the applied kits;</li><li>the resolved packages;</li><li>the target platform set;</li><li>project configuration.</li></ul>
+<p>The template defines the workspace foundation. Kits, packages, and assets populate declared extension points within it.</p>
+<h4 id="the-user-working-directory">The user working directory</h4>
+<p>Every generated workspace MUST designate exactly one <b>user working directory</b> — the subtree in which the user authors application code.</p>
+<p>The generator MUST guarantee that:</p>
+<ul><li>the user never needs to edit files outside the working directory to develop the application;</li><li>no <code>generated</code>-class file (§2.7.10) is written inside the working directory;</li><li>the working directory's location is declared in project metadata.</li></ul>
+<p>Templates MAY name this directory conventionally. The reference convention is <code>sq_app/</code>.</p>
+<h4 id="example-layouts">Example layouts</h4>
+<p><code>template.headless</code> may generate:</p>
+<pre><code class="lang-text">project/
+├── sq_app/
+│   ├── include/
+│   ├── src/
+│   └── main.cpp
+├── cmake/
+├── CMakeLists.txt
+├── .squared/
+├── README.md
+└── AGENTS.md</code></pre>
+<p><code>template.android.cpp</code> may generate:</p>
+<pre><code class="lang-text">project/
+├── sq_app/
+│   ├── include/
+│   ├── src/
+│   │   └── main.cpp
+│   └── CMakeLists.txt
+├── sq_app_android/
+│   ├── AndroidManifest.xml
+│   ├── assets/
+│   ├── libs/
+│   ├── res/
+│   ├── src/
+│   └── jni/
+├── external/
+├── cmake/
+├── .squared/
+├── .clang-format
+├── AGENTS.md
+└── README.md</code></pre>
+<p>Layouts MAY differ. The <b>layer model</b> below MUST NOT.</p>
+<h4 id="workspace-layers">Workspace layers</h4>
+<p>A generated workspace MUST be organized into the following logical layers. A layer MAY be a single directory, several directories, or a set of declared paths, but each layer MUST have a declared, discoverable location.</p>
+<h5 id="application-layer">Application layer</h5>
+<p>Contains user-authored code: application behaviour, game logic, user interfaces, domain systems.</p>
+<ul><li>MUST be the user working directory or contained within it.</li><li>MUST NOT contain generator implementation detail.</li><li>MUST NOT contain files the generator will overwrite.</li></ul>
+<h5 id="framework-integration-layer">Framework integration layer</h5>
+<p>Connects the workspace to the Squared framework and to applied kits.</p>
+<p>MAY contain framework initialization, adapters, middleware bridges, and platform integration code.</p>
+<p>Generated and maintained according to template and kit rules.</p>
+<h5 id="platform-layer">Platform layer</h5>
+<p>Contains platform-specific project components — Android manifests and resources, terminal launchers, desktop packaging.</p>
+<p>MUST remain isolated from application logic where practical.</p>
+<h5 id="build-layer">Build layer</h5>
+<p>Contains everything required to compile: CMake files, Gradle files, toolchain configuration, dependency declarations.</p>
+<p>Build files MAY be fully generated or seeded, and a seeded file MAY include a generated fragment. The ownership class of every build file MUST be declared by the template (§2.7.10).</p>
+<h5 id="resource-layer">Resource layer</h5>
+<p>Contains project resources: textures, audio, shaders, fonts, configuration, localization data.</p>
+<p>The workspace MUST distinguish framework resources, kit resources, and user-authored application resources. Generator-owned resources MUST NOT silently become user-editable application assets (§2.7.7).</p>
+<h4 id="workspace-metadata">Workspace metadata</h4>
+<p>Every generated workspace MUST contain a metadata record.</p>
+<p>The metadata record MUST be:</p>
+<ul><li>machine-readable;</li><li>located at a declared, stable path (reference convention: <code>.squared/</code>);</li><li>generator-owned;</li><li>versioned.</li></ul>
+<p>The metadata record MUST contain:</p>
+<ul><li>generator version;</li><li>template identity and version;</li><li>kit identities and versions;</li><li>package identities and resolved versions;</li><li>asset identities and versions;</li><li>Squared framework version;</li><li>resolved platform set;</li><li>the normalized generation configuration;</li><li>the working directory location;</li><li>the layer location map;</li><li>the file provenance table (§2.7.10).</li></ul>
+<p>The metadata record MAY contain a generation timestamp. It MUST NOT contain:</p>
+<ul><li>absolute host paths;</li><li>temporary filesystem locations;</li><li>user account information;</li><li>generator-internal state or handles.</li></ul>
+<p>Metadata exists to support project maintenance, reproducibility, update workflows, and debugging. A user MUST be able to delete the metadata record and retain a working project — losing only update capability.</p>
+<h4 id="workspace-initialization-files">Workspace initialization files</h4>
+<p>Templates MAY seed project documentation and development configuration:</p>
+<pre><code class="lang-text">README.md
+AGENTS.md
+.clang-format
+.clang-tidy
+.editorconfig
+.gitignore</code></pre>
+<p>These SHOULD establish project conventions, build instructions, development workflow, and the generated/user ownership boundary. They are <code>seeded</code> class (§2.7.10) unless the template declares otherwise.</p>
+<h4 id="workspace-generation-rules">Workspace generation rules</h4>
+<p>The generator MUST:</p>
+<ul><li>create all declared directories;</li><li>materialize all required files;</li><li>apply selected kits at declared integration points;</li><li>integrate resolved packages;</li><li>resolve framework dependencies;</li><li>record provenance for every path it creates;</li><li>preserve declared ownership boundaries.</li></ul>
+<p>The generator MUST NOT:</p>
+<ul><li>place generated files outside declared layer locations;</li><li>mix generator internals into the application layer;</li><li>require the user to understand generator implementation to build the project;</li><li>create any dependency on the generator repository layout.</li></ul>
+<h4 id="workspace-structure-invariant">Workspace structure invariant</h4>
+<pre><code class="lang-text">User application code
+        |
+        v
+Squared framework integration
+        |
+        v
+Platform / middleware integration
+        |
+        v
+Build and deployment infrastructure</code></pre>
+<p>The workspace is the developer-facing product of <code>squared-pg</code>, not an exposed implementation detail of the generator. Its structure MUST communicate ownership, responsibility, and extension points without reference to generator documentation.</p>
+<hr>
+<h3 id="273b-metadata-record-versioning">2.7.3b Metadata record versioning</h3>
+<blockquote><p>[!note] Resolution of AUD-L-005, partial answer to Q-24 (D-054)</p></blockquote>
+<p>The workspace metadata record carries <code>record_version</code>, currently <code>1</code>.</p>
+<p><b>A reader MUST NOT infer an absent field's value.</b> Where a later version adds a field, the honest reading of an earlier record is <i>unknown</i>, never the new version's default.</p>
+<p>The case that produced this rule: a <code>tier</code> field would take the record from v1 to v2, and reading a v1 record as <code>tier: sandbox</code> would mean a workspace silently acquiring restrictions it never agreed to. <code>tier: unknown</code> is both true and safe, and a tool that needs the answer can ask.</p>
+<p>A reader encountering a <code>record_version</code> <b>newer</b> than it implements MUST report that and MUST NOT proceed on the fields it recognises. The unknown fields may change the meaning of the known ones.</p>
+<p>Q-24 (metadata format migration) remains open for the harder half: whether an older record is ever <i>rewritten</i> forward, and by what. This section settles only how one is read.</p>
+<h3 id="273a-the-environment">2.7.3a The environment</h3>
+<blockquote><p>[!note] Resolution of AUD-L-001, AUD-L-002, AUD-L-003 (D-054) Specified after implementation rather than before, which is the pattern AUD-L-001 was filed to prevent. Recorded so the register is honest about it.</p></blockquote>
+<p>An <b>environment</b> is a host directory holding the tool and the workspaces made with it. Called an environment, not a workspace: a workspace is one generated project (§2.7.3) and the word is taken.</p>
+<pre><code>~/sqsysroot/
+  project/     promoted work
+  sandbox/     experiments
+  .sqpg/       the tool: bin/, lua/, resources/</code></pre>
+<p><code>.sqpg/</code> mirrors a source layout exactly, so the marker search of §2.1.5a finds it with no configuration. It holds <b>both</b> binaries: a workspace whose deliverable is a cartridge shells out to <code>sqcart</code>, so a tool directory without it cannot support cartridge authoring.</p>
+<blockquote><p>[!note] Named <code>.sqpg</code>, not <code>.squared</code> (D-055) A generated workspace keeps its own record at <code>&lt;workspace&gt;/.squared/metadata.json</code>. One name meaning "the installed tool" in one place and "this workspace's provenance" in another was already confusing enough to produce a defect: workspace detection tested for a <code>.squared-pg</code> directory that has never existed, and the mistake survived because a fallback caught it.</p>
+<p><code>.squared</code> now means one thing. The tool directory is the newer of the two and had one installation to migrate.</p></blockquote>
+<p><b>A workspace is recognised by its metadata record and by nothing else.</b> Not by a build file, and not by a build file beside a conventional directory — that describes half the C projects in existence, and a generator that treated one of them as its own would run workflow verbs in a tree it never made.</p>
+<p><b>A workspace MUST NOT be generated inside another workspace.</b> A nested tree cannot be promoted, since tier movement takes a name in a tier and not a path, and it sits inside the outer workspace's provenance scope. A conforming implementation MUST refuse, checking every ancestor of the target rather than only its parent.</p>
+<h4 id="discovery-boundary">Discovery boundary</h4>
+<p><b>The engine never discovers; the control layer may.</b></p>
+<p>§2.7.2 forbids ambient inputs to generation, and an environment located from <code>$SQSYSROOT</code> or from <code>$HOME</code> is ambient by definition. The prohibition is preserved by where the lookup happens: the control layer resolves an environment root and passes <b>explicit absolute paths</b> to the engine, which has no concept of an environment and cannot be made to acquire one.</p>
+<p>So <code>sqpg promote demo</code> may resolve <code>demo</code> against a discovered root, while <code>project.generate</code> receives a path and nothing else. Generation remains a pure function of its stated inputs; convenience lives one layer up, where a wrong guess costs a clear error rather than a wrong workspace.</p>
+<h4 id="tiers">Tiers</h4>
+<p>Two tiers, distinguished by one invariant:</p>
+<blockquote><p><b>Nothing in sandbox is irreplaceable.</b></p></blockquote>
+<p>Everything there is regenerable from a template or discardable. Every other rule derives from that: it is why an agent may be pointed at the sandbox, why version control is expected in <code>project/</code> and not required in <code>sandbox/</code>, and why demotion is the dangerous direction.</p>
+<p>State the invariant, not its consequences. "Sandbox has no git" is a consequence, and stating a consequence as a rule invites relitigating it case by case.</p>
+<p><b>The tier is the location.</b> <code>ls ~/sqsysroot/sandbox</code> tells the truth without consulting anything. A metadata field could disagree with the filesystem; a directory cannot disagree with itself.</p>
+<p><b>Most of this is documentation, not enforcement.</b> The engine does not know about tiers and MUST NOT be taught: it would have to refuse work based on where a path sits, which is exactly the ambient dependency §2.7.2 forbids. What the tiers buy is a shared vocabulary and a legible layout, and that is enough to be worth having.</p>
+<h4 id="tier-movement">Tier movement</h4>
+<p><code>promote</code> (sandbox → project), <code>demote</code> (project → sandbox) and <code>quarantine</code> (outside → sandbox) mutate an existing workspace, which §2.7.11 does not cover and the engine refuses. They are a <b>narrower path</b>, and specified as distinct from regeneration rather than folded into it:</p>
+<ul><li><b>rename</b>, then</li><li><b>additive writes</b> only, then</li><li><b>provenance-checked replacement</b> where an existing file must change.</li></ul>
+<p><b>Rename first, and rename back on failure.</b> Rename is the only filesystem operation with a perfect inverse, which buys atomic-enough semantics without the write-ahead journal §2.15.9 specifies and no implementation has. A cross-device move MUST be reported rather than degraded to copy-and-delete: a silent copy is the one thing that must not happen to a tree being promoted.</p>
+<p><code>quarantine</code> is <b>not</b> demotion and MUST NOT share its path. A tree from outside has no provenance record, so <code>workspace.verify</code> cannot check it, provenance-checked replacement does not apply, and no file has a known ownership class. It copies rather than moves — the source belongs to someone else — synthesises a record in which everything is unknown, marks the tree unreviewed, and deletes nothing.</p>
+<h4 id="what-demotion-may-never-do">What demotion may never do</h4>
+<p>Demotion moves a tree from precious to not-precious. It MUST NOT:</p>
+<ul><li>delete a <code>.git</code> directory, or any other history. Removing the only copy of a history to satisfy a tier rule is the worst thing this tool could do;</li><li>delete anything else it did not create;</li><li>proceed silently. It MUST report that the tree has entered a tier whose invariant is that nothing in it is irreplaceable.</li></ul>
+<blockquote><p>[!note] Divergence: dirty trees (D-054) The design proposal required demotion to <b>refuse</b> on a tree with uncommitted changes. The implementation moves and warns, and that behaviour is normative here.</p>
+<p>The reasoning: refusing would make <code>git</code> a hard dependency of the tier system, and would refuse most sandbox trees, which have no repository to be dirty. Moving loses nothing — the rename is reversible and the working tree is carried intact — so the stricter rule would buy protection against a failure that cannot occur while costing a legitimate operation.</p></blockquote>
+<h3 id="274-template-integration">2.7.4 Template integration</h3>
+<p>The template is the first project-specific structural component applied to the generation context. It defines <b>what kind of project is being created</b>.</p>
+<pre><code class="lang-text">Lua Workflow
+    | select template identity
+    v
+Template Service
+    | resolve
+    v
+Template Manifest
+    | validate compatibility
+    v
+Template Definition
+    | instantiate
+    v
+Project Workspace</code></pre>
+<h4 id="template-role">Template role</h4>
+<p>A template provides:</p>
+<ul><li>workspace directory structure;</li><li>the working directory designation;</li><li>the layer location map;</li><li>initial application source files;</li><li>build system foundation;</li><li>platform integration points;</li><li>kit and package integration points;</li><li>default project conventions;</li><li>declared file ownership classes.</li></ul>
+<p>A template MUST be reusable across generated projects. A template MUST NOT contain environment-specific or user-specific data.</p>
+<p>A template MUST NOT contain generator logic. Behaviour belongs to the engine and to Lua; templates are declarative resources.</p>
+<h4 id="template-selection">Template selection</h4>
+<p>Template selection is a workflow decision.</p>
+<p>Lua MUST determine the requested template from user input, configuration, workflow logic, or embedding-application policy.</p>
+<p>The engine MUST NOT select a template, MUST NOT infer one from filesystem layout, and MUST NOT substitute an alternative when resolution fails.</p>
+<h4 id="template-resolution">Template resolution</h4>
+<p>The Template Service MUST resolve templates by manifest-defined resource identity, never by path.</p>
+<pre><code class="lang-text">template.android.cpp        (correct)
+resources/templates/android-cpp/   (prohibited)</code></pre>
+<p>Resolution MUST verify:</p>
+<ul><li>template existence;</li><li>manifest validity;</li><li>template version against the requested constraint;</li><li>engine capability compatibility;</li><li>declared dependencies;</li><li>required parameter definitions;</li><li>platform support for the requested platform set.</li></ul>
+<p>An unresolvable template MUST produce a structured error. If an alternative is appropriate, Lua decides.</p>
+<h4 id="template-parameters">Template parameters</h4>
+<p>Templates MAY declare required and optional parameters — project name, package name, namespace, application name, target platform, build configuration, optional feature flags.</p>
+<p>Parameters MUST be structured configuration data (§2.6.8).</p>
+<p>Lua acquires parameters. The engine validates them against the template contract. The engine MUST NOT obtain missing parameters by prompting; it MUST return a structured validation error naming each missing or invalid parameter.</p>
+<h4 id="template-instantiation">Template instantiation</h4>
+<p>Instantiation converts a resolved template into workspace structure.</p>
+<p>Instantiation MAY:</p>
+<ul><li>create directories;</li><li>materialize template files;</li><li>expand template variables;</li><li>generate configuration files;</li><li>establish the declared workspace structure;</li><li>record initial provenance entries.</li></ul>
+<p>Instantiation MUST occur inside the generation transaction ([[2.15 Error and transaction model]]). Failed instantiation MUST NOT leave a partially populated workspace visible as a project.</p>
+<h4 id="template-processing">Template processing</h4>
+<p>The engine MAY support multiple template processing strategies — direct materialization, variable substitution, conditional file inclusion, generated configuration, structured metadata expansion.</p>
+<p><i>Implementation note (developer docs): processors are a Strategy-pattern family selected by manifest declaration. Adding a processor MUST NOT require changes to the Template Service core.</i></p>
+<p>Template processing MUST be deterministic. Given equivalent template version, parameters, engine version, and resolved resource set, instantiation MUST produce an equivalent workspace structure and file set. Byte-identical output SHOULD be produced where no timestamp or ordering-sensitive content is involved.</p>
+<p>Template processing MUST NOT depend on undocumented global state.</p>
+<h4 id="template-composition">Template composition</h4>
+<p>Templates MAY support composition.</p>
+<p>Where supported:</p>
+<ul><li>each composed template MUST retain its own identity and version;</li><li>composition order MUST be deterministic and declared;</li><li>composition MUST NOT create implicit dependencies;</li><li>circular composition MUST be rejected with a structured error;</li><li>the composed result MUST declare a single working directory and a single layer map.</li></ul>
+<pre><code class="lang-text">template.android.cpp
+    +-- base application structure
+    +-- Android platform structure
+    +-- C++ application structure</code></pre>
+<p>Where composition is not supported by an implementation, a template MUST provide its complete workspace foundation directly.</p>
+<h4 id="template-validation">Template validation</h4>
+<p>Templates MUST be validated before any workspace mutation.</p>
+<p>Validation SHOULD cover manifest correctness, required files, parameter definitions, dependency declarations, engine compatibility, declared workspace structure, processor availability, ownership class declarations, and resource integrity.</p>
+<p>An invalid template MUST NOT enter generation.</p>
+<h4 id="template-ownership">Template ownership</h4>
+<pre><code class="lang-text">Generator-owned template
+    | instantiate
+    v
+Engine-owned generation state
+    | finalize
+    v
+User-owned project workspace</code></pre>
+<p>The engine owns the runtime representation of a resolved template. The template resource remains generator-owned. The generated workspace MUST NOT retain an implicit runtime dependency on the template.</p>
+<p>Template provenance MUST be recorded in project metadata (§2.7.3) so that update workflows can identify origin explicitly rather than through hidden coupling.</p>
+<hr>
+<h3 id="275-kit-integration">2.7.5 Kit integration</h3>
+<p>A kit defines <b>how a project is integrated with an external framework, middleware system, or platform</b>.</p>
+<p>Kits are the bridge layer. They connect Squared to external systems, and those systems to the platform:</p>
+<pre><code class="lang-text">Squared Application
+        v
+Squared Framework
+        v
+Kit  (bridge)
+        v
+External Framework   (SDL3, SFML, ncurses, ...)
+        v
+Platform             (Android, Linux, desktop, terminal)</code></pre>
+<p>Examples: <code>kit.sdl3</code>, <code>kit.sfml</code>, <code>kit.ncurses</code>, <code>kit.android</code>.</p>
+<p>A kit MUST NOT define the overall project structure. That is the template's responsibility. A kit MUST NOT assume it owns the workspace.</p>
+<h4 id="kit-role">Kit role</h4>
+<p>A kit MAY provide:</p>
+<ul><li>middleware and external framework bridges;</li><li>Squared adapters;</li><li>platform integration;</li><li>initialization and lifecycle code;</li><li>event, input, and rendering translation;</li><li>build configuration fragments;</li><li>dependency declarations;</li><li>platform-specific source files;</li><li>kit resources;</li><li>compatibility metadata.</li></ul>
+<p>A kit MUST integrate through documented Squared public interfaces. A kit MUST NOT modify Squared framework internals to establish integration.</p>
+<p>The external framework itself remains an external dependency and is conceptually distinct from the kit that bridges it.</p>
+<h4 id="kit-selection">Kit selection</h4>
+<p>Kit selection is a workflow decision. Lua determines which kits are requested.</p>
+<p>The engine MUST NOT select a kit implicitly.</p>
+<p>Where a template declares a required kit, the workflow MAY act on that declaration — but the act of selection remains a Lua decision, not implicit engine behaviour.</p>
+<h4 id="kit-resolution">Kit resolution</h4>
+<p>The Kit Service MUST resolve kits by manifest identity.</p>
+<p>Resolution MUST validate:</p>
+<ul><li>kit identity and version;</li><li>manifest validity;</li><li>engine capability compatibility;</li><li>template compatibility;</li><li>Squared framework version compatibility;</li><li>required packages;</li><li>platform compatibility;</li><li>declared external framework requirements;</li><li>declared dependencies.</li></ul>
+<p>An unresolvable or incompatible kit MUST produce a structured error. The engine MUST NOT substitute an alternative kit.</p>
+<h4 id="kit-dependencies">Kit dependencies</h4>
+<p>Kits MAY depend on packages, other kits, platform components, and external dependencies. All dependencies MUST be explicitly declared in the kit manifest.</p>
+<p>Kit dependencies MUST NOT be discovered through filesystem convention.</p>
+<p>The engine MUST validate the complete kit dependency graph before application. The graph MUST be acyclic.</p>
+<h4 id="kit-composition">Kit composition</h4>
+<p>Multiple kits MAY be applied where compatibility permits.</p>
+<pre><code class="lang-text">template.android.cpp
+    +-- kit.android
+    +-- kit.sdl3</code></pre>
+<p>Kit composition MUST be deterministic.</p>
+<p>Each kit MUST declare the integration points and workspace areas it writes to. Two kits MUST NOT write incompatibly to the same integration point. Conflicts MUST be detected and reported as a structured compatibility error <b>before</b> any workspace mutation.</p>
+<p>Lua then decides: remove a kit, select an alternative, amend the workflow, or terminate.</p>
+<h4 id="kit-application">Kit application</h4>
+<p>Applying a kit MAY materialize source files, add build configuration, declare dependencies, add platform configuration, add adapters, add resources, and populate template-declared integration points.</p>
+<p>Kit application MUST occur through engine services. A kit MUST NOT bypass resource validation, filesystem controls, transaction management, ownership rules, or compatibility checks.</p>
+<p>Kit application MUST participate in the generation transaction whenever it mutates the workspace.</p>
+<h4 id="kit-owned-generated-content">Kit-owned generated content</h4>
+<p>A kit MAY contribute workspace content. The ownership class of every contributed path MUST be declared (§2.7.10).</p>
+<p>The generator MUST NOT overwrite a user-authored file merely because a kit originally provided a file at that path.</p>
+<h4 id="kit-versioning">Kit versioning</h4>
+<p>Kit versions MUST be explicit and MUST be recorded in project metadata:</p>
+<pre><code class="lang-text">Project
+    +-- Template: template.android.cpp@1.2.0
+    +-- Kit:      kit.android@1.1.0
+    +-- Kit:      kit.sdl3@1.0.3</code></pre>
+<p>A kit update MUST NOT silently alter an existing project. Updates occur only through the explicit workflow in §2.7.11.</p>
+<h4 id="kit-failure">Kit failure</h4>
+<p>Kit failures MUST use the structured engine error model ([[2.15 Error and transaction model]]).</p>
+<p>A failed kit application MUST either leave the workspace unchanged or restore it to its prior valid state through the transaction system.</p>
+<hr>
+<h3 id="276-package-integration">2.7.6 Package integration</h3>
+<p>A package defines <b>reusable Squared framework functionality</b>.</p>
+<p>Packages are versioned, manifest-identified units of Squared functionality that <code>squared-pg</code> can resolve and materialize into a generated project.</p>
+<pre><code class="lang-text">Template  = project foundation
+Kit       = external framework / platform bridge
+Package   = reusable Squared functionality
+Asset     = project data</code></pre>
+<p>Examples: <code>package.squared.core</code>, <code>package.squared.graphics</code>, <code>package.squared.input</code>, <code>package.squared.audio</code>, <code>package.squared.gui</code>.</p>
+<h4 id="package-role">Package role</h4>
+<p>A package MAY provide C++ sources, public headers, libraries, build targets, configuration, framework services, runtime resources, tests, documentation, and package metadata.</p>
+<p>A package MUST expose functionality through documented public interfaces. A package MUST NOT require the generator to understand its private implementation.</p>
+<p>A package MUST NOT redefine the architectural role of the selected template.</p>
+<h4 id="package-identity">Package identity</h4>
+<p>Packages MUST have stable manifest-based identity, independent of filesystem path, installation location, or archive name.</p>
+<pre><code class="lang-text">package.squared.graphics        (correct)
+resources/packages/squared/graphics/   (prohibited)</code></pre>
+<p>Lua MUST reference packages by identity.</p>
+<h4 id="package-versioning">Package versioning</h4>
+<p>Packages MUST be explicitly versioned. The recorded version MUST identify the exact package interface and contents consumed by the workflow.</p>
+<p>Where multiple versions satisfy a constraint, selection MUST be deterministic and the selection policy MUST be documented.</p>
+<p>The Package Service MUST reject incompatible combinations rather than silently selecting an incompatible version.</p>
+<h4 id="package-selection">Package selection</h4>
+<p>Package selection is a workflow decision. Lua determines required packages, optional packages, package configuration, and ordering where ordering is significant.</p>
+<pre><code class="lang-lua">engine.package.resolve(&quot;package.squared.graphics&quot;)</code></pre>
+<p>The engine MUST NOT add packages based on hidden assumptions. Packages required by a resolved template or kit MUST be declared in that resource's manifest and surfaced to Lua, not injected silently.</p>
+<h4 id="package-resolution">Package resolution</h4>
+<p>Resolution MUST complete before materialization.</p>
+<pre><code class="lang-text">Lua Workflow
+    | request packages
+    v
+Package Service
+    | resolve identity
+    | select version
+    | resolve dependency graph
+    | validate compatibility
+    v
+Resolved Package Set</code></pre>
+<p>The Package Service MUST validate:</p>
+<ul><li>package existence;</li><li>version satisfiability;</li><li>dependency availability;</li><li>Squared framework compatibility;</li><li>template compatibility;</li><li>kit compatibility;</li><li>platform compatibility;</li><li>required engine capabilities;</li><li>package integrity where applicable.</li></ul>
+<h4 id="package-dependency-model">Package dependency model</h4>
+<p>Packages MAY depend on other packages. Dependencies MUST be explicitly declared.</p>
+<pre><code class="lang-text">package.squared.gui
+    +-- package.squared.graphics
+    +-- package.squared.input
+    +-- package.squared.core</code></pre>
+<p>The Package Service MUST resolve the complete dependency graph before any materialization. The graph MUST be deterministic, validated ahead of mutation, and acyclic.</p>
+<p>Dependencies MUST NOT be inferred from filesystem contents or undocumented convention.</p>
+<p>Unresolvable, conflicting, or incompatible dependencies MUST produce a structured error.</p>
+<h4 id="package-compatibility">Package compatibility</h4>
+<p>Packages MAY declare compatibility requirements against framework version, template, kits, platform, other packages, compiler, build system, and engine capabilities.</p>
+<pre><code class="lang-text">package.squared.android.window
+
+requires:
+    template.android.cpp
+    kit.android
+    squared &gt;= 1.0</code></pre>
+<p>The engine validates. Lua decides the response: choose another package, choose another kit, amend configuration, or terminate.</p>
+<p>The engine MUST report incompatibility and MUST NOT alter the requested project design to resolve it.</p>
+<h4 id="package-materialization">Package materialization</h4>
+<p>Materialization converts a resolved package into workspace content: sources, headers, build definitions, configuration, runtime resources, generated metadata.</p>
+<p>Materialization MUST occur through engine-controlled filesystem operations. The Package Service MUST NOT bypass the Filesystem or Transaction Services, ownership rules, validation, or generation state management.</p>
+<p>A failed materialization MUST NOT leave an untracked partial package in the workspace.</p>
+<p>Every materialized path MUST receive a provenance entry (§2.7.10).</p>
+<h4 id="package-build-integration">Package build integration</h4>
+<p>Packages MUST supply the information required to integrate with the selected build system: targets, compiler definitions, include directories, link dependencies, platform flags.</p>
+<pre><code class="lang-text">Application
+    v
+Squared::Core
+    v
+Squared::Graphics
+    v
+Platform Libraries</code></pre>
+<p>The generated project MUST contain enough information to rebuild package integration without the generator. Developers MUST NOT need knowledge of Package Service internals.</p>
+<h4 id="package-configuration">Package configuration</h4>
+<p>Packages MAY define configurable features. Configuration MUST be structured data.</p>
+<pre><code class="lang-json">{
+    &quot;package&quot;: &quot;package.squared.graphics&quot;,
+    &quot;features&quot;: {
+        &quot;vulkan&quot;: true,
+        &quot;opengl&quot;: false
+    }
+}</code></pre>
+<p>Package configuration MUST NOT depend on interactive prompts, environment variables, or generator-specific ambient state.</p>
+<p>Lua gathers configuration. The engine validates and applies it.</p>
+<h4 id="offline-availability">Offline availability</h4>
+<p>Packages required for generation MUST be resolvable from declared offline resource sources.</p>
+<p>The Package Service MUST NOT implicitly require network access when an offline source is declared authoritative. If a required package is unavailable offline, the engine MUST return a structured package-resolution error.</p>
+<p>Network-based acquisition MAY exist as an optional extension. Network access MUST NOT become an implicit requirement of the core generator.</p>
+<h4 id="package-and-kit-relationship">Package and kit relationship</h4>
+<p>Packages and kits are distinct concepts that MAY have declared compatibility or dependency relationships. A kit MAY require a package; a package MAY require a kit.</p>
+<p>The engine MUST NOT assume every package requires a kit or that every kit provides packages.</p>
+<h4 id="package-ownership">Package ownership</h4>
+<p>During generation the engine owns resolved package state, package metadata, staging content, and transaction data.</p>
+<p>After finalization the generated project owns materialized package files, integrated build configuration, and generated package resources.</p>
+<p>The package definition remains generator-owned. The generated project MUST NOT require the original package resource to remain available, unless the project explicitly uses an external dependency model.</p>
+<h4 id="package-failure">Package failure</h4>
+<p>Package failures MUST use structured engine errors ([[2.15 Error and transaction model]]). Categories include resolution failure, version conflict, dependency failure, compatibility failure, and materialization failure.</p>
+<p>A failure MUST carry enough information for Lua to determine the next action.</p>
+<hr>
+<h3 id="277-asset-integration">2.7.7 Asset integration</h3>
+<p>An asset defines <b>data consumed by the generated application</b>.</p>
+<pre><code class="lang-text">Template  -&gt; creates workspace
+Kit       -&gt; provides integration
+Package   -&gt; provides functionality
+Asset     -&gt; provides data</code></pre>
+<p>Assets MAY include images, textures, audio, fonts, shaders, models, configuration data, localization files, level data, and scripts.</p>
+<h4 id="asset-identity">Asset identity</h4>
+<p>Assets MUST have stable resource identities, independent of storage location, archive layout, and generator installation path.</p>
+<pre><code class="lang-text">asset.texture.player        (correct)
+assets/images/player.png    (prohibited as identity)</code></pre>
+<pre><code class="lang-text">Asset Identity -&gt; Asset Manifest -&gt; Physical Resource</code></pre>
+<p>An asset MUST NOT be identified only by a filesystem path.</p>
+<h4 id="asset-categories">Asset categories</h4>
+<p>Generated projects MUST distinguish four categories.</p>
+<p><b>Generator assets</b> — resources used by <code>squared-pg</code> itself (tooling data, generator iconography). Generator assets remain generator-owned and MUST NOT enter a generated project. Generator-internal assets MUST NOT be stored in the project-facing asset namespace; their location is defined in [[2.10 Assets and generator resources]].</p>
+<p><b>Framework assets</b> — resources provided by Squared packages (default shaders, framework fonts, runtime data). Ownership follows package ownership rules.</p>
+<p><b>Kit assets</b> — resources provided by integration layers (platform resources, middleware assets, adapter resources). These remain associated with the providing kit for the purposes of update and conflict detection.</p>
+<p><b>Application assets</b> — resources intended for the generated application (textures, sound effects, UI resources, level data). These become user-owned at finalization.</p>
+<p>The reference <code>resources/assets/</code> namespace is an Android-style application asset tree: it holds default application assets for generated projects and is materialized into the platform-appropriate location by the Asset Service.</p>
+<h4 id="asset-selection">Asset selection</h4>
+<p>Asset selection is a workflow decision. Lua determines required assets, optional assets, asset configuration, and placement policy.</p>
+<pre><code class="lang-lua">engine.asset.resolve(&quot;asset.texture.player&quot;)</code></pre>
+<p>The engine MUST NOT include assets based on undocumented assumptions.</p>
+<h4 id="asset-resolution">Asset resolution</h4>
+<p>Resolution MUST complete before materialization.</p>
+<p>The Asset Service MUST validate asset existence, identity, type, integrity, declared package requirements, transformation support, and platform compatibility.</p>
+<p>An invalid asset request MUST produce a structured error.</p>
+<h4 id="asset-materialization">Asset materialization</h4>
+<p>Materialization MAY copy files, convert formats, generate metadata, create resource indexes, and update build configuration.</p>
+<p>Materialization MUST occur through engine-controlled filesystem operations. The Asset Service MUST NOT bypass transaction handling, ownership rules, validation, or the filesystem abstraction.</p>
+<p>Every materialized asset path MUST receive a provenance entry (§2.7.10).</p>
+<p>A failed asset operation MUST NOT leave the workspace in an undefined state.</p>
+<h4 id="asset-transformation">Asset transformation</h4>
+<p>The Asset Service MAY transform assets: compression, format conversion, optimization, platform packaging, metadata generation.</p>
+<pre><code class="lang-text">source texture -&gt; transformed texture -&gt; platform resource</code></pre>
+<p><i>Implementation note (developer docs): transformers are a Strategy-pattern family keyed by asset type and target platform, resolved from the asset manifest.</i></p>
+<p>Transformations MUST be deterministic. Given identical source asset, transformation settings, and engine version, output MUST be equivalent; byte-identical output SHOULD be produced where the transformation is not timestamp- or ordering-sensitive.</p>
+<p>Transformation MUST NOT depend on hidden machine state.</p>
+<h4 id="platform-asset-placement">Platform asset placement</h4>
+<p>Assets MAY require platform-specific placement.</p>
+<pre><code class="lang-text">Android:  assets/  res/drawable/  res/raw/
+Desktop:  resources/  data/  assets/</code></pre>
+<p>The template and applied kits determine placement rules. The Asset Service MUST NOT assume a universal asset layout.</p>
+<h4 id="asset-and-package-relationship">Asset and package relationship</h4>
+<p>Packages MAY declare required assets.</p>
+<pre><code class="lang-text">package.squared.gui
+    +-- asset.font.default
+    +-- asset.texture.widgets</code></pre>
+<p>Required package assets MUST be resolved as part of package integration. The Package Service and Asset Service MUST communicate through defined interfaces. Packages MUST NOT manipulate asset storage directly.</p>
+<h4 id="asset-ownership-and-user-modification">Asset ownership and user modification</h4>
+<p>During generation the engine owns resolved asset state, transformation state, temporary files, and staging resources.</p>
+<p>After finalization the project owns application assets, generated resource files, and workspace asset metadata. The generator MUST NOT retain ownership of generated application assets.</p>
+<p>User-modified assets MUST be protected. If an update would replace a user-modified asset, the system MUST detect the conflict, report it, and require explicit user action. Automatic destructive replacement MUST NOT occur (§2.7.11).</p>
+<h4 id="asset-versioning-and-reproducibility">Asset versioning and reproducibility</h4>
+<p>Assets SHOULD be versioned where compatibility matters, so that update workflows can determine whether an asset is compatible, whether transformation rules changed, and whether regeneration is required.</p>
+<p>Asset updates MUST be explicit. The generator MUST NOT replace an asset because a newer version exists.</p>
+<p>Given identical asset identities, versions, transformation rules, template, kit set, package set, and configuration, asset integration MUST produce an equivalent asset set.</p>
+<h4 id="asset-failure">Asset failure</h4>
+<p>Asset failures MUST use structured engine errors ([[2.15 Error and transaction model]]). The engine reports failure category, affected asset, diagnostics, and recovery information where available. Lua decides the workflow response.</p>
+<hr>
+<h3 id="278-squared-framework-integration">2.7.8 Squared framework integration</h3>
+<p>Squared framework integration defines how the Squared runtime, libraries, headers, configuration, and supporting components become part of a generated project.</p>
+<p>The generated project MUST consume Squared through defined package and integration interfaces.</p>
+<p>The generated project MUST NOT depend on <code>squared-pg</code> implementation, generator services, generator filesystem layout, or generator runtime state.</p>
+<p>The Squared framework MUST NOT depend on <code>squared-pg</code>.</p>
+<h4 id="framework-identity">Framework identity</h4>
+<p>Framework version MUST be explicitly identified at generation time and MUST be recorded in project metadata.</p>
+<pre><code class="lang-text">project
+    +-- Squared Framework  version: 1.0
+    +-- package.squared.core
+    +-- package.squared.graphics</code></pre>
+<p>The framework version MUST remain discoverable after generation, so that future tooling can determine what was used, whether updates exist, and whether compatibility requirements hold.</p>
+<h4 id="framework-package-inclusion">Framework package inclusion</h4>
+<p>Squared functionality MUST be integrated through package interfaces.</p>
+<pre><code class="lang-text">Lua Workflow -&gt; Package Selection -&gt; Package Service
+    -&gt; Resolved Squared Components -&gt; Generated Project</code></pre>
+<p>Framework components MUST NOT be included through undocumented filesystem copying.</p>
+<h4 id="framework-source-integration">Framework source integration</h4>
+<p>Integration MAY occur through source inclusion, external library linking, package-managed source trees, prebuilt libraries, or platform-specific binaries.</p>
+<p>The integration method MUST be declared by the selected packages and project configuration. The generator MUST NOT assume a single distribution model.</p>
+<pre><code class="lang-text">Source-based:                Library-based:
+project/                     project/
+├── external/                ├── include/
+└── squared/                 ├── libs/
+    ├── include/             └── CMakeLists.txt
+    └── src/</code></pre>
+<p>The generated project MUST have a clear, reproducible framework dependency model.</p>
+<h4 id="framework-build-integration">Framework build integration</h4>
+<p>The workspace MUST contain the build configuration required to consume Squared: targets, compiler definitions, include paths, link dependencies, platform options, feature configuration.</p>
+<pre><code class="lang-text">Application -&gt; Squared::Core -&gt; Squared::Graphics -&gt; Platform Libraries</code></pre>
+<p>The generator MUST NOT require developers to manually reconstruct framework dependencies after generation.</p>
+<h4 id="framework-initialization">Framework initialization</h4>
+<p>Integration MAY provide startup code, service initialization, subsystem registration, lifecycle integration, and shutdown handling.</p>
+<p>Responsibilities MUST be separated: the application owns application behaviour and state; the framework owns framework services, runtime state, and subsystem management.</p>
+<pre><code class="lang-cpp">int main()
+{
+    squared::initialize();
+
+    Application app;
+    app.run();
+
+    squared::shutdown();
+}</code></pre>
+<p>The exact initialization model depends on the selected template, kits, and packages.</p>
+<h4 id="framework-configuration">Framework configuration</h4>
+<p>Framework configuration MUST be structured project data and MUST remain independent of generator implementation detail.</p>
+<pre><code class="lang-json">{
+    &quot;squared&quot;: {
+        &quot;version&quot;: &quot;1.0&quot;,
+        &quot;features&quot;: [&quot;graphics&quot;, &quot;input&quot;]
+    }
+}</code></pre>
+<h4 id="framework-resources">Framework resources</h4>
+<p>Framework resources (shaders, default assets, metadata, runtime data) MUST have declared ownership and MUST NOT silently become editable application assets.</p>
+<pre><code class="lang-text">Framework resources -&gt; Application resources -&gt; User-created assets</code></pre>
+<h4 id="framework-updates">Framework updates</h4>
+<p>Framework updates MUST be explicit. The generator MUST NOT upgrade a framework version during an unrelated generation operation.</p>
+<p>Update behaviour is defined by §2.7.11.</p>
+<h4 id="framework-ownership-model">Framework ownership model</h4>
+<pre><code class="lang-text">squared-pg owns:            generator logic, templates, kit definitions,
+                            package definitions, generation services
+
+Generated project owns:     application source, generated build system,
+                            integrated framework files, project configuration
+
+Squared framework owns:     framework implementation, runtime behaviour,
+                            public APIs</code></pre>
+<p>The generated project consumes Squared. It does not become part of <code>squared-pg</code>.</p>
+<h4 id="framework-integration-invariant">Framework integration invariant</h4>
+<pre><code class="lang-text">Template  -&gt; provides structure
+Kit       -&gt; provides external integration
+Package   -&gt; provides Squared functionality
+Generated Project -&gt; builds and runs independently</code></pre>
+<p>Integration MUST ensure Squared remains independent from <code>squared-pg</code>, generated projects remain independent from generator internals, framework dependencies are explicit, framework versions are reproducible, and integration occurs through public interfaces.</p>
+<hr>
+<h3 id="279-generation-phases">2.7.9 Generation phases</h3>
+<h4 id="reference-phase-order">Reference phase order</h4>
+<p>A generation workflow SHOULD follow this order. Lua controls actual execution; the engine provides the capability for each phase.</p>
+<ol><li>Acquire and normalize inputs.</li><li>Resolve template.</li><li>Resolve kits.</li><li>Resolve packages (including dependency graph).</li><li>Resolve assets.</li><li>Validate the complete resolved set for cross-compatibility.</li><li>Produce the generation plan.</li><li>Open the generation transaction.</li><li>Create the workspace.</li><li>Instantiate the template.</li><li>Apply kits.</li><li>Materialize packages.</li><li>Integrate the Squared framework.</li><li>Materialize assets.</li><li>Generate build configuration.</li><li>Write project metadata and provenance.</li><li>Validate the generated workspace.</li><li>Commit the transaction and finalize.</li></ol>
+<p>Phases 2–7 MUST NOT mutate the workspace. Phases 8–18 MUST occur inside the transaction.</p>
+<h4 id="resolve-before-mutate-rule">Resolve-before-mutate rule</h4>
+<p>The engine MUST fully resolve and cross-validate the template, kit set, package graph, and asset set <b>before</b> the first workspace mutation.</p>
+<p>Cross-validation MUST detect:</p>
+<ul><li>template/kit incompatibility;</li><li>kit/kit integration point conflicts;</li><li>package dependency conflicts;</li><li>framework version conflicts;</li><li>platform support gaps;</li><li>missing required parameters;</li><li>unavailable offline resources.</li></ul>
+<p>A cross-validation failure MUST prevent phase 8 from beginning.</p>
+<h4 id="the-generation-plan">The generation plan</h4>
+<p>The engine MUST be able to produce a <b>generation plan</b>: the complete, ordered set of operations and workspace paths that generation would produce, without performing any mutation.</p>
+<p><i>Implementation note (developer docs): the plan is a reified Command list built by a Builder over the resolved resource set. Execution consumes the same list, so plan and apply cannot diverge.</i></p>
+<p>A plan MUST contain:</p>
+<ul><li>resolved template, kit, package, asset identities and versions;</li><li>every workspace path to be created or modified;</li><li>the ownership class and originating resource for each path;</li><li>required external dependencies;</li><li>warnings and diagnostics.</li></ul>
+<p>The plan MUST be exposed to Lua as a structured result and MUST be available without a workspace being created. This supports dry-run generation, update preview (§2.7.11), testing, and tooling integration.</p>
+<p>Executing a plan MUST produce the workspace the plan described, given an unchanged resource environment.</p>
+<h4 id="phase-failure">Phase failure</h4>
+<p>Any phase MAY fail. A failure MUST:</p>
+<ul><li>produce a structured error ([[2.15 Error and transaction model]]);</li><li>prevent dependent phases from executing;</li><li>leave the workspace unchanged or restored, via the transaction system;</li><li>leave the engine in a valid state.</li></ul>
+<p>Lua determines recovery behaviour.</p>
+<h4 id="finalization">Finalization</h4>
+<p>Finalization commits the transaction and transfers ownership.</p>
+<p>Finalization MUST:</p>
+<ul><li>commit or roll back all pending workspace mutation;</li><li>write the final metadata and provenance record;</li><li>remove all staging and temporary state;</li><li>produce a structured generation result.</li></ul>
+<p>After successful finalization the workspace is user-owned (§2.7.12).</p>
+<hr>
+<h3 id="2710-generated-file-ownership-and-provenance">2.7.10 Generated file ownership and provenance</h3>
+<p>This section defines the mechanism that makes user-file preservation and regeneration enforceable rather than advisory.</p>
+<h4 id="ownership-classes">Ownership classes</h4>
+<p>Every path the generator creates MUST be assigned exactly one ownership class.</p>
+<div class="tablewrap"><table><thead><tr><th>Class</th><th>Meaning</th><th>Regeneration behaviour</th></tr></thead><tbody><tr><td><code>generated</code></td><td>Fully generator-managed.</td><td>MAY be overwritten. Modification is a conflict.</td></tr><tr><td><code>seeded</code></td><td>Created once as a starting point; user-owned thereafter.</td><td>MUST NOT be overwritten.</td></tr><tr><td><code>user</code></td><td>Created by the user.</td><td>MUST NOT be touched.</td></tr><tr><td><code>merged</code></td><td><i>Reserved. Not implemented in v1 (D-020).</i></td><td>—</td></tr><tr><td><code>metadata</code></td><td>Generator record.</td><td>Generator-managed; MAY be rewritten.</td></tr></tbody></table></div>
+<p>The ownership class of every path MUST be declared by the resource that produces it — template, kit, package, or asset manifest.</p>
+<p>A resource MAY declare <code>ownership.default</code>, which is the class taken by any path its patterns do not match. Where <code>default</code> is absent, an unmatched path MUST be classified <code>seeded</code>.</p>
+<p><code>default</code> MAY be <code>generated</code>. A template whose entire tree is derived is a legitimate thing to write, and the format's job is to make that choice visible rather than to make it for the author. What remains prohibited is <code>generated</code> as the <i>implicit</i> default: silence MUST mean <code>seeded</code>, so that forgetting to classify a file can never cost the user their work.</p>
+<p>Ownership pattern lists MUST NOT overlap one another. A path matched by two lists is a manifest defect; a conforming implementation MUST report it and MUST resolve it toward the class it will not overwrite. Two patterns within a single list are not an overlap.</p>
+<blockquote><p>[!note] Resolution of AUD-L-004 (D-051) Before <code>default</code> existed, a template saying "everything else belongs to the user" had to say it with a pattern — <code>user: [&quot;**&quot;]</code> — and a pattern meaning <i>everything</i> necessarily overlaps every other pattern in the manifest. Both shipped templates were written that way.</p>
+<p>The engine resolved the resulting overlap with a specificity heuristic and produced the right answer; <code>sqcart</code> enforced exactly-one and reported the same manifests as defective. The two implementations disagreed, and the heuristic was the one nobody could predict without a scoring table.</p>
+<p><code>default</code> separates the two ideas <code>[&quot;**&quot;]</code> was conflating: <i>claiming specific files</i> and <i>a fallback for the rest</i>. With the fallback stated directly, the lists can be required not to overlap, and every conflict that is reported is a real one.</p></blockquote>
+<p><code>generated</code>-class files MUST NOT be written inside the user working directory (§2.7.3).</p>
+<h4 id="merged-is-reserved"><code>merged</code> is reserved</h4>
+<blockquote><p>[!note] Resolution of Q-20 (D-020) In-place region merging is where generators corrupt user work. <b>v1 supports <code>generated</code>, <code>seeded</code>, <code>user</code> and <code>metadata</code> only.</b> The <code>merged</code> class name is reserved so that adding it later is not a breaking change.</p></blockquote>
+<p>Where a file must be both user-edited and generator-maintained — typically build configuration — the template MUST split it:</p>
+<pre><code class="lang-text">CMakeLists.txt              seeded    (user owns; includes the fragment)
+cmake/squared_generated.cmake   generated (generator owns entirely)</code></pre>
+<p>A generated fragment included by a seeded file gives the generator a file it may rewrite freely and the user a file the generator will never touch. This is simpler and safer than marker-comment regions, and it works for every build system the reference templates target.</p>
+<h4 id="provenance-record">Provenance record</h4>
+<p>The workspace metadata record MUST contain a provenance table with one entry per generator-created path.</p>
+<p>Each entry MUST contain:</p>
+<ul><li>workspace-relative path;</li><li>ownership class;</li><li>originating resource identity and version;</li><li>content hash at time of generation;</li><li>the generation phase that produced it.</li></ul>
+<p>Paths MUST be workspace-relative. Absolute host paths MUST NOT appear.</p>
+<p>Provenance is what allows the generator to distinguish "this file is unchanged since generation" from "the user has edited this file" without guessing.</p>
+<h4 id="conflict-detection">Conflict detection</h4>
+<p>A conflict exists when the generator would modify a path whose current content hash does not match its recorded provenance hash.</p>
+<p>On conflict the generator MUST:</p>
+<ul><li>report the conflict as a structured result;</li><li>identify the path, both hashes, the originating resource, and the ownership class;</li><li>take no destructive action.</li></ul>
+<p>Lua decides the response: skip, present a diff, write alongside, request user confirmation, or terminate.</p>
+<h4 id="ownership-rule">Ownership rule</h4>
+<p>The generator MUST NOT overwrite user-owned content without explicit, per-operation permission expressed through the workflow. A blanket "force" mode MAY exist, but it MUST be explicit, MUST NOT be the default, and MUST still report every path it overwrites.</p>
+<hr>
+<h3 id="2710a-build-settings-are-not-generation-parameters">2.7.10a Build settings are not generation parameters</h3>
+<p>A <b>generation parameter</b> (§2.8.7) is substituted into content at generation time and is thereafter part of the workspace. A <b>build setting</b> is a variable the generated build reads at build time and the author may change whenever they like.</p>
+<p><b>The test: if a value can change over a project's life without changing what the project <i>is</i>, it belongs in the build.</b></p>
+<p><code>minSdkVersion</code>, <code>targetSdkVersion</code> and the target ABI are build settings. A project that raises its minimum SDK is the same project. Baking them at generation would mean regenerating to retarget — and with §2.7.11 unimplemented, regenerating means creating a new workspace and moving the work across by hand. A setting the author cannot change without losing their workspace is not a setting.</p>
+<p><code>project_name</code> is a generation parameter under the same test. Changing it changes identity, paths and every substituted reference; a project with a different name is a different project.</p>
+<p>When a value is genuinely ambiguous, prefer the build. The cost of a build variable that could have been a parameter is a slightly more verbose <code>make</code> invocation. The cost of a parameter that should have been a build variable is a workspace the author cannot retarget.</p>
+<h3 id="2711-regeneration-and-update-model">2.7.11 Regeneration and update model</h3>
+<blockquote><p>[!warning] Not available (D-033, D-054) <b>This engine refuses an existing workspace.</b> <code>project.generate</code> fails with <code>filesystem.workspace.exists</code>. There is no update path and no write-ahead journal (§2.15.9).</p>
+<p>The full specification of regeneration is retained as a design document, <code>docs/developer/design/regeneration.md</code>, and is not normative. A stub rather than a status banner on two thousand words of mechanism: a reader skimming for the mechanism finds the mechanism, and the banner is what they skip.</p></blockquote>
+<p>The invariant this section exists to state:</p>
+<blockquote><p><b>squared-pg is required to <i>change</i> a workspace's shape. It is never required to build, run, or ship one.</b></p></blockquote>
+<p>A generated workspace builds with <code>make</code> and a compiler, with no generator on the machine (§2.12). That is not a temporary property of this build; it is the point.</p>
+<h4 id="what-exists-instead">What exists instead</h4>
+<p><b>A bounded mutation path</b>, and it is not regeneration: §2.7.3a's tier movement — rename, additive writes, provenance-checked replacement. It is narrow enough to be safe without a journal, because rename is reversible and the other two steps cannot lose work.</p>
+<p><b><code>workspace.verify</code></b> (§2.16.5), which reports what a regeneration <i>would</i> overwrite without performing one.</p>
+<h4 id="why-it-is-deferred-rather-than-half-built">Why it is deferred rather than half-built</h4>
+<p>A partial journal corrupts user work in exactly the cases it exists to prevent. The groundwork is present and was built for this: provenance hashes, the reified plan, enforced ownership classes. What is missing is the transactional guarantee, and shipping the mechanism without it would be worse than shipping neither.</p>
+<p>The functional consequence is real and should not be softened: <b>this tool can create a workspace and never update it.</b> Adding a kit to an existing workspace is not available. Where that path is eventually built, it will use the ownership classes (§2.7.10) that already exist for it.</p>
+<h3 id="2712-ownership-transition">2.7.12 Ownership transition</h3>
+<p>The boundary <i>guarantee</i> — what a generated project may never contain and may never require — is stated in [[2.12 Generated-project boundary]]. This subsection defines only the mechanism by which ownership moves.</p>
+<p>During generation the engine owns:</p>
+<ul><li>staging directories;</li><li>temporary files;</li><li>transaction state;</li><li>intermediate generated data;</li><li>resolved resource state.</li></ul>
+<p>After successful finalization the user owns:</p>
+<ul><li>the workspace and all its files;</li><li>application source;</li><li>materialized packages, assets, and integration code;</li><li>generated build configuration;</li><li>all subsequent modifications and build outputs.</li></ul>
+<p>Ownership transfer occurs at commit. It MUST be atomic with respect to the transaction: either the workspace exists and is fully owned by the user, or it does not exist as a valid project.</p>
+<hr>
+<h3 id="2713-project-generation-invariants">2.7.13 Project generation invariants</h3>
+<p>The project generation model MUST preserve the following, regardless of implementation.</p>
+<p><b>Separation of concerns</b></p>
+<pre><code class="lang-text">Template  = project foundation
+Kit       = external framework / platform bridge
+Package   = reusable Squared functionality
+Asset     = project data</code></pre>
+<p>No component may assume the role of another.</p>
+<p><b>Capability and orchestration.</b> The engine provides generation capabilities. Lua selects and sequences them. The engine MUST NOT decide project type, template, kits, packages, assets, or workflow order.</p>
+<p><b>Explicit inputs.</b> Every generation input MUST be explicit. Generation MUST NOT depend on hidden machine state, ambient environment, or the current working directory.</p>
+<p><b>Identity over paths.</b> All resources MUST be referenced by manifest identity. Filesystem layout MUST remain an implementation detail of the generator and MUST NOT appear in Lua workflows or generated project configuration.</p>
+<p><b>Resolve before mutate.</b> The complete resource set MUST be resolved and cross-validated before the first workspace mutation.</p>
+<p><b>Deterministic resolution.</b> Given identical inputs, resource versions, and engine version, resolution MUST produce an identical resolved set. Generated output SHOULD be byte-identical where no timestamp- or ordering-sensitive content is involved.</p>
+<p><b>Transactional generation.</b> All workspace mutation MUST occur within a transaction. A failure MUST leave the workspace unchanged or restored. An incomplete workspace MUST NOT be presented as a valid project.</p>
+<p><b>Declared ownership.</b> Every generated path MUST have a declared ownership class and a provenance entry. The generator MUST NOT overwrite user-owned content without explicit authorization.</p>
+<p><b>User work preservation.</b> Regeneration MUST preserve user-authored work. Destructive replacement MUST require explicit action.</p>
+<p><b>Framework independence.</b> The Squared framework MUST NOT depend on <code>squared-pg</code>. The generated project MUST NOT depend on <code>squared-pg</code> internals.</p>
+<p><b>Offline capability.</b> Generation MUST be possible from a clean repository checkout plus declared vendored dependencies, with no network access, on a lightweight host.</p>
+<p><b>No dependency leakage.</b> Nothing about the generator's implementation, repository layout, or installation location may appear in the generated project.</p>
+<h2 id="open-questions">Open questions</h2>
+<ul><li><b>Q-22</b> — build-system abstraction depth: one integration model with per-system emitters, or per-kit build emission. Confirm when <code>kit.android</code> is authored.</li><li><b>Q-23</b> — where the Squared framework itself comes from: vendored package, sibling checkout, or declared external path.</li><li><b>Q-24</b> — migration story for the <code>.squared/</code> metadata format itself.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.3 Generation pipeline]] · [[2.12 Generated-project boundary]] · [[2.15 Error and transaction model]] · [[Spec glossary]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

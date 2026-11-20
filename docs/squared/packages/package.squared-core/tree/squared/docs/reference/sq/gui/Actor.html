@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Actor · squared</title>
+<meta name="description" content="squared: class Actor">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Actor.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Actor.md">on GitHub</a></p><h1 id="class-actor">class Actor</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L21">gui/actor.cppm:21</a></i></p>
+<p><b>brief</b> Base node with parent-relative bounds and frame traversal.</p>
+<p>Coordinates supplied to hit() are local to the actor. Position is expressed in the parent coordinate system. The first GUI slice intentionally has translation-only hierarchy semantics; transforms and rendering arrive in a later compatible layer.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="actor">Actor</h3>
+<p><i>public void Actor()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L24">gui/actor.cppm:24</a></i></p>
+<h3 id="actor">Actor</h3>
+<p><i>public void Actor(Actor &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L29">gui/actor.cppm:29</a></i></p>
+<h3 id="actor">Actor</h3>
+<p><i>public void Actor(const Actor &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L27">gui/actor.cppm:27</a></i></p>
+<h3 id="act">act</h3>
+<p><i>public void act(double delta_seconds)</i></p>
+<p><b>brief</b> Advance this actor by one frame.</p>
+<p><b>delta_seconds</b> Elapsed domain time in seconds.</p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public const void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L168">gui/actor.cppm:168</a></i></p>
+<p><b>brief</b> Recover a derived interface published by this actor, read-only.</p>
+<p><b>id</b> Identifier of the requested interface.</p>
+<p><b>return</b> Pointer to the requested interface, or null when this actor does not publish it.</p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L156">gui/actor.cppm:156</a></i></p>
+<p><b>brief</b> Recover a derived interface published by this actor.</p>
+<p><b>id</b> Identifier of the requested interface.</p>
+<p><b>return</b> Pointer to the requested interface, or null when this actor does not publish it. The base implementation publishes nothing.</p>
+<p><b>note</b> Prefer actor_cast(), which supplies the identifier and restores the pointer type. Overrides must answer their own identifier and otherwise delegate to their direct base, so an interface published anywhere in the chain stays reachable.</p>
+<h3 id="add_input_listener">add_input_listener</h3>
+<p><i>public InputListenerId add_input_listener(InputListener listener, bool capture)</i></p>
+<p><b>brief</b> Add a regular or capture listener owned by this actor.</p>
+<p><b>listener</b> Callback invoked during input dispatch.</p>
+<p><b>capture</b> <code>true</code> registers the listener for the capture phase.</p>
+<p><b>return</b> A stable actor-local identifier usable with remove_input_listener.</p>
+<h3 id="contains">contains</h3>
+<p><i>protected bool contains(float local_x, float local_y)</i></p>
+<p><b>brief</b> Test whether a local coordinate falls inside this actor.</p>
+<p><b>local_x</b> Horizontal coordinate local to this actor.</p>
+<p><b>local_y</b> Vertical coordinate local to this actor.</p>
+<p><b>return</b> true when the point lies within the actor's rectangle.</p>
+<h3 id="height">height</h3>
+<p><i>public float height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L92">gui/actor.cppm:92</a></i></p>
+<p><b>brief</b> Read the height.</p>
+<p><b>return</b> Height in logical units.</p>
+<h3 id="hit">hit</h3>
+<p><i>public Actor * hit(float local_x, float local_y, bool require_touchable)</i></p>
+<p><b>brief</b> Return the deepest eligible actor at a local coordinate.</p>
+<p><b>local_x</b> Horizontal coordinate local to this actor.</p>
+<p><b>local_y</b> Vertical coordinate local to this actor.</p>
+<p><b>require_touchable</b> Ignore actors whose touchable flag is false.</p>
+<p><b>return</b> The actor at the coordinate, or null when nothing qualifies.</p>
+<h3 id="input_event">input_event</h3>
+<p><i>protected void input_event(InputEvent &amp; event)</i></p>
+<p><b>brief</b> Handle target/bubble input before regular external listeners.</p>
+<p><b>event</b> The event currently in the target or bubble phase.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Actor &amp; operator=(Actor &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L30">gui/actor.cppm:30</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Actor &amp; operator=(const Actor &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L28">gui/actor.cppm:28</a></i></p>
+<h3 id="parent">parent</h3>
+<p><i>public Group * parent()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L122">gui/actor.cppm:122</a></i></p>
+<p><b>brief</b> Access the owning group.</p>
+<p><b>return</b> Owning group, or null for a root-owned actor.</p>
+<h3 id="parent">parent</h3>
+<p><i>public const Group * parent()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L128">gui/actor.cppm:128</a></i></p>
+<p><b>brief</b> Access the owning group, read-only.</p>
+<p><b>return</b> Owning group, or null for a root-owned actor.</p>
+<h3 id="remove_input_listener">remove_input_listener</h3>
+<p><i>public bool remove_input_listener(InputListenerId id)</i></p>
+<p><b>brief</b> Remove one listener by its stable actor-local identifier.</p>
+<p><b>id</b> Identifier returned by add_input_listener.</p>
+<p><b>return</b> <code>true</code> when the identifier matched a live listener.</p>
+<h3 id="set_bounds">set_bounds</h3>
+<p><i>public void set_bounds(float x, float y, float width, float height)</i></p>
+<p><b>brief</b> Set position and size in parent-local logical units.</p>
+<p><b>x</b> Horizontal position.</p>
+<p><b>y</b> Vertical position.</p>
+<p><b>width</b> New width; non-negative.</p>
+<p><b>height</b> New height; non-negative.</p>
+<h3 id="set_position">set_position</h3>
+<p><i>public void set_position(float x, float y)</i></p>
+<p><b>brief</b> Set position in parent-local logical units.</p>
+<p><b>x</b> Horizontal position.</p>
+<p><b>y</b> Vertical position.</p>
+<h3 id="set_size">set_size</h3>
+<p><i>public void set_size(float width, float height)</i></p>
+<p><b>brief</b> Set the extent in logical units.</p>
+<p><b>width</b> New width; non-negative.</p>
+<p><b>height</b> New height; non-negative.</p>
+<h3 id="set_touchable">set_touchable</h3>
+<p><i>public void set_touchable(bool touchable)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L110">gui/actor.cppm:110</a></i></p>
+<p><b>brief</b> Control whether the actor can receive pointer hit tests.</p>
+<p><b>touchable</b> <code>false</code> skips the actor during hit testing.</p>
+<h3 id="set_visible">set_visible</h3>
+<p><i>public void set_visible(bool visible)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L98">gui/actor.cppm:98</a></i></p>
+<p><b>brief</b> Control whether the actor participates in frames and hit tests.</p>
+<p><b>visible</b> <code>false</code> hides the actor and excludes it from hit tests.</p>
+<h3 id="touchable">touchable</h3>
+<p><i>public bool touchable()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L116">gui/actor.cppm:116</a></i></p>
+<p><b>brief</b> Read the touchable state.</p>
+<p><b>return</b> true while the actor participates in hit testing.</p>
+<h3 id="visible">visible</h3>
+<p><i>public bool visible()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L104">gui/actor.cppm:104</a></i></p>
+<p><b>brief</b> Read the visibility state.</p>
+<p><b>return</b> true while the actor participates in frames and hit tests.</p>
+<h3 id="width">width</h3>
+<p><i>public float width()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L86">gui/actor.cppm:86</a></i></p>
+<p><b>brief</b> Read the width.</p>
+<p><b>return</b> Width in logical units.</p>
+<h3 id="x">x</h3>
+<p><i>public float x()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L74">gui/actor.cppm:74</a></i></p>
+<p><b>brief</b> Read the horizontal position.</p>
+<p><b>return</b> Horizontal position in parent-local units.</p>
+<h3 id="y">y</h3>
+<p><i>public float y()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L80">gui/actor.cppm:80</a></i></p>
+<p><b>brief</b> Read the vertical position.</p>
+<p><b>return</b> Vertical position in parent-local units.</p>
+<h3 id="actor">~Actor</h3>
+<p><i>public void ~Actor()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/actor.cppm#L25">gui/actor.cppm:25</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

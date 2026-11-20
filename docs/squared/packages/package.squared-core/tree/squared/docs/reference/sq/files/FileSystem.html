@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class FileSystem · squared</title>
+<meta name="description" content="squared: class FileSystem">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/files/FileSystem.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/files/FileSystem.md">on GitHub</a></p><h1 id="class-filesystem">class FileSystem</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L29">files/file_system.cppm:29</a></i></p>
+<p><b>brief</b> The framework's porting layer for storage.</p>
+<p>This is one of the few interfaces squared declares on purpose. A second concrete implementation is guaranteed by the architecture rather than speculative: Android internal storage is an asset bundle inside the APK and is not reachable through POSIX, while Termux and desktop Linux are ordinary directories. Everything above this class names a FileType and a relative path and never learns which backend answered.</p>
+<p>Implementations are not required to be thread-safe.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="filesystem">FileSystem</h3>
+<p><i>public void FileSystem()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L32">files/file_system.cppm:32</a></i></p>
+<h3 id="filesystem">FileSystem</h3>
+<p><i>public void FileSystem(FileSystem &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L37">files/file_system.cppm:37</a></i></p>
+<h3 id="filesystem">FileSystem</h3>
+<p><i>public void FileSystem(const FileSystem &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L35">files/file_system.cppm:35</a></i></p>
+<h3 id="absolute">absolute</h3>
+<p><i>public FileHandle absolute(std::string_view path)</i></p>
+<p><b>brief</b> Return a handle for a path used exactly as given.</p>
+<h3 id="exists">exists</h3>
+<p><i>public bool exists(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Report whether anything exists at a path.</p>
+<h3 id="external">external</h3>
+<p><i>public FileHandle external(std::string_view path)</i></p>
+<p><b>brief</b> Return a handle under shared storage.</p>
+<h3 id="internal">internal</h3>
+<p><i>public FileHandle internal(std::string_view path)</i></p>
+<p><b>brief</b> Return a handle under the read-only bundled assets.</p>
+<h3 id="is_directory">is_directory</h3>
+<p><i>public bool is_directory(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Report whether a path names a directory.</p>
+<h3 id="length">length</h3>
+<p><i>public std::uint64_t length(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Return a file's size, or zero when it is missing or a directory.</p>
+<h3 id="list">list</h3>
+<p><i>public FileError list(FileType type, std::string_view path, std::vector&lt;std::string&gt; &amp; names)</i></p>
+<p><b>brief</b> Fill names with one entry name per directory entry.</p>
+<h3 id="local">local</h3>
+<p><i>public FileHandle local(std::string_view path)</i></p>
+<p><b>brief</b> Return a handle under this application's private storage.</p>
+<h3 id="make_directories">make_directories</h3>
+<p><i>public FileError make_directories(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Create a directory and any missing parents.</p>
+<h3 id="map">map</h3>
+<p><i>public MapResult map(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Map a file to read in place (<code>MappedFile</code>): no copy of a file's bytes on the heap where the platform can avoid one.</p>
+<p><b>type</b> Which root <code>path</code> is under.</p>
+<p><b>path</b> The file.</p>
+<p><b>return</b> The mapping, or the error (<code>NotFound</code>, <code>IsADirectory</code>, <code>NotSupported</code> where a root has no files to map).</p>
+<h3 id="operator">operator=</h3>
+<p><i>public FileSystem &amp; operator=(FileSystem &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L38">files/file_system.cppm:38</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public FileSystem &amp; operator=(const FileSystem &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L36">files/file_system.cppm:36</a></i></p>
+<h3 id="read">read</h3>
+<p><i>public FileReadResult read(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Read a whole file.</p>
+<h3 id="remove">remove</h3>
+<p><i>public FileError remove(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Remove a file, or an empty directory.</p>
+<h3 id="resolve">resolve</h3>
+<p><i>public FileHandle resolve(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> Return a handle under an explicitly chosen root.</p>
+<h3 id="resolve_platform_path">resolve_platform_path</h3>
+<p><i>public std::string resolve_platform_path(FileType type, std::string_view path)</i></p>
+<p><b>brief</b> The platform's own path a type and relative path name; empty when there is none (bundled files inside an APK, embedded files, a root not set, or a path that escapes it).</p>
+<p>For what outlives this file system: the App keeps where it saves, and writes there through <code>FileType::Absolute</code> from the model's thread after the activity that made this file system is gone.</p>
+<h3 id="write">write</h3>
+<p><i>public FileError write(FileType type, std::string_view path, std::span&lt;const std::byte&gt; bytes, bool append)</i></p>
+<p><b>brief</b> Write a whole file, truncating or appending.</p>
+<h3 id="write_atomically">write_atomically</h3>
+<p><i>public FileError write_atomically(FileType type, std::string_view path, std::span&lt;const std::byte&gt; bytes)</i></p>
+<p><b>brief</b> Write a whole file so that it holds the old bytes or the new, never a part: written beside it (<code>&lt;path&gt;.new</code>), flushed to storage, and renamed over it. What a save that the process may die during needs. The directory must exist.</p>
+<h3 id="filesystem">~FileSystem</h3>
+<p><i>public void ~FileSystem()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_system.cppm#L33">files/file_system.cppm:33</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>
