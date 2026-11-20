@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.3 Generation pipeline · squared-pg</title>
+<meta name="description" content="squared-pg: 2.3 Generation pipeline">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.3 Generation pipeline.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.3 Generation pipeline.md">on GitHub</a></p><hr>
+<p>section: "2.3" title: Generation pipeline status: review tags: [spec, architecture, pipeline]</p>
+<hr>
+<h1 id="23-generation-pipeline">2.3 Generation pipeline</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.2 Engine responsibility and role]] · Next: [[2.4 Engine lifecycle]]</p></blockquote>
+<blockquote><p>[!note] Scope (D-027) This section is the <b>conceptual, workflow-facing</b> pipeline: the stages a workflow author thinks in. The <b>normative engine phase order</b> is [[2.7 Project generation model]] §2.7.9. Where the two are compared, §2.7.9 governs.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Describes the conceptual sequence transforming user input into a generated project, and which side of the boundary owns each stage.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; conceptual stage list</li><li>&#9745; ownership of each stage</li><li>&#9745; stage dependency relationships</li><li>&#9745; reference to the normative phase order</li><li>&#9745; transaction boundary reference</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="231-conceptual-stages">2.3.1 Conceptual stages</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>Stage</th><th>Owner</th></tr></thead><tbody><tr><td>1</td><td>Input acquisition</td><td>Lua</td></tr><tr><td>2</td><td>Configuration loading</td><td>Lua</td></tr><tr><td>3</td><td>Configuration validation</td><td>engine, invoked by Lua</td></tr><tr><td>4</td><td>Workflow selection</td><td>Lua</td></tr><tr><td>5</td><td>Template resolution</td><td>engine Template Service</td></tr><tr><td>6</td><td>Kit resolution</td><td>engine Kit Service</td></tr><tr><td>7</td><td>Package resolution</td><td>engine Package Service</td></tr><tr><td>8</td><td>Asset resolution</td><td>engine Asset Service</td></tr><tr><td>9</td><td>Squared framework integration</td><td>engine</td></tr><tr><td>10</td><td>Project generation</td><td>engine</td></tr><tr><td>11</td><td>Generated-project validation</td><td>engine</td></tr><tr><td>12</td><td>Finalization</td><td>engine</td></tr></tbody></table></div>
+<p>Workflows MAY add, remove, or reorder stages provided they preserve the architectural invariants — in particular, resolution before mutation.</p>
+<pre><code class="lang-text">                 User / Tool Input
+                         |
+                         v
+                    Lua Workflow
+                         |
+        +----------------+----------------+
+        |                |                |
+        v                v                v
+  validate_config  resolve_template  resolve_kit
+        |                |                |
+        +----------------+----------------+
+                         |
+                         v
+                 Engine Operations
+                         |
+                         v
+              Generated Squared Project</code></pre>
+<h3 id="232-input-acquisition">2.3.2 Input acquisition</h3>
+<p>Inputs MAY originate from command-line arguments, standard input, streams, configuration files, embedded application APIs, or automated systems.</p>
+<p>Input acquisition belongs to Lua. The engine MUST NOT parse command-line syntax or define interaction behaviour. Lua converts external input into structured data for engine APIs.</p>
+<h3 id="233-configuration-loading-and-validation">2.3.3 Configuration loading and validation</h3>
+<p>Lua locates and loads configuration. The engine MAY provide parsing and validation services but MUST NOT decide how configuration is obtained.</p>
+<p>Validation SHOULD cover required fields, resource availability, template compatibility, kit compatibility, package compatibility, platform requirements, and dependency availability.</p>
+<p>Invalid configuration MUST prevent generation from proceeding.</p>
+<h3 id="234-workflow-selection">2.3.4 Workflow selection</h3>
+<p>Workflow selection belongs entirely to Lua. The engine MUST NOT select workflows; it executes operations requested by the selected workflow.</p>
+<h3 id="235-resolution-stages">2.3.5 Resolution stages</h3>
+<p>For each of template, kit, package, and asset resolution: Lua determines <i>what</i> is requested; the engine determines <i>whether it can be resolved</i> and reports the result.</p>
+<p>The engine MUST NOT substitute an alternative resource when resolution fails. If an alternative is appropriate, Lua selects it.</p>
+<p>Detailed resolution semantics are defined per resource type in [[2.8 Templates]], [[2.9 Kits]], [[2.11 Packages]] and [[2.10 Assets and generator resources]].</p>
+<h3 id="236-generation-validation-finalization">2.3.6 Generation, validation, finalization</h3>
+<p>Lua initiates generation. The engine performs filesystem operations, template expansion, resource materialization, file creation, and transaction management.</p>
+<p>After generation the workflow MUST validate the generated project. The engine provides validation capability; Lua determines validation policy and the response to failures.</p>
+<p>Finalization commits the transaction and transfers ownership to the user.</p>
+<h3 id="237-transaction-boundaries">2.3.7 Transaction boundaries</h3>
+<p>Generation workflows MUST define transaction boundaries. Before modifying a user-visible project directory the workflow MUST establish one.</p>
+<p>On failure: incomplete output MUST NOT be presented as a valid generated project, rollback MUST occur, and errors MUST be reported through the engine error system.</p>
+<p>Mechanics are defined in [[2.15 Error and transaction model]]; the engine guarantees transactional correctness for the operations it performs, and Lua determines recovery behaviour.</p>
+<h3 id="238-pipeline-invariants">2.3.8 Pipeline invariants</h3>
+<ul><li>Generated projects MUST NOT depend on <code>squared-pg</code> internals.</li><li>Engine operations MUST be deterministic.</li><li>Lua MUST remain responsible for orchestration.</li><li>Engine capabilities MUST remain usable outside the CLI.</li><li>Workflows MUST use documented engine APIs.</li><li>The resolved resource set MUST be reproducible from equivalent inputs.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.7 Project generation model]] · [[2.15 Error and transaction model]] · [[2.5 Lua control layer]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Todo · squared-pg</title>
+<meta name="description" content="squared-pg: Todo">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">squared-pg</a> · <code>docs/todo.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/todo.md">on GitHub</a></p><h1 id="todo">Todo</h1>
+<p>Working list. Ordered by what unblocks what, not by size.</p>
+<p>Status is honest: <b>done</b> means it has been run, on a device where that matters. Nothing is listed done on the strength of having been written.</p>
+<hr>
+<h2 id="now">Now</h2>
+<ul><li>&#9744; <b>Commit the working tree.</b> 54+ uncommitted changes. <code>release.sh tag</code> refuses a dirty tree, so nothing else can proceed.</li><li>&#9744; <b>Tag <code>v0.1.0-alpha.1</code></b> — <code>tools/release.sh tag</code>, then <code>publish</code>.</li><li>&#9744; <b>Watch the first CI run.</b> macOS has never been tested; the Darwin executable-path branch is written and unexecuted. Runner labels (<code>ubuntu-24.04-arm</code>, <code>macos-13</code>) may also need adjusting.</li></ul>
+<h2 id="stale-test-package-payload-path">Stale test: package payload path</h2>
+<ul><li>&#9744; <b><code>package_materializes</code> in <code>engine/tests/test_generate.cpp</code></b> has three checks disabled (2026-11-18). Two expected <code>squared/gui/include/squared/gui/button.hpp</code> in a generated Android project; squared moved to C++ modules and has no such header, so the plan has no such step and the test crashed on a null pointer. The third expected exactly 329 squared-core files, a count that changed with the same move; each file's hash is still checked. CI had been red on every runner since 2026-10-15 because of it. The rest of the test still runs. Restore the checks against a small fixture cartridge with known files, so squared's layout cannot break them: phase 1 of the sqpg redesign.</li></ul>
+<h2 id="spec-debt--spec-audit-02md">Spec debt — <code>spec-audit-02.md</code></h2>
+<p>Sixteen decisions (D-029…D-044) name a section to amend; none is applied. This is transcription, not thinking, and it gets more expensive every week.</p>
+<ul><li>&#9744; <b>AUD-K-001</b> §2.8.1–2.8.3: resources are cartridges <i>(blocking)</i></li><li>&#9744; <b>AUD-K-002</b> §2.7.11 / §2.15.9: regeneration is not implemented <i>(blocking)</i></li><li>&#9744; <b>AUD-K-003</b> §2.14.4: sandboxed tier is refused, not enforced <i>(blocking)</i></li><li>&#9744; <b>AUD-M-002</b> <code>Spec status</code>: show the pending amendments</li><li>&#9744; <b>AUD-M-003</b> open questions: Q-21 and Q-23 have moved since they were written</li><li>&#9744; <b>AUD-K-004 … K-016</b> the remaining thirteen</li><li>&#9744; Audit-01 findings still marked <i>awaiting decision</i> — check whether any remain untriaged</li></ul>
+<h2 id="conformance">Conformance</h2>
+<p>Agreed, and worth doing regardless of what happens to the sysroot design.</p>
+<ul><li>&#9744; <b><code>test_templates</code></b> — iterate every indexed template, assert the shared conventions. ~150 lines, no engine change. Catches the drift a third template would otherwise introduce silently.</li><li>&#9744; <b><code>workspace.verify</code></b> — the same invariants applied to a workspace, and the first real consumer of the provenance table. Separate operation from <code>workspace.inspect</code>, which stays a pure read; <code>sqpg inspect</code> presents both.</li></ul>
+<h2 id="sysroot-and-tiers">Sysroot and tiers</h2>
+<p>Design proposal: <code>docs/developer/design/sysroot-and-tiers.md</code>. <b>Spec first</b> (AUD-L-001…L-005), then code — or the after-the-fact-decision pattern repeats.</p>
+<ul><li>&#9744; Decide: does promote/demote <b>move</b> the workspace, or operate in place? Moving makes the tier legible from the path and moves the directory out from under anyone who has <code>cd</code>-ed into it.</li><li>&#9744; Sysroot as <code>EngineConfig</code>, resolved by the host from <code>--sysroot</code> or <code>SQUARED_PG_SYSROOT</code>. Configuration, never discovery (§2.7.2).</li><li>&#9744; Workflow default: <code>output = $sysroot/sandbox/$name</code>. Policy, so Lua.</li><li>&#9744; Metadata <code>record_version</code> 2 with <code>tier</code>. Makes Q-24 live.</li><li>&#9744; <code>project.promote</code> — rename, additive writes, provenance-checked replacement.</li><li>&#9744; <code>project.demote</code> — refuse on a dirty tree, <b>archive</b> <code>.git</code> rather than delete it. A generator that can silently destroy history is one people stop trusting.</li></ul>
+<h2 id="framework--q-23">Framework — Q-23</h2>
+<p>Held until <code>kit.sfml</code> works, which is correct: a GUI that runs on SFML <i>or</i> SDL3 needs a backend to be designed against.</p>
+<ul><li>&#9744; <b><code>kit.sfml</code></b> against the installed SFML 3.1.0 (Termux/X11). Also the first real test of <code>render.backend</code> — the single-arity detection and the <code>__has_include</code> guard have one implementation each and are therefore hypotheses.</li><li>&#9744; Decide first: A (add <code>render.backend</code> to the terminal template — cheap, but the naming mistake D-041 was about), B (a third <code>template.desktop.cpp</code>), or C (cross-build SFML for Android — weeks).</li><li>&#9744; <code>termux-x11-nightly</code> is available but <b>not installed</b> and <code>$DISPLAY</code> is empty. SFML will build; a window test needs X running. Decide whether the smoke test opens a window or stops at link.</li><li>&#9744; Then Q-23 proper: how a project acquires the framework offline, what <code>sq_framework/</code> looks like, and whether Q-22 (build emission) changes.</li><li>&#9744; <b><code>squared-holodisk</code> is a second sqcart consumer.</b> The standing decision was in-tree until one appears, <code>git subtree split</code> as the path. Decide before holodisk starts, not after.</li></ul>
+<h2 id="engine">Engine</h2>
+<ul><li>&#9744; <b>Regeneration and the journal</b> (§2.15.9). The biggest missing capability — today a project can be created and never touched again. Deliberately after promote/demote, which validates provenance in a smaller setting first.</li><li>&#9744; Workspace locking (§2.15.12) — only meaningful once regeneration exists.</li><li>&#9744; Package and asset materialisation — blocked behind Q-23 in practice.</li><li>&#9744; Q-30: express "requires <i>a</i> kit providing X" rather than a named kit. <code>__has_include</code> covers it in generated source; whether resolution should also express it is open.</li></ul>
+<h2 id="tooling-and-hygiene">Tooling and hygiene</h2>
+<ul><li>&#9744; <b><code>kit.lint</code></b> — a kit contributing <code>.clang-format</code> and a <code>make lint</code> target. Answers the linting question without a plugin system, because a lint setup is files and files are what kits contribute.</li><li>&#9744; <code>sqpg doctor</code> — host capability for the <i>generator</i>. The probe scripts cover the Android toolchain; nothing covers this.</li><li>&#9744; Delete <code>tools/*.fish</code> once the bash ports have been used in anger (D-044). Separate, deliberate commit.</li><li>&#9744; Release tarball is 26 MB, mostly <code>third-party/</code> documentation and test data the build never touches. <code>export-ignore</code> would slim it, but the existing <code>.gitattributes</code> protects byte-exact fixtures — be careful.</li><li>&#9744; macOS: unverified until CI runs.</li></ul>
+<h2 id="not-doing-and-why">Not doing, and why</h2>
+<ul><li><b>Template composition (Q-21).</b> Measured: one file of twenty is duplicated between the two templates, and it is <code>.clang-format</code>. What they share is shape, not content, so a base template would hold almost nothing. The real risk is convention drift, and that is <code>test_templates</code>, not a feature. Revisit if two templates ever duplicate real content.</li><li><b>Git as an engine service.</b> The engine would gain its first external runtime dependency, for facts it can already detect (<code>.git</code> exists) and policy that belongs to Lua (init on promote).</li><li><b>A plugin system for linting.</b> <code>kit.lint</code> does the job with a mechanism that already exists.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

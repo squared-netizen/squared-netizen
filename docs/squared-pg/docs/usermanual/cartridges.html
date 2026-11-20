@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartridges and sqcart · squared-pg</title>
+<meta name="description" content="squared-pg: Cartridges and sqcart">
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
+  <a href="../../../../docs/index.html">Docs</a>
+  <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared-pg</a> · <code>docs/usermanual/cartridges.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/usermanual/cartridges.md">on GitHub</a></p><hr>
+<p>title: Cartridges and sqcart tags: [usermanual, sqcart]</p>
+<hr>
+<h1 id="cartridges-and-sqcart">Cartridges and <code>sqcart</code></h1>
+<p>A cartridge is a <code>.sq</code> file: a container holding a manifest and a payload tree. Templates, kits, packages and assets all ship as cartridges. <code>sqcart</code> is the tool for reading and building them.</p>
+<p>You do not need <code>sqcart</code> to use squared-pg. You need it if you are <b>authoring</b> a cartridge, or want to see inside one.</p>
+<h2 id="looking-inside">Looking inside</h2>
+<pre><code class="lang-sh">sqcart info &lt;cartridge&gt;       # human summary of the manifest
+sqcart show &lt;cartridge&gt;       # the manifest JSON
+sqcart list &lt;cartridge&gt;       # entries: path, size, compressed, method
+sqcart cat &lt;cartridge&gt; &lt;entry&gt;  # one entry&#x27;s bytes to stdout
+sqcart verify &lt;cartridge&gt;     # full validation
+sqcart digest &lt;cartridge&gt;     # content digest</code></pre>
+<p><code>stdout</code> carries machine-readable results only; diagnostics go to <code>stderr</code>, so piping is safe.</p>
+<h2 id="building-one">Building one</h2>
+<pre><code class="lang-sh">sqcart pack &lt;directory&gt; -o &lt;out.sq&gt;
+sqcart unpack &lt;cartridge&gt; -d &lt;dir&gt;</code></pre>
+<p><code>-o</code> takes a <b>file path, not a directory.</b> Passing a directory currently fails with <code>cartridge.io_failed: failed to open output file for writing</code>, which names the syscall rather than the mistake.</p>
+<p>To start a new cartridge from a directory of files:</p>
+<pre><code class="lang-sh">sqcart create &lt;dir&gt; --kind=kit -o &lt;out.sq&gt;</code></pre>
+<p><code>create</code> seeds <code>SQ-INF/manifest.json</code> and then packs. It needs <code>--kind</code>; any token matching <code>[a-z][a-z0-9_]*</code> is accepted, because what a kind <i>means</i> is the consuming tool's question, not sqcart's. <code>--in-place</code> writes the manifest without packing. <code>--force</code> reseeds an existing manifest.</p>
+<p>The directory must contain at least one file — <code>create</code> on an empty directory reports it has nothing to package.</p>
+<h2 id="options-worth-knowing">Options worth knowing</h2>
+<div class="tablewrap"><table><thead><tr><th>Option</th><th>Effect</th></tr></thead><tbody><tr><td><code>-c, --compress=0-9</code></td><td>deflate level, default 6. <code>0</code> stores.</td></tr><tr><td><code>--store</code></td><td>same as <code>--compress=0</code></td></tr><tr><td><code>--no-hashes</code></td><td>omit <code>SQ-INF/hashes.json</code></td></tr><tr><td><code>--verify-integrity</code></td><td>check declared digests while opening</td></tr><tr><td><code>--lenient</code></td><td>open at lenient conformance rather than strict</td></tr><tr><td><code>--overwrite</code></td><td>allow unpack to overwrite existing files</td></tr><tr><td><code>--symlinks=skip\|follow\|reject</code></td><td>default <code>skip</code>. <code>follow</code> resolves links whose target stays inside the cartridge; links escaping it are never packed whatever the mode.</td></tr></tbody></table></div>
+<h2 id="exit-codes">Exit codes</h2>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td>0</td><td>success</td></tr><tr><td>1</td><td>operation failed</td></tr><tr><td>2</td><td>usage error</td></tr><tr><td>3</td><td>cartridge non-conforming</td></tr></tbody></table></div>
+<h2 id="authoring-a-kit">Authoring a kit</h2>
+<p><code>sqpg</code> has a template for it, which gets the directory layout and a manifest skeleton right:</p>
+<pre><code class="lang-sh">sqpg new my_kit -t template.kit \
+  -p project_name=mykit -p description=&quot;What it does&quot;</code></pre>
+<p>The workspace name must be a C identifier; the kit's identity comes from <code>project_name</code>, so that command produces <code>kit.mykit</code>. Edit <code>cartridge/SQ-INF/manifest.json</code> and the payload under <code>cartridge/tree/</code>, then pack.</p>
+<h2 id="not-documented-here">Not documented here</h2>
+<p>The manifest schema, conformance levels, and the container format itself. Those are specification material rather than user documentation, and a reader authoring a cartridge seriously will need them.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

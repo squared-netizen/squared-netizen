@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Shader · squared</title>
+<meta name="description" content="squared: class Shader">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gles/Shader.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gles/Shader.md">on GitHub</a></p><h1 id="class-shader">class Shader</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L21">gles/shader.cppm:21</a></i></p>
+<p><b>brief</b> One compiled shader stage, owned.</p>
+<p>A shader exists to be attached to a Program and then released; Program keeps nothing of it after linking. 8 bytes, no retained source and no retained log.</p>
+<p>The compile log is returned in the GlesError on failure rather than stored, because a successful shader's log is almost always empty and a failed one is about to be thrown away. Drivers put genuinely useful text there, so it is passed through verbatim.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="shader">Shader</h3>
+<p><i>public void Shader()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L24">gles/shader.cppm:24</a></i></p>
+<h3 id="shader">Shader</h3>
+<p><i>public void Shader(Shader &amp;&amp; other)</i></p>
+<h3 id="shader">Shader</h3>
+<p><i>public void Shader(const Shader &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L27">gles/shader.cppm:27</a></i></p>
+<h3 id="compile">compile</h3>
+<p><i>public GlesError compile(ShaderStage stage, std::string_view source)</i></p>
+<p><b>brief</b> Compile GLSL source for one stage.</p>
+<p><b>stage</b> Which programmable stage this is.</p>
+<p><b>source</b> GLSL source; the <code>#version</code> directive must be its first line, as GLSL requires.</p>
+<p><b>return</b> A no-error GlesError on success, or CompileFailed carrying the driver's log.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Release the GL object. Safe to call more than once.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Forget the GL name without deleting it, after context loss.</p>
+<h3 id="name">name</h3>
+<p><i>public std::uint32_t name()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L52">gles/shader.cppm:52</a></i></p>
+<p><b>brief</b> Return the raw GL name, or zero.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Shader &amp; operator=(Shader &amp;&amp; other)</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Shader &amp; operator=(const Shader &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L28">gles/shader.cppm:28</a></i></p>
+<h3 id="stage">stage</h3>
+<p><i>public ShaderStage stage()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L55">gles/shader.cppm:55</a></i></p>
+<p><b>brief</b> Return the stage this shader was compiled for.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/shader.cppm#L49">gles/shader.cppm:49</a></i></p>
+<p><b>brief</b> Report whether this shader holds a compiled GL object.</p>
+<h3 id="shader">~Shader</h3>
+<p><i>public void ~Shader()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TextureAtlas · squared</title>
+<meta name="description" content="squared: class TextureAtlas">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/TextureAtlas.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/TextureAtlas.md">on GitHub</a></p><h1 id="class-textureatlas">class TextureAtlas</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L25">graphics/texture_atlas.cppm:25</a></i></p>
+<p><b>brief</b> Owning, transactionally loaded libGDX text texture atlas.</p>
+<p>Page image paths are resolved relative to the atlas asset. Multiple pages, duplicate indexed names, rotation, trimming, filtering, repeat modes, splits, and padding are supported. Packing source images is a separate future asset-tools concern.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="textureatlas">TextureAtlas</h3>
+<p><i>public void TextureAtlas()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L29">graphics/texture_atlas.cppm:29</a></i></p>
+<p><b>brief</b> Construct an empty atlas owning no pages or regions.</p>
+<h3 id="textureatlas">TextureAtlas</h3>
+<p><i>public void TextureAtlas(TextureAtlas &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L32">graphics/texture_atlas.cppm:32</a></i></p>
+<h3 id="textureatlas">TextureAtlas</h3>
+<p><i>public void TextureAtlas(const TextureAtlas &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L30">graphics/texture_atlas.cppm:30</a></i></p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Destroy every atlas page texture and region.</p>
+<h3 id="find_region">find_region</h3>
+<p><i>public const AtlasRegion * find_region(const std::string &amp; name, int index)</i></p>
+<p><b>brief</b> Find an exact name/index pair, or return null.</p>
+<p><b>name</b> Region name to look up.</p>
+<p><b>index</b> Duplicate-region index, or -1 for the default entry.</p>
+<p><b>return</b> Pointer to the matching region, or null when absent.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Mark page GPU objects stale without issuing graphics calls.</p>
+<h3 id="load">load</h3>
+<p><i>public bool load(const files::FileHandle &amp; atlas)</i></p>
+<p><b>brief</b> Load an atlas asset without disturbing a valid prior load on failure.</p>
+<p><b>atlas_path</b> Null-terminated path of the libGDX text atlas asset. Page image paths are resolved relative to it.</p>
+<p><b>return</b> true when every page and region loaded successfully.</p>
+<h3 id="load">load</h3>
+<p><i>public bool load(const files::FileHandle &amp; atlas, TextureRecoveryPolicy page_recovery)</i></p>
+<p><b>brief</b> Load an atlas using one recovery policy for every page.</p>
+<p>ReloadFromAsset, RetainPixels, and Discard are supported. Regenerate is rejected because atlas pages require distinct application recipes.</p>
+<p><b>atlas_path</b> Null-terminated path of the libGDX text atlas asset.</p>
+<p><b>page_recovery</b> Policy applied to every loaded page.</p>
+<p><b>return</b> true when every page and region loaded successfully.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public TextureAtlas &amp; operator=(TextureAtlas &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L33">graphics/texture_atlas.cppm:33</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TextureAtlas &amp; operator=(const TextureAtlas &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_atlas.cppm#L31">graphics/texture_atlas.cppm:31</a></i></p>
+<h3 id="page_count">page_count</h3>
+<p><i>public std::size_t page_count()</i></p>
+<p><b>brief</b> Count loaded page textures.</p>
+<p><b>return</b> Number of loaded page textures.</p>
+<h3 id="region_count">region_count</h3>
+<p><i>public std::size_t region_count()</i></p>
+<p><b>brief</b> Count loaded regions.</p>
+<p><b>return</b> Number of loaded regions.</p>
+<h3 id="release">release</h3>
+<p><i>public void release()</i></p>
+<p><b>brief</b> Release page GPU objects while preserving regions and load recipes.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(bool context_preserved)</i></p>
+<p><b>brief</b> Rebuild, stating explicitly whether the context survived.</p>
+<p><b>context_preserved</b> true when the GPU objects are still valid.</p>
+<p><b>note</b> No default. The previous one was <code>false</code>, which made <code>restore()</code> read as cheap and behave destructively: it reloaded everything, moved every texture's generation, and invalidated every TextureRegion copied out of an atlas - on the first frame, before anything had been lost.</p>
+<p><b>note</b> Prefer the overload taking a Context. It reads the answer from the object that knows it, so the polarity cannot be got backwards.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(const graphics::Context &amp; graphics)</i></p>
+<p><b>brief</b> Restore every released page texture without invalidating regions.</p>
+<p><b>context_preserved</b> Whether the GPU context survived loss; true skips recomputing fast-path state where possible.</p>
+<p><b>return</b> true when every page texture was restored.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Check whether any page and region is loaded.</p>
+<p><b>return</b> true when the atlas owns at least one page and region.</p>
+<h3 id="textureatlas">~TextureAtlas</h3>
+<p><i>public void ~TextureAtlas()</i></p>
+<p><b>brief</b> Destroy every owned page texture and region.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

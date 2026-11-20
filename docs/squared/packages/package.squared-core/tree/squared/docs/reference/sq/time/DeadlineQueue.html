@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class DeadlineQueue · squared</title>
+<meta name="description" content="squared: class DeadlineQueue">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/time/DeadlineQueue.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/time/DeadlineQueue.md">on GitHub</a></p><h1 id="class-deadlinequeue">class DeadlineQueue</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L26">time/deadline_queue.cppm:26</a></i></p>
+<p><b>brief</b> A model's timers: values due at times, given back in order once their time has come. It holds at most <code>Capacity</code> at once, in an array of its own, so nothing is ever allocated: <code>DeadlineQueue&lt;Restock, 16&gt; timers;</code></p>
+<p>It reads no clock and runs no thread: its owner passes the time in. In a model, <code>next_due()</code> is the model's <code>wake_at()</code>, and <code>poll_due</code> runs in its <code>due()</code> (see <code>ModelRunner</code>). Entries due at the same time come back in the order they were scheduled. Values are not callbacks: what a due value means is its owner's business.</p>
+<h2 id="records">Records</h2>
+<p>Scheduled</p>
+<p>Ticket</p>
+<h2 id="functions">Functions</h2>
+<h3 id="cancel">cancel</h3>
+<p><i>public bool cancel(Ticket ticket)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L110">time/deadline_queue.cppm:110</a></i></p>
+<p><b>brief</b> Cancel the entry <code>ticket</code> names, freeing its slot. False if it is not here (due already, or cancelled).</p>
+<h3 id="cancel">cancel</h3>
+<p><i>public bool cancel(Ticket ticket, Visitor &amp;&amp; visitor)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L117">time/deadline_queue.cppm:117</a></i></p>
+<p><b>brief</b> Cancel, handing the value to <code>visitor</code> first (to release what it holds).</p>
+<h3 id="capacity">capacity</h3>
+<p><i>public static std::size_t capacity()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L65">time/deadline_queue.cppm:65</a></i></p>
+<h3 id="empty">empty</h3>
+<p><i>public bool empty()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L66">time/deadline_queue.cppm:66</a></i></p>
+<h3 id="next_due">next_due</h3>
+<p><i>public std::optional&lt;TimePoint&gt; next_due()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L69">time/deadline_queue.cppm:69</a></i></p>
+<p><b>brief</b> When the first entry is due; nothing when the queue is empty.</p>
+<h3 id="poll_due">poll_due</h3>
+<p><i>public std::size_t poll_due(TimePoint now, std::size_t limit, Visitor &amp;&amp; visitor)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L145">time/deadline_queue.cppm:145</a></i></p>
+<p>NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)</p>
+<h3 id="schedule_after">schedule_after</h3>
+<p><i>public Scheduled schedule_after(TimePoint now, Duration delay, Value value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L100">time/deadline_queue.cppm:100</a></i></p>
+<p><b>brief</b> <code>value</code>, due <code>delay</code> after <code>now</code> (the owner's one reading of the clock).</p>
+<h3 id="schedule_at">schedule_at</h3>
+<p><i>public Scheduled schedule_at(TimePoint due, Value value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L78">time/deadline_queue.cppm:78</a></i></p>
+<p><b>brief</b> <code>value</code>, due at <code>due</code> (not before the epoch).</p>
+<h3 id="size">size</h3>
+<p><i>public std::size_t size()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L64">time/deadline_queue.cppm:64</a></i></p>
+<h3 id="visit_ordered">visit_ordered</h3>
+<p><i>public void visit_ordered(Visitor &amp;&amp; visitor)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L167">time/deadline_queue.cppm:167</a></i></p>
+<p>NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)</p>
+<h2 id="enums">Enums</h2>
+<p>| enum class ScheduleResult |</p>
+<p>--</p>
+<p>| scheduled | | full | | invalid_time | | tickets_exhausted |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/time/deadline_queue.cppm#L41">time/deadline_queue.cppm:41</a></i></p>
+<p><b>brief</b> What scheduling did.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

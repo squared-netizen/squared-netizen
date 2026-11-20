@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The sqpg CLI · squared-pg</title>
+<meta name="description" content="squared-pg: The sqpg CLI">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/lua/cli.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/lua/cli.md">on GitHub</a></p><h1 id="the-sqpg-cli">The <code>sqpg</code> CLI</h1>
+<p>The reference host. It contains no argument grammar of its own — everything below is implemented by <code>workflow.generate.default</code>, and you can replace it.</p>
+<h2 id="commands">Commands</h2>
+<pre><code class="lang-sh">sqpg new &lt;name&gt; --template ID [options]     generate a workspace
+sqpg plan &lt;name&gt; --template ID [options]    show what would be generated
+sqpg list [template|kit|package|asset]      list indexed resources
+sqpg show &lt;id&gt;                              resolve one resource and describe it
+sqpg inspect &lt;workspace&gt;                    read a workspace metadata record
+sqpg describe                               engine version, services, capabilities
+sqpg operations                             enumerate the control surface
+sqpg help</code></pre>
+<h2 id="options-for-new-and-plan">Options for <code>new</code> and <code>plan</code></h2>
+<div class="tablewrap"><table><thead><tr><th>Option</th><th>Meaning</th></tr></thead><tbody><tr><td><code>-t, --template ID</code></td><td>template identity, optionally <code>id@range</code></td></tr><tr><td><code>-k, --kit ID</code></td><td>kit identity; repeat for several, applied in order</td></tr><tr><td><code>--package ID</code></td><td>package identity; repeat</td></tr><tr><td><code>--asset ID</code></td><td>asset bundle identity; repeat</td></tr><tr><td><code>--platform NAME</code></td><td>target platform; repeat (default <code>termux</code>)</td></tr><tr><td><code>--framework VER</code></td><td>Squared framework version (default <code>1.0.0</code>)</td></tr><tr><td><code>-o, --out PATH</code></td><td>workspace location (default <code>./&lt;name&gt;</code>)</td></tr><tr><td><code>-p, --param key=value</code></td><td>template parameter; repeat</td></tr><tr><td><code>--config FILE</code></td><td>Lua file returning a table of the above</td></tr><tr><td><code>--json</code></td><td>machine-readable output</td></tr><tr><td><code>--verbose</code></td><td>print informational diagnostics too</td></tr></tbody></table></div>
+<p><b>Precedence:</b> command line, then <code>--config</code> file, then defaults.</p>
+<h2 id="host-options">Host options</h2>
+<p>Interpreted before the workflow runs, because something must choose which script runs before a script is running.</p>
+<div class="tablewrap"><table><thead><tr><th>Option</th><th>Meaning</th></tr></thead><tbody><tr><td><code>--workflow ID</code></td><td>run a different workflow</td></tr><tr><td><code>--fast</code></td><td>relax durability to journal transitions only</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Environment</th><th>Meaning</th></tr></thead><tbody><tr><td><code>SQUARED_PG_RESOURCES</code></td><td>colon-separated resource roots</td></tr><tr><td><code>SQUARED_PG_WORKFLOWS</code></td><td>colon-separated workflow search path</td></tr><tr><td><code>NO_COLOR</code></td><td>disable colour</td></tr></tbody></table></div>
+<h2 id="examples">Examples</h2>
+<pre><code class="lang-sh"># what is available
+sqpg list
+
+# what would happen
+sqpg plan hello --template template.terminal.cpp --kit kit.terminal
+
+# do it
+sqpg new hello --template template.terminal.cpp --kit kit.terminal
+cd hello &amp;&amp; make &amp;&amp; ./build/hello
+
+# with a Lua script workspace as well
+sqpg new hello --template template.terminal.cpp --kit kit.terminal --kit kit.lua
+
+# from a config file
+cat &gt; project.lua &lt;&lt;&#x27;EOF&#x27;
+return {
+  [&quot;template&quot;] = &quot;template.terminal.cpp&quot;,
+  kits = { &quot;kit.terminal&quot;, &quot;kit.lua&quot; },
+  platforms = { &quot;termux&quot; },
+  parameters = { description = &quot;My terminal tool.&quot; },
+}
+EOF
+sqpg new hello --config project.lua
+
+# for a script
+sqpg plan hello --template template.terminal.cpp --kit kit.terminal --json</code></pre>
+<h2 id="exit-status">Exit status</h2>
+<div class="tablewrap"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td>0</td><td>success</td></tr><tr><td>1</td><td>the operation failed; the error was printed</td></tr><tr><td>2</td><td>usage error, or no such workflow</td></tr></tbody></table></div></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

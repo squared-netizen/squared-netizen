@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>data · squared</title>
+<meta name="description" content="squared: data">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/data.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/data.md">on GitHub</a></p><h1 id="data">data</h1>
+<p>Strict RFC 8259 JSON: an owned value type independent of the parser backend, plus one parse function and one write function. Used by the skin loader, and for saves and layouts.</p>
+<p>Developer counterpart: <a href="../developer/data.html">../developer/data.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>JsonValue</code></td><td><code>squared/data/json_value.cppm</code></td><td>One owned JSON value independent of the parser backend</td></tr><tr><td><code>JsonErrorCode</code></td><td><code>squared/data/src/json_error_code.cppm</code></td><td>Stable error categories produced by JSON parsing and writing</td></tr><tr><td><code>JsonError</code></td><td><code>squared/data/src/json_error.cppm</code></td><td>Structured JSON failure information</td></tr><tr><td><code>JsonParseOptions</code></td><td><code>squared/data/src/json_parse_options.cppm</code></td><td>Limits and strictness applied to one parse operation</td></tr><tr><td><code>JsonParseResult</code></td><td><code>squared/data/src/json_parse_result.cppm</code></td><td>Result of parsing one complete RFC 8259 JSON document</td></tr><tr><td><code>JsonWriteOptions</code></td><td><code>squared/data/src/json_write_options.cppm</code></td><td>Formatting controls for deterministic JSON serialization</td></tr><tr><td><code>JsonWriteResult</code></td><td><code>squared/data/src/json_write_result.cppm</code></td><td>Result of serializing one owned JSON value</td></tr></tbody></table></div>
+<h2 id="free-functions">Free functions</h2>
+<p><code>squared/data/json.cppm</code> is the module's aggregate header and also declares:</p>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Purpose</th></tr></thead><tbody><tr><td><code>parse_json(std::string_view, const JsonParseOptions&amp;)</code></td><td>parse exactly one strict JSON document</td></tr><tr><td><code>write_json(const JsonValue&amp;, const JsonWriteOptions&amp;)</code></td><td>serialize with stable key ordering</td></tr></tbody></table></div>
+<p>Both are <code>noexcept</code> and report failure through the returned result, so this module already follows the framework's no-exceptions rule.</p>
+<h2 id="i-json-and-the-canonical-form">I-JSON, and the canonical form</h2>
+<p>Two options for JSON that is hashed, signed or exchanged between programs that must agree on it (sqcart's 3.0 cartridges, for one):</p>
+<ul><li><code>JsonParseOptions::ijson</code>: accept only I-JSON (RFC 7493). Duplicate keys, invalid UTF-8 and lone surrogates are refused anyway; this also refuses an integer beyond ±(2^53 − 1), which a double cannot hold exactly (<code>JsonErrorCode::IntegerOutOfRange</code>). Write such a number as a string.</li><li><code>JsonWriteOptions::canonical</code>: write the canonical form of RFC 8785 (JSON Canonicalization Scheme): members ordered by their names' UTF-16 code units, numbers as ECMAScript writes them (<code>1e+21</code>, <code>0.000001</code>, <code>5e-324</code>), the fewest escapes, no whitespace. The same value always gives the same bytes. <code>pretty</code> and <code>newline_at_end</code> are ignored, and an integer beyond ±(2^53 − 1) is an error.</li></ul>
+<pre><code class="lang-cpp">const auto parsed = sq::data::parse_json(text, {.ijson = true});
+const auto canonical = sq::data::write_json(parsed.value, {.canonical = true});</code></pre>
+<h2 id="reading-a-value">Reading a value</h2>
+<p>Accessors return a pointer that is null when the value holds a different type, so there is no throwing alternative to guard against:</p>
+<pre><code class="lang-cpp">const auto result = sq::data::parse_json(text);
+if (!result.error.ok()) return;
+
+if (const auto* object = result.value.object_if()) {
+    if (const auto* name = object-&gt;find(&quot;name&quot;)-&gt;string_if()) {
+        use(*name);
+    }
+}</code></pre>
+<h2 id="yyjson">yyjson</h2>
+<p><code>parse_json</code> and <code>write_json</code> are implemented over yyjson, but nothing in the public API exposes it: <code>JsonValue</code> owns its own storage and outlives the parse. Only <code>data/src/json.cpp</code> includes <code>yyjson.h</code>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

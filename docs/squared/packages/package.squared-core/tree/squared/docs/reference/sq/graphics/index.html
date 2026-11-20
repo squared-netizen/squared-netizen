@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace graphics · squared</title>
+<meta name="description" content="squared: namespace graphics">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/index.md">on GitHub</a></p><h1 id="namespace-graphics">namespace graphics</h1>
+<h2 id="namespaces">Namespaces</h2>
+<ul><li><a href="detail/index.html">detail</a></li></ul>
+<h2 id="records">Records</h2>
+<ul><li><a href="AtlasRegion.html">AtlasRegion</a></li><li><a href="BitmapFontError.html">BitmapFontError</a></li><li><a href="BitmapFontInfo.html">BitmapFontInfo</a></li><li><a href="BitmapFontPage.html">BitmapFontPage</a></li><li><a href="BitmapFontParseLimits.html">BitmapFontParseLimits</a></li><li><a href="BitmapFont.html">BitmapFont</a></li><li><a href="BitmapGlyph.html">BitmapGlyph</a></li><li><a href="BitmapKerning.html">BitmapKerning</a></li><li><a href="Color.html">Color</a></li><li><a href="ContextConfig.html">ContextConfig</a></li><li><a href="Context.html">Context</a></li><li><a href="GlyphLayoutOptions.html">GlyphLayoutOptions</a></li><li><a href="GlyphLayout.html">GlyphLayout</a></li><li><a href="GlyphLine.html">GlyphLine</a></li><li><a href="GlyphPlacement.html">GlyphPlacement</a></li><li><a href="OrthographicCamera.html">OrthographicCamera</a></li><li><a href="SpriteBatch.html">SpriteBatch</a></li><li><a href="Sprite.html">Sprite</a></li><li><a href="TextureAtlas.html">TextureAtlas</a></li><li><a href="TextureRecoveryOptions.html">TextureRecoveryOptions</a></li><li><a href="TextureRecoveryTarget.html">TextureRecoveryTarget</a></li><li><a href="TextureRegion.html">TextureRegion</a></li><li><a href="Texture.html">Texture</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="texel_bytes">texel_bytes</h3>
+<p><i>int texel_bytes(TextureFormat format)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/texture_format.cppm#L22">graphics/src/texture_format.cppm:22</a></i></p>
+<p><b>brief</b> Bytes a texel of <code>format</code> takes.</p>
+<h2 id="enums">Enums</h2>
+<p>| enum class BitmapFontErrorCode |</p>
+<p>--</p>
+<p>| none | | invalid_argument | | limit_exceeded | | malformed | | unsupported | | duplicate | | missing_required | | invalid_utf8 |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/bitmap_font_error_code.cppm#L9">graphics/src/bitmap_font_error_code.cppm:9</a></i></p>
+<p><b>brief</b> Stable failure categories for BMFont parsing and glyph layout.</p>
+<p>| enum class CoordinateOrigin |</p>
+<p>--</p>
+<p>| BottomLeft | | TopLeft |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/coordinate_origin.cppm#L11">graphics/src/coordinate_origin.cppm:11</a></i></p>
+<p><b>brief</b> Coordinate orientation used by an orthographic camera.</p>
+<p>| enum class GlyphAlignment |</p>
+<p>--</p>
+<p>| start | | center | | end |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/glyph_alignment.cppm#L9">graphics/src/glyph_alignment.cppm:9</a></i></p>
+<p><b>brief</b> Horizontal placement within an optional target width.</p>
+<p>| enum class TextureFilter |</p>
+<p>--</p>
+<p>| Nearest | | Linear |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/texture_filter.cppm#L14">graphics/src/texture_filter.cppm:14</a></i></p>
+<p><b>brief</b> How a texture is sampled between texels.</p>
+<p>The one filter vocabulary in squared: <code>graphics::Texture</code> and the lower-level <code>gles::Texture2D</code> both take it.</p>
+<p>| enum class TextureFormat |</p>
+<p>--</p>
+<p>| Rgba8 | | Alpha8 |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/texture_format.cppm#L16">graphics/src/texture_format.cppm:16</a></i></p>
+<p><b>brief</b> What one texel of a <code>Texture</code> holds.</p>
+<p><code>Rgba8</code> is four bytes a texel, colour and alpha, as loaded images are. <code>Alpha8</code> is one byte, drawn as white with that alpha, so the draw colour tints it: glyph coverage, masks. A quarter of the memory, on the GPU and in a retained copy.</p>
+<p>| enum class TextureRecoveryPolicy |</p>
+<p>--</p>
+<p>| ReloadFromAsset | | RetainPixels | | Regenerate | | Discard |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/texture_recovery_policy.cppm#L15">graphics/src/texture_recovery_policy.cppm:15</a></i></p>
+<p><b>brief</b> CPU-side recipe used to recover a texture after context loss.</p>
+<p>Policies are backend-neutral. They describe what source data Squared keeps or asks the application to regenerate; they do not expose the selected windowing or graphics API.</p>
+<p>| enum class TextureWrap |</p>
+<p>--</p>
+<p>| ClampToEdge | | Repeat | | MirroredRepeat |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/texture_wrap.cppm#L14">graphics/src/texture_wrap.cppm:14</a></i></p>
+<p><b>brief</b> How sampling outside the zero-to-one range behaves.</p>
+<p>The one wrap vocabulary in squared: <code>graphics::Texture</code> and the lower-level <code>gles::Texture2D</code> both take it.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

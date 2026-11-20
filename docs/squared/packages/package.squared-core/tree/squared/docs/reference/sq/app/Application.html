@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Application · squared</title>
+<meta name="description" content="squared: class Application">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/app/Application.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/app/Application.md">on GitHub</a></p><h1 id="class-application">class Application</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L24">app/application.cppm:24</a></i></p>
+<p><b>brief</b> Developer-owned application behind a platform-neutral lifecycle.</p>
+<p>The generated SDL adapter owns process and platform setup. Developer code implements this interface and uses Squared framework services for ordinary application behavior.</p>
+<h2 id="members">Members</h2>
+<p>public static const std::size_t saved_state_bytes</p>
+<h2 id="functions">Functions</h2>
+<h3 id="background">background</h3>
+<p><i>public void background()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L99">app/application.cppm:99</a></i></p>
+<p><b>brief</b> The application is no longer visible (Android's stop): it may never come back, so this is where state is made safe.</p>
+<h3 id="create">create</h3>
+<p><i>public bool create(Runtime &amp; runtime)</i></p>
+<p><b>brief</b> Initialize logical state once.</p>
+<p><b>runtime</b> The platform services: rendering context, file system and asset manager. Keep references to the members you use; the objects they refer to live for the whole process.</p>
+<p><b>return</b> <code>true</code> when the application may enter its event loop.</p>
+<p><b>note</b> Only create() receives the whole runtime. render() still takes the context alone, because a frame should not be reaching into the file system or the asset cache sixty times a second.</p>
+<h3 id="dispose">dispose</h3>
+<p><i>public void dispose()</i></p>
+<p><b>brief</b> Release logical and framework resources before destruction.</p>
+<h3 id="foreground">foreground</h3>
+<p><i>public void foreground()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L93">app/application.cppm:93</a></i></p>
+<p><b>brief</b> The application is visible again (Android's start). Not called before create(); the first start precedes it.</p>
+<h3 id="handle_event">handle_event</h3>
+<p><i>public void handle_event(const Event &amp; event)</i></p>
+<p><b>brief</b> Receive one platform-neutral input or lifecycle event.</p>
+<p><b>event</b> Portable event produced by the platform adapter.</p>
+<h3 id="hides_bars">hides_bars</h3>
+<p><i>public bool hides_bars()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L135">app/application.cppm:135</a></i></p>
+<p><b>brief</b> Whether the system bars should be hidden (immersive): read on each frame.</p>
+<h3 id="low_memory">low_memory</h3>
+<p><i>public void low_memory()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L138">app/application.cppm:138</a></i></p>
+<p><b>brief</b> The system is short of memory: drop what can be made again.</p>
+<h3 id="pause">pause</h3>
+<p><i>public void pause()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L84">app/application.cppm:84</a></i></p>
+<p><b>brief</b> Notify the application that frame updates are pausing.</p>
+<h3 id="quit_requested">quit_requested</h3>
+<p><i>public bool quit_requested()</i></p>
+<p><b>brief</b> Report whether application logic requested shutdown.</p>
+<p><b>return</b> <code>true</code> when the platform should end the event loop.</p>
+<h3 id="render">render</h3>
+<p><i>public void render(graphics::Context &amp; graphics)</i></p>
+<p><b>brief</b> Render one frame using the active graphics context.</p>
+<p><b>graphics</b> The active platform rendering context.</p>
+<h3 id="resize">resize</h3>
+<p><i>public void resize(int , int )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L141">app/application.cppm:141</a></i></p>
+<p><b>brief</b> Notify the application of current drawable dimensions.</p>
+<h3 id="resume">resume</h3>
+<p><i>public void resume()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L87">app/application.cppm:87</a></i></p>
+<p><b>brief</b> Notify the application that frame updates are resuming.</p>
+<h3 id="safe_area_changed">safe_area_changed</h3>
+<p><i>public void safe_area_changed(const SafeArea &amp; area)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L153">app/application.cppm:153</a></i></p>
+<p><b>brief</b> Tell the application which edges of the drawable are covered.</p>
+<p>Called when the platform first measures the bars and again whenever they change (rotation, a hidden navigation bar). Not called on a platform with nothing covering the window, so the default - ignore it - is right for a desktop application.</p>
+<p><b>area</b> Pixels covered along each edge of the drawable.</p>
+<h3 id="save_state">save_state</h3>
+<p><i>public std::size_t save_state(std::span&lt;std::byte&gt; out)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L121">app/application.cppm:121</a></i></p>
+<p><b>brief</b> Write what should come back with the activity into <code>out</code> (Android's save instance state); the bytes written, 0 for nothing.</p>
+<h3 id="set_background_service">set_background_service</h3>
+<p><i>public void set_background_service(BackgroundService * )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L43">app/application.cppm:43</a></i></p>
+<p>Supply the platform's way of running in the background (nullptr: none). Given before create(), the same one for the whole process: it outlives each activity.</p>
+<h3 id="set_clipboard_service">set_clipboard_service</h3>
+<p><i>public void set_clipboard_service(ClipboardService * )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L36">app/application.cppm:36</a></i></p>
+<p>Supply the platform's clipboard (nullptr: none). Given after create(), and nullptr again before dispose() returns.</p>
+<h3 id="set_report">set_report</h3>
+<p><i>public void set_report(Report report)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L49">app/application.cppm:49</a></i></p>
+<p><b>brief</b> Where to say what went wrong. Given before create(), and again whenever the platform changes it.</p>
+<h3 id="set_saved_state">set_saved_state</h3>
+<p><i>public void set_saved_state(std::span&lt;const std::byte&gt; saved)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L112">app/application.cppm:112</a></i></p>
+<p><b>brief</b> What the platform kept for this activity, given before each create(): on Android, its saved instance state. Android keeps it only when it ended the process itself (memory, the freezer) or made the activity again; a swipe from the recent apps, a finish, a force stop or a reboot leaves it empty: a new launch. Valid until create() returns.</p>
+<h3 id="set_text_input_service">set_text_input_service</h3>
+<p><i>public void set_text_input_service(TextInputService * )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L30">app/application.cppm:30</a></i></p>
+<p>Supply the portable application-to-platform text-input service.</p>
+<h3 id="surface_created">surface_created</h3>
+<p><i>public void surface_created(graphics::Context &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L156">app/application.cppm:156</a></i></p>
+<p><b>brief</b> Restore or validate GPU resources after a surface becomes usable.</p>
+<h3 id="surface_destroyed">surface_destroyed</h3>
+<p><i>public void surface_destroyed()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L163">app/application.cppm:163</a></i></p>
+<p><b>brief</b> Mark GPU resources stale after rendering becomes unavailable.</p>
+<p>Implementations must not assume graphics commands are legal here.</p>
+<h3 id="take_background_request">take_background_request</h3>
+<p><i>public bool take_background_request()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L132">app/application.cppm:132</a></i></p>
+<p><b>brief</b> Whether the application asked to go to the background (back at its root screen): true once for each time it asked. The platform then moves its task back, as Home does.</p>
+<h3 id="update">update</h3>
+<p><i>public void update(std::chrono::nanoseconds delta)</i></p>
+<p><b>brief</b> Advance logical state once for the current frame.</p>
+<p><b>delta</b> Elapsed domain time since the previous update, in nanoseconds.</p>
+<h3 id="application">~Application</h3>
+<p><i>public void ~Application()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/app/application.cppm#L27">app/application.cppm:27</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

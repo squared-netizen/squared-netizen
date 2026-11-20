@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Texture · squared</title>
+<meta name="description" content="squared: class Texture">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Texture.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Texture.md">on GitHub</a></p><h1 id="class-texture">class Texture</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture.cppm#L28">graphics/texture.cppm:28</a></i></p>
+<p><b>brief</b> Move-only texture owned by the selected graphics backend.</p>
+<p>A valid graphics context must be current whenever a texture is created, released, restored, or destroyed. Asset paths and RGBA source data are retained according to the selected portable recovery policy.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="texture">Texture</h3>
+<p><i>public void Texture()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture.cppm#L32">graphics/texture.cppm:32</a></i></p>
+<p><b>brief</b> Construct an empty texture owning no backend object.</p>
+<h3 id="texture">Texture</h3>
+<p><i>public void Texture(Texture &amp;&amp; other)</i></p>
+<p><b>brief</b> Move-construct from another texture.</p>
+<p><b>other</b> Texture to assume; left empty afterward.</p>
+<h3 id="texture">Texture</h3>
+<p><i>public void Texture(const Texture &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture.cppm#L33">graphics/texture.cppm:33</a></i></p>
+<h3 id="bind">bind</h3>
+<p><i>public void bind(unsigned int unit)</i></p>
+<p><b>brief</b> Bind the texture to a zero-based texture unit.</p>
+<p><b>unit</b> Zero-based texture unit to bind into.</p>
+<h3 id="content_generation">content_generation</h3>
+<p><i>public std::uint32_t content_generation()</i></p>
+<p><b>brief</b> Read the counter that changes whenever the content does.</p>
+<p><b>return</b> A value that increments on every upload, restore, release and invalidate.</p>
+<p><b>note</b> This is what makes a stale TextureRegion detectable. A region records the generation it was built against; when the two differ, the region's coordinates no longer describe the pixels that are there, and after a Discard there are no pixels at all. Without it, a region outliving its texture's content is a crash after a phone call.</p>
+<h3 id="create_alpha">create_alpha</h3>
+<p><i>public bool create_alpha(int width, int height, const std::uint8_t * pixels, TextureRecoveryOptions recovery)</i></p>
+<p><b>brief</b> Create an 8-bit alpha texture (<code>TextureFormat::Alpha8</code>): it draws as the draw colour, each texel its alpha. A glyph atlas, a mask.</p>
+<p><b>width</b> Image width in pixels; must be greater than zero.</p>
+<p><b>height</b> Image height in pixels; must be greater than zero.</p>
+<p><b>pixels</b> Tightly packed, one byte a texel, width * height bytes.</p>
+<p><b>recovery</b> Policy controlling post-context-loss recovery: <code>Regenerate</code> for pixels the caller keeps (its callback calls <code>TextureRecoveryTarget::upload_alpha</code>), <code>RetainPixels</code> for a copy kept here; <code>ReloadFromAsset</code> is refused, as for <code>create_rgba</code>.</p>
+<p><b>return</b> true when the texture storage was created.</p>
+<h3 id="create_rgba">create_rgba</h3>
+<p><i>public bool create_rgba(int width, int height, const std::uint8_t * pixels)</i></p>
+<p><b>brief</b> Create an RGBA8888 texture from tightly packed pixels.</p>
+<p><b>width</b> Image width in pixels; must be greater than zero.</p>
+<p><b>height</b> Image height in pixels; must be greater than zero.</p>
+<p><b>pixels</b> Tightly packed RGBA8888 source, width * height * 4 bytes.</p>
+<p><b>return</b> true when the texture storage was created.</p>
+<h3 id="create_rgba">create_rgba</h3>
+<p><i>public bool create_rgba(int width, int height, const std::uint8_t * pixels, TextureRecoveryOptions recovery)</i></p>
+<p><b>brief</b> Create RGBA8888 storage with an explicit recovery policy.</p>
+<p><b>width</b> Image width in pixels; must be greater than zero.</p>
+<p><b>height</b> Image height in pixels; must be greater than zero.</p>
+<p><b>pixels</b> Tightly packed RGBA8888 source, width * height * 4 bytes.</p>
+<p><b>recovery</b> Policy controlling post-context-loss recovery.</p>
+<p><b>return</b> true when the texture storage was created.</p>
+<h3 id="create_solid">create_solid</h3>
+<p><i>public bool create_solid(sq::graphics::Color color)</i></p>
+<p><b>brief</b> Create a one-pixel texture containing a solid color.</p>
+<p><b>color</b> Normalized color for the single texel.</p>
+<p><b>return</b> true when the texture storage was created.</p>
+<h3 id="create_solid">create_solid</h3>
+<p><i>public bool create_solid(sq::graphics::Color color, TextureRecoveryOptions recovery)</i></p>
+<p><b>brief</b> Create a solid texture with an explicit recovery policy.</p>
+<p><b>color</b> Normalized color for the single texel.</p>
+<p><b>recovery</b> Policy controlling post-context-loss recovery.</p>
+<p><b>return</b> true when the texture storage was created.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Destroy the backend texture.</p>
+<h3 id="format">format</h3>
+<p><i>public TextureFormat format()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture.cppm#L127">graphics/texture.cppm:127</a></i></p>
+<p><b>brief</b> What a texel holds: <code>Rgba8</code>, or <code>Alpha8</code> from <code>create_alpha</code>.</p>
+<h3 id="has_content">has_content</h3>
+<p><i>public bool has_content()</i></p>
+<p><b>brief</b> Check whether the texture currently holds usable content.</p>
+<p><b>return</b> true when a backend object exists and has not been released, invalidated or discarded.</p>
+<h3 id="height">height</h3>
+<p><i>public int height()</i></p>
+<p><b>brief</b> Read the texture height.</p>
+<p><b>return</b> Height in pixels; zero when no backend object exists.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Mark the GPU object stale without issuing graphics calls.</p>
+<h3 id="load">load</h3>
+<p><i>public bool load(const files::FileHandle &amp; source)</i></p>
+<p><b>brief</b> Load an image asset through the selected backend.</p>
+<p><b>source</b> Handle naming the encoded image. The handle is retained, so the file system it came from must outlive this texture.</p>
+<p><b>return</b> true when the texture loaded successfully.</p>
+<p><b>note</b> A handle rather than a path because a path alone cannot be read back: the handle carries its file system with it, which is what lets restore() refill this texture after context loss without reaching into the asset manager that created it.</p>
+<h3 id="load">load</h3>
+<p><i>public bool load(const files::FileHandle &amp; source, TextureRecoveryOptions recovery)</i></p>
+<p><b>brief</b> Load an asset with an explicit recovery policy.</p>
+<p><b>source</b> Handle naming the encoded image.</p>
+<p><b>recovery</b> Policy controlling post-context-loss recovery.</p>
+<p><b>return</b> true when the texture loaded successfully.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Texture &amp; operator=(Texture &amp;&amp; other)</i></p>
+<p><b>brief</b> Move-assign from another texture.</p>
+<p><b>other</b> Texture to assume; left empty afterward.</p>
+<p><b>return</b> Reference to this texture.</p>
+<p><b>note</b> Releases this texture's backend object first, if any.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Texture &amp; operator=(const Texture &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture.cppm#L34">graphics/texture.cppm:34</a></i></p>
+<h3 id="recovery_policy">recovery_policy</h3>
+<p><i>public TextureRecoveryPolicy recovery_policy()</i></p>
+<p><b>brief</b> Read the configured recovery policy.</p>
+<p><b>return</b> Policy selected at creation time.</p>
+<h3 id="release">release</h3>
+<p><i>public void release()</i></p>
+<p><b>brief</b> Release only the GPU object while retaining its restoration recipe.</p>
+<h3 id="restorable">restorable</h3>
+<p><i>public bool restorable()</i></p>
+<p><b>brief</b> Check whether restoration source data is available.</p>
+<p><b>return</b> true when this texture has enough source data to restore.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(bool context_preserved)</i></p>
+<p><b>brief</b> Rebuild, stating explicitly whether the context survived.</p>
+<p><b>context_preserved</b> true when the GPU objects are still valid.</p>
+<p><b>note</b> No default. The previous one was <code>false</code>, which made <code>restore()</code> read as cheap and behave destructively: it reloaded everything, moved every texture's generation, and invalidated every TextureRegion copied out of an atlas - on the first frame, before anything had been lost.</p>
+<p><b>note</b> Prefer the overload taking a Context. It reads the answer from the object that knows it, so the polarity cannot be got backwards.</p>
+<h3 id="restore">restore</h3>
+<p><i>public bool restore(const graphics::Context &amp; graphics)</i></p>
+<p><b>brief</b> Recreate a released GPU object in the current graphics context.</p>
+<p><b>context_preserved</b> Whether the GPU context survived loss; true skips recomputing fast-path state where possible.</p>
+<p><b>return</b> true when the backend object was restored.</p>
+<h3 id="retained_recovery_bytes">retained_recovery_bytes</h3>
+<p><i>public std::size_t retained_recovery_bytes()</i></p>
+<p><b>brief</b> Measure retained recovery data.</p>
+<p><b>return</b> Bytes retained solely as an RGBA recovery recipe.</p>
+<h3 id="set_filter">set_filter</h3>
+<p><i>public void set_filter(TextureFilter minification, TextureFilter magnification)</i></p>
+<p><b>brief</b> Set minification and magnification filters.</p>
+<p><b>minification</b> Texture-wide minification filter.</p>
+<p><b>magnification</b> Texture-wide magnification filter.</p>
+<h3 id="set_wrap">set_wrap</h3>
+<p><i>public void set_wrap(TextureWrap horizontal, TextureWrap vertical)</i></p>
+<p><b>brief</b> Set horizontal and vertical texture wrapping.</p>
+<p><b>horizontal</b> Texture-wide horizontal wrap mode.</p>
+<p><b>vertical</b> Texture-wide vertical wrap mode.</p>
+<h3 id="update">update</h3>
+<p><i>public bool update(int x, int y, int width, int height, const std::uint8_t * pixels, int stride)</i></p>
+<p><b>brief</b> Replace a rectangle of the texture's pixels, in its own format: what changed in an atlas, without uploading the rest. Regions stay valid (the generation does not move); a retained copy is updated too.</p>
+<p><b>x</b> Left edge, in texels from the texture's left.</p>
+<p><b>y</b> Top edge, in texels from the texture's first row.</p>
+<p><b>width</b> Width of the rectangle; must be greater than zero.</p>
+<p><b>height</b> Height of the rectangle; must be greater than zero.</p>
+<p><b>pixels</b> The rectangle's first texel; rows <code>stride</code> texels apart.</p>
+<p><b>stride</b> Texels from one row of <code>pixels</code> to the next; at least <code>width</code>.</p>
+<p><b>return</b> false, changing nothing, for a texture with no content, a rectangle not inside it, or null pixels.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Check whether this texture owns a backend object.</p>
+<p><b>return</b> true while the texture owns a valid backend object.</p>
+<h3 id="width">width</h3>
+<p><i>public int width()</i></p>
+<p><b>brief</b> Read the texture width.</p>
+<p><b>return</b> Width in pixels; zero when no backend object exists.</p>
+<h3 id="texture">~Texture</h3>
+<p><i>public void ~Texture()</i></p>
+<p><b>brief</b> Destroy the backend object, if any.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

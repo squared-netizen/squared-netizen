@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resources · squared-pg</title>
+<meta name="description" content="squared-pg: Resources">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/engine/resources.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/engine/resources.md">on GitHub</a></p><h1 id="resources">Resources</h1>
+<p>Discovery, indexing and resolution. Programmer counterpart: <a href="../../programmer/resources/manifests.html">manifest reference</a>. Specification: §2.4.4, §2.8.4.</p>
+<h2 id="discovery">Discovery</h2>
+<p><code>ResourceService::build_index</code> walks each declared root, recursing into directories until it finds either a <code>.sq</code> file or a directory containing <code>SQ-INF/manifest.json</code>.</p>
+<p>Recursion stops at a resource directory. A template's own subdirectories are not candidates — otherwise a template shipping an example project would index it.</p>
+<p>Entries within a root are <b>sorted</b> before processing. Filesystem enumeration order is not stable across hosts, and §2.8.4 requires duplicate-identity conflicts to be reported consistently rather than depending on which of two paths the directory iterator happened to yield first.</p>
+<h2 id="skip-or-fail">Skip or fail</h2>
+<div class="tablewrap"><table><thead><tr><th>Situation</th><th>Response</th></tr></thead><tbody><tr><td>unreadable cartridge</td><td>warn, skip</td></tr><tr><td>unknown kind</td><td>warn, skip</td></tr><tr><td>identity violates the grammar</td><td>warn, skip</td></tr><tr><td>version is not SemVer</td><td>warn, skip</td></tr><tr><td>requires an engine version this build is not</td><td>warn, index anyway</td></tr><tr><td><b>duplicate (id, version)</b></td><td><b>fail initialization</b></td></tr></tbody></table></div>
+<p>The asymmetry is from §2.8.1. A broken third-party kit is that author's problem and must not brick the generator. Two resources claiming one identity is ambiguity, and silently picking one would mean the same request generates different projects on different machines.</p>
+<p>A resource requiring a newer engine is indexed rather than hidden, because §2.14.1 wants the failure at <i>resolution</i>, where the error can name the resource and its requirement. Hiding it would produce <code>template.not_found</code>, which is a different and misleading claim.</p>
+<h2 id="the-index">The index</h2>
+<p>Immutable for the session (D-011). Selection follows §2.8.2: collect every version of the identity, discard those failing the constraint, sort descending, take the first. A pre-release is only selectable when a clause explicitly named one at the same <code>(major, minor, patch)</code> — without that rule, <code>&gt;=1.0.0</code> would happily pick <code>2.0.0-alpha.1</code> over <code>1.9.0</code>.</p>
+<h2 id="payload-opening">Payload opening</h2>
+<p>Lazy and cached. <code>verify_integrity</code> is off at index time and <b>on</b> when a resource is actually opened for use, so the cost of hashing every entry is paid only for the resources a run touches (§2.10.7).</p>
+<p><code>ResolvedResource</code> holds a <code>shared_ptr&lt;sqcart::Cartridge&gt;</code> alongside pointers into its manifest. The manifest is owned by the cartridge, so keeping the pointer without keeping the cartridge would dangle — and the type system would not catch it.</p>
+<p><b>Packages contribute through the same plan the template and kits do</b>, pushed in after kits (§2.7.6 materialisation phase, D-078). A package path that collides with an earlier contribution is refused at plan time unless the package names the exact path in its manifest <code>overrides</code> list — then the later phase's write owns it (D-078). Ownership for a package payload defaults to the <code>shared</code> class (D-077), and empty payloads warn (D-079) instead of silently claiming nothing.</p>
+<h2 id="payload-root-d-031">Payload root (D-031)</h2>
+<p>Templates declare <code>template.tree</code>. The cartridge format gives kits, packages and asset bundles no equivalent field, so the convention is: <code>tree/</code> when the cartridge has entries under it, the cartridge root otherwise. <code>SQ-INF/</code> is never payload.</p>
+<h2 id="what-lua-may-see">What Lua may see</h2>
+<p><code>ResourceRecord::to_public_value</code> returns identity, kind, version, title and description. <b>Not the location.</b> §2.5.9 keeps Lua independent of repository layout, and a path a workflow can see is a path it will eventually depend on.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

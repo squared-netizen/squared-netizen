@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec status · squared-pg</title>
+<meta name="description" content="squared-pg: Spec status">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/Spec status.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/Spec status.md">on GitHub</a></p><hr>
+<p>title: Spec status tags: [spec, meta, dashboard]</p>
+<hr>
+<h1 id="spec-status">Spec status</h1>
+<p>Back to [[Specification Index]].</p>
+<h2 id="item-1--repository-conventions">Item 1 — Repository conventions</h2>
+<div class="tablewrap"><table><thead><tr><th>Section</th><th>Status</th></tr></thead><tbody><tr><td>[[1.1 Repository identity]]</td><td><code>final</code></td><td>rewritten D-053; restructure-by-role is a todo milestone</td></tr><tr><td>[[1.2 Root files]]</td><td><code>final</code></td></tr><tr><td>[[1.3 Engine]]</td><td><code>final</code></td></tr><tr><td>[[1.4 Lua]]</td><td><code>final</code></td></tr><tr><td>[[1.5 Resources]]</td><td><code>review</code></td><td>tree provisioned; note corrected D-053</td></tr><tr><td>[[1.6 Third-party dependencies]]</td><td><code>final</code></td></tr><tr><td>[[1.7 Tools]]</td><td><code>final</code></td><td>bash-only, D-044 as amended</td></tr><tr><td>[[1.8 Documentation]]</td><td><code>final</code></td></tr><tr><td>[[1.9 Generated files]]</td><td><code>final</code></td></tr><tr><td>[[1.10 Naming]]</td><td><code>final</code></td></tr><tr><td>[[1.11 Dependency direction]]</td><td><code>final</code></td></tr><tr><td>[[1.12 Development instructions]]</td><td><code>final</code></td></tr><tr><td>[[1.13 Repository invariant]]</td><td><code>final</code></td></tr></tbody></table></div>
+<h2 id="item-2--generator-architecture">Item 2 — Generator architecture</h2>
+<div class="tablewrap"><table><thead><tr><th>Section</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td>[[2.1 Architectural model]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.2 Engine responsibility and role]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.3 Generation pipeline]]</td><td><code>review</code></td><td>conceptual; defers order to §2.7.9</td></tr><tr><td>[[2.4 Engine lifecycle]]</td><td><code>review</code></td><td>de-duplicated, state matrix added</td></tr><tr><td>[[2.5 Lua control layer]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.6 Engine-Lua boundary]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.7 Project generation model]]</td><td><code>review</code></td><td>+2.7.3a environment/tiers, 2.7.3b record versioning, 2.7.10a build settings; 2.7.11 stubbed (D-033, D-051, D-054)</td></tr><tr><td>[[2.8 Templates]]</td><td><code>review</code></td><td>consumer schema normative (D-053); Q-21 composition scope still open</td></tr><tr><td>[[2.9 Kits]]</td><td><code>review</code></td><td>consumer schema normative, six field names corrected (D-053); Q-22 build emission still open</td></tr><tr><td>[[2.10 Assets and generator resources]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.11 Packages]]</td><td><code>review</code></td><td>Q-22</td></tr><tr><td>[[2.12 Generated-project boundary]]</td><td><code>review</code></td><td>guarantee only, per D-006a</td></tr><tr><td>[[2.13 Dependency graph]]</td><td><code>review</code></td><td>unblocks §1.11</td></tr><tr><td>[[2.14 Extensibility model]]</td><td><code>review</code></td><td></td></tr><tr><td>[[2.15 Error and transaction model]]</td><td><code>review</code></td><td>Q-24 metadata migration</td></tr><tr><td>[[2.16 Architectural invariants]]</td><td><code>review</code></td><td>Q-25 resolved via D-028; I-10 gap in §2.16.3</td></tr></tbody></table></div>
+<h2 id="counts">Counts</h2>
+<ul><li><code>final</code> — 12</li><li><code>draft</code> — 1</li><li><code>review</code> — 17</li><li><code>stub</code> — 0</li><li>Open questions — 4 (Q-21 … Q-24)</li></ul>
+<h2 id="what-this-specification-does-not-yet-cover">What this specification does not yet cover</h2>
+<ul><li>The reference template set is named but not authored.</li><li>The Squared framework's own architecture is out of scope; only its integration contract is specified here.</li><li><code>docs/programmer/</code> and <code>docs/developer/</code> have no pages yet. Both are required by [[Repository AGENTS]] and must be updated in the same pass as the code they describe.</li></ul>
+<h2 id="audit-state">Audit state</h2>
+<div class="tablewrap"><table><thead><tr><th>Audit</th><th>Findings</th><th>Applied</th><th>Open</th></tr></thead><tbody><tr><td>[[spec-audit-01]]</td><td>14</td><td>14</td><td>0</td></tr><tr><td>[[spec-audit-02]]</td><td>23</td><td>23</td><td>0</td></tr></tbody></table></div>
+<p>audit-02 closed 2026-09-07 (D-053, D-054). Two findings were closed as <b>obsolete</b> rather than applied — K-006 and K-008 both described a cartridge format that had been superseded — and three amendments were found to be wrong when checked against the code.</p>
+<p><b>The dashboard's own lesson.</b> AUD-M-002 filed this page as untrustworthy because it showed no pending work while sixteen decisions sat unapplied. The fix is not the rows above; it is the cadence rule now in [[Spec conventions]]: <b>no new audit is opened until the previous one is closed.</b> A register that accumulates faster than it drains stops being a register and becomes a second backlog.</p>
+<h2 id="known-gaps-carried-forward">Known gaps, carried forward</h2>
+<p>These are not findings. They are things known to be missing, listed here so the dashboard shows pending work rather than hiding it.</p>
+<div class="tablewrap"><table><thead><tr><th>Gap</th><th>Where</th><th>Blocked on</th></tr></thead><tbody><tr><td>Resource ownership checked in isolation</td><td>§2.16.5</td><td>nothing; <code>sqcart</code> did this until format 2.0 removed its jurisdiction</td></tr><tr><td>Untracked-file count in <code>workspace.verify</code></td><td>§2.16.5</td><td>directory listing on <code>FilesystemService</code></td></tr><tr><td>Regeneration / update path</td><td>§2.7.11</td><td>write-ahead journal (§2.15.9)</td></tr><tr><td>Metadata migration forward</td><td>§2.7.3b</td><td>Q-24; reading is settled, rewriting is not</td></tr><tr><td><code>runtime.model</code> has no consumer</td><td>§2.9.2</td><td><code>kit.sfml</code></td></tr><tr><td>No tests for <code>lua/</code>, <code>app/</code>, <code>engine/lua/</code></td><td>—</td><td>nothing; three destructive commands are untested</td></tr></tbody></table></div></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

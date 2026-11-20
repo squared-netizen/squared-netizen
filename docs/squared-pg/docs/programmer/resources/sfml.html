@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>template.android.sfml and kit.sfml · squared-pg</title>
+<meta name="description" content="squared-pg: template.android.sfml and kit.sfml">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/resources/sfml.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/resources/sfml.md">on GitHub</a></p><hr>
+<p>title: template.android.sfml and kit.sfml tags: [programmer, resources, sfml, android]</p>
+<hr>
+<h1 id="templateandroidsfml-and-kitsfml">template.android.sfml and kit.sfml</h1>
+<p>Counterpart: [[developer/resources/sfml-android]] · End users: [[usermanual/android-sfml]]</p>
+<p>For people selecting, composing or authoring against these resources. For writing application code inside a generated workspace, see the user manual.</p>
+<h2 id="selecting-them">Selecting them</h2>
+<pre><code class="lang-sh">sqpg new &lt;name&gt; -t template.android.sfml -k kit.sfml \
+  -p project_name=&lt;identifier&gt; -p package_name=&lt;java.package.name&gt;</code></pre>
+<p><code>kit.sfml</code> is <b>required</b>, not optional. The template declares it in <code>requires.kits.required</code>, and generation without it is refused before anything is written:</p>
+<pre><code>error: template template.android.sfml requires kit kit.sfml, which the
+       workflow did not select
+  code:      template.kit.required</code></pre>
+<h2 id="parameters">Parameters</h2>
+<div class="tablewrap"><table><thead><tr><th>Name</th><th>Type</th><th>Required</th><th>Notes</th></tr></thead><tbody><tr><td><code>project_name</code></td><td><code>identifier</code></td><td>yes</td><td>Library name, C++ namespace and log tag. A C identifier — dots are refused.</td></tr><tr><td><code>package_name</code></td><td><code>java_package</code></td><td>yes</td><td>Android application id. Must be unique on the device.</td></tr><tr><td><code>app_label</code></td><td><code>string</code></td><td>no</td><td>Launcher label; defaults from <code>project_name</code>.</td></tr><tr><td><code>description</code></td><td><code>string</code></td><td>no</td><td>One line, used in the README.</td></tr></tbody></table></div>
+<h2 id="what-the-template-declares">What the template declares</h2>
+<ul><li><code>platforms: [&quot;android&quot;]</code>, <code>working_directory: sq_app</code>, <code>processor: substitute</code></li><li><code>integration_areas</code>: <code>app.include</code>, <code>build.make.fragments</code>, <code>android.manifest.features</code></li><li><b>No <code>render.backend</code> area.</b> <code>template.android.cpp</code> declares it single-arity so two renderers are refused. Here SFML is not a swappable backend — it is the platform — so the area would arbitrate nothing.</li><li>Ownership: <code>mk/squared_generated.mk</code> and <code>mk/squared_android_package.mk</code> are <code>generated</code>; everything else defaults to <code>user</code>.</li></ul>
+<h2 id="what-the-kit-declares">What the kit declares</h2>
+<ul><li><code>external</code>: <code>sfml</code> 3.1.0, <code>acquisition: vendored</code></li><li><code>binary.modules</code>: <code>system</code>, <code>window</code>, <code>main</code>, <code>graphics</code>, <code>audio</code></li><li><code>runtime.model: callback</code></li><li><code>compatible_templates: [&quot;template.android.sfml&quot;]</code></li><li><code>provides</code>: <code>platform.entrypoint</code>, <code>window.surface</code>, <code>gl.context</code>, <code>input.touch</code>, <code>render.2d</code>, <code>text.font</code>, <code>audio.playback</code></li><li><code>binary</code>: ABI, API level, linkage and the three archive paths (D-069). **Read by nothing today** — see Q-35.</li><li>Ownership: <code>sq_kit/**</code> plus the literal <code>mk/kit_sfml.mk</code>, per D-064</li></ul>
+<h2 id="why-kitsfml-cannot-be-used-with-templateandroidcpp">Why kit.sfml cannot be used with template.android.cpp</h2>
+<p><code>compatible_templates</code> names only the SFML template, and the reason is not preference. SFML defines <code>ANativeActivity_onCreate</code>; <code>template.android.cpp</code> uses <code>android_native_app_glue</code>, which defines the same symbol. One entry point per process. See D-067.</p>
+<p>The reverse also holds: <code>kit.opengl</code> is not compatible with <code>template.android.sfml</code>. SFML brings its own EGL context.</p>
+<h2 id="build-variables-the-kit-contributes">Build variables the kit contributes</h2>
+<p>Through <code>mk/kit_sfml.mk</code>, accumulated into the template's variables:</p>
+<pre><code>SQ_KIT_CPPFLAGS += -Isq_kit/include
+SQ_KIT_CPPFLAGS += -idirafter $(SQ_NDK_INC)
+SQ_KIT_LDLIBS   += &lt;five SFML archives&gt;
+                   -Wl,--start-group &lt;dependency archives&gt; -Wl,--end-group
+                   &lt;five NDK libraries&gt;
+SQ_KITS_PRESENT += kit.sfml</code></pre>
+<p>The dependency archives — freetype, harfbuzz, ogg, vorbis, vorbisenc, vorbisfile, FLAC — are discovered by globbing <code>sq_kit/lib/</code> rather than listed, and wrapped in <code>--start-group</code> because FreeType and HarfBuzz are mutually dependent. Order inside a group does not matter, which is what makes the glob safe.</p>
+<p>The NDK libraries now include <code>libz.so</code> for Graphics and <code>libOpenSLES.so</code> for Audio, both by absolute path: <code>$PREFIX/lib/libz.so</code> is Termux's zlib, not Android's.</p>
+<p><code>SQ_NDK_INC</code> and <code>SQ_NDK_LIB</code> are located by the <b>template</b>, not the kit — the NDK is what makes the output an Android project at all, and would be needed whatever library drew the pixels.</p>
+<h2 id="diagnostics">Diagnostics</h2>
+<p><code>make sfml-status</code> in a generated workspace reports the kit's <code>BUILD-INFO</code>, archive sizes, whether <code>ANativeActivity_onCreate</code> is defined in the payload, and whether each NDK stub is present. It is the first thing to run when a generated project does not link.</p>
+<h2 id="limitations">Limitations</h2>
+<ul><li><b>One ABI, one API level</b> per kit build (Q-35). The manifest records which in <code>binary.abi</code> and <code>binary.api_level</code>; nothing reads them yet.</li><li><b>Network is not built.</b> <code>sf::Http</code>, <code>sf::Ftp</code> and the socket classes have headers but no implementation. Enabling it means vendoring mbedTLS and libssh2, both of which SFML patches.</li><li>The kit's payload is not in git. A fresh clone has the manifest and the make fragment; the archives arrive from a release cartridge or from <code>tools/build-sfml.sh --install</code>.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

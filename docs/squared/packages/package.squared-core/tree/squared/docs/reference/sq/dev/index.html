@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace dev · squared</title>
+<meta name="description" content="squared: namespace dev">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/dev/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/dev/index.md">on GitHub</a></p><h1 id="namespace-dev">namespace dev</h1>
+<h2 id="namespaces">Namespaces</h2>
+<ul><li><a href="detail/index.html">detail</a></li></ul>
+<h2 id="records">Records</h2>
+<ul><li><a href="CrashLine.html">CrashLine</a></li><li><a href="FrameAllocations.html">FrameAllocations</a></li><li><a href="LogSinkOptions.html">LogSinkOptions</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="close_log_sink">close_log_sink</h3>
+<p><i>void close_log_sink()</i></p>
+<p>Close the sink and restore the signal handlers it replaced.</p>
+<h3 id="frame_begin">frame_begin</h3>
+<p><i>void frame_begin()</i></p>
+<p><b>brief</b> Start counting heap allocations made by the calling thread.</p>
+<p>Linking this module replaces the global operator new and operator delete with versions that count, then use malloc and free. Only allocations on the thread that called frame_begin(), and only until frame_end(), are counted; a loader or audio thread allocating meanwhile is not. Calling it twice without frame_end() restarts the count.</p>
+<h3 id="frame_end">frame_end</h3>
+<p><i>FrameAllocations frame_end()</i></p>
+<p><b>brief</b> Stop counting and report what the frame allocated.</p>
+<p>When a log sink is open (open_log_sink()), allocating frames are reported through it: the first one at once, then at most one summary line every 120 frames, followed by the window's busiest call sites. Each call site is named once, the first time it allocates, as the four innermost frames above operator new, in the <code>library 0xoffset</code> form addr2line takes. A frame that allocated nothing is never reported.</p>
+<p><b>return</b> This frame's count; zero when frame_begin() was not called on this thread.</p>
+<h3 id="log_line">log_line</h3>
+<p><i>void log_line(std::string_view line, LogLevel level)</i></p>
+<p><b>brief</b> Send one line to the sink, if one is open, and to the listener, if one is set and this is its thread.</p>
+<p><b>line</b> Text without a trailing newline; longer than 1000 bytes is cut for the sink (the listener gets it whole).</p>
+<p><b>level</b> Passed to the listener; the sink sends the text alone. Never blocks and never fails visibly: a missing <code>nc</code> drops the line.</p>
+<h3 id="open_log_sink">open_log_sink</h3>
+<p><i>LogSinkStatus open_log_sink(const LogSinkOptions &amp; options)</i></p>
+<p><b>brief</b> Send log lines, and crash reports, to a UDP port on this device.</p>
+<p>A development aid for working on a phone with no computer attached. Run a listener in the same device's terminal, for example <code>nc -klu 5555</code>, and each line arrives as it is written. The sink uses the loopback address only: no network, no Wi-Fi, and no data leaves the device.</p>
+<p>Nothing here allocates after open_log_sink() returns, and nothing is buffered, so the last line written before a crash is still delivered.</p>
+<p><b>options</b> Port and crash-handler switch.</p>
+<p><b>return</b> Opened on success; AlreadyOpen if called twice; SocketFailed if the OS refused the socket.</p>
+<h3 id="report_allocations">report_allocations</h3>
+<p><i>void report_allocations()</i></p>
+<p><b>brief</b> Report every frame counted so far through log_line(): one summary line (frames counted, how many allocated, allocations, bytes, the most in one frame); what operator new holds now on every thread (KB and blocks, by the allocator's measure, and the peak); then every site found, as the <code>site</code> lines name them.</p>
+<p>What the Console's <code>alloc</code> command runs. Call it on the thread that counts frames. Allocates nothing.</p>
+<h3 id="set_log_listener">set_log_listener</h3>
+<p><i>void set_log_listener(LogListener listener, void * context)</i></p>
+<p><b>brief</b> Hand every later log_line() made on the calling thread to <code>listener</code> as well, with <code>context</code>; nullptr stops it. One listener at a time: setting one replaces the last. Lines written on other threads reach the sink only, so the listener never needs a lock. The crash handler's lines never reach it.</p>
+<p>The in-app Console sets one, so the dev log shows on screen.</p>
+<h3 id="write_crash_trace">write_crash_trace</h3>
+<p><i>void write_crash_trace(int signal, const siginfo_t * info, void * ucontext, CrashSink sink, void * context)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/dev/crash_trace.cppm#L159">dev/crash_trace.cppm:159</a></i></p>
+<p><b>brief</b> Write the trace of a fatal signal to <code>sink</code>, a line at a time:</p>
+<pre><code class="lang-text">
+ Frame 0 is the faulting program counter, read from the saved registers (unwinding out of a handler does not always reach it); up to 23 unwound frames follow. The unwinder starts inside the handler, so its first frames are the handler, any signal chain and the kernel&#x27;s return trampoline, and then frame 0 again; those are dropped when frame 0 is found among them, and kept when it isn&#x27;t. Each frame is an offset from its library&#x27;s load address, which is what `addr2line -e lib.so` takes. Header-only, so the in-app Console&#x27;s crash file uses it without linking this module.
+
+ Call it only from a signal handler, for a process that is about to die: it allocates nothing and takes no lock, but `dladdr` and the unwinder are not on the async-signal-safe list. A diagnostic that might fail beats none.
+
+## Enums
+
+| enum class LogLevel |
+
+--
+
+| Info |
+| Warning |
+| Error |
+
+
+*Defined at [dev/dev_log.cppm:17](../../../../dev/dev_log.cppm#L17)*
+
+ How serious a line is. The UDP sink sends the text alone; a listener gets both.
+
+| enum class LogSinkStatus |
+
+--
+
+| Opened |
+| AlreadyOpen |
+| SocketFailed |
+
+
+*Defined at [dev/dev_log.cppm:9](../../../../dev/dev_log.cppm#L9)*
+
+ Outcome of open_log_sink().
+
+</code></pre></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

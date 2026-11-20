@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class ScreenView · squared</title>
+<meta name="description" content="squared: class ScreenView">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/term/ScreenView.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/term/ScreenView.md">on GitHub</a></p><h1 id="class-screenview">class ScreenView</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L24">term/screen_view.cppm:24</a></i></p>
+<p><b>brief</b> A screen snapshot as the UI reads it: its size, each row's cells and version, the cursor, the modes, the title, the lines its rows show. A view over the bytes it was made from; nothing is copied.</p>
+<p>if( const auto shot = t.snapshot( screen ) ) {</p>
+<p>if( const auto view = sq::term::ScreenView::read( shot-&gt;bytes ) ) {</p>
+<p>for( std::uint16_t r = 0; r &lt; view-&gt;rows(); ++r ) {</p>
+<p>if( view-&gt;version( r ) != drawn[r] ) { draw_row( r, view-&gt;row( r ) ); }</p>
+<p>}</p>
+<p>}</p>
+<p>}</p>
+<h2 id="functions">Functions</h2>
+<h3 id="columns">columns</h3>
+<p><i>public std::uint16_t columns()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L31">term/screen_view.cppm:31</a></i></p>
+<h3 id="cursor">cursor</h3>
+<p><i>public Cursor cursor()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L39">term/screen_view.cppm:39</a></i></p>
+<h3 id="cursor_shown">cursor_shown</h3>
+<p><i>public bool cursor_shown()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L41">term/screen_view.cppm:41</a></i></p>
+<p>The cursor is to be drawn: the program shows it and the view is not scrolled back.</p>
+<h3 id="history_size">history_size</h3>
+<p><i>public std::size_t history_size()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L50">term/screen_view.cppm:50</a></i></p>
+<h3 id="modes">modes</h3>
+<p><i>public TerminalModes modes()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L45">term/screen_view.cppm:45</a></i></p>
+<h3 id="read">read</h3>
+<p><i>public static std::optional&lt;ScreenView&gt; read(std::span&lt;const std::byte&gt; bytes)</i></p>
+<p>The view, when <code>bytes</code> are a whole screen snapshot of this layout; else nothing.</p>
+<h3 id="row">row</h3>
+<p><i>public std::span&lt;const Cell&gt; row(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L33">term/screen_view.cppm:33</a></i></p>
+<h3 id="rows">rows</h3>
+<p><i>public std::uint16_t rows()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L32">term/screen_view.cppm:32</a></i></p>
+<h3 id="scrolled_back">scrolled_back</h3>
+<p><i>public std::size_t scrolled_back()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L51">term/screen_view.cppm:51</a></i></p>
+<h3 id="title">title</h3>
+<p><i>public std::string_view title()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L46">term/screen_view.cppm:46</a></i></p>
+<h3 id="top_line">top_line</h3>
+<p><i>public std::uint64_t top_line()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/screen_view.cppm#L56">term/screen_view.cppm:56</a></i></p>
+<p>The terminal's number for the line row 0 shows: row r is line <code>top_line() + r</code>, what <code>Terminal::copy_text</code> takes.</p>
+<h3 id="version">version</h3>
+<p><i>public std::uint32_t version(std::uint16_t row)</i></p>
+<p>Moves on each time the row changes.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

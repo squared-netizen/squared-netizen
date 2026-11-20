@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Termux projects · squared-pg</title>
+<meta name="description" content="squared-pg: Termux projects">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/resources/termux.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/resources/termux.md">on GitHub</a></p><h1 id="termux-projects">Termux projects</h1>
+<p><code>kit.termux</code> bridges a terminal application to <b>Termux:API</b> — the Android facilities Termux exposes: battery, clipboard, notifications, dialogs, speech, location, sensors.</p>
+<pre><code class="lang-sh">sqpg new phone --template template.terminal.cpp --kit kit.terminal --kit kit.termux
+cd phone &amp;&amp; make &amp;&amp; ./build/phone</code></pre>
+<pre><code class="lang-cpp">#include &lt;squared/kit/termux.hpp&gt;
+
+if (auto battery = sq::termux::battery()) {
+    sq::term::println(battery-&gt;percentage, &quot;% &quot;, battery-&gt;status);
+}
+(void)sq::termux::notify(&quot;Build finished&quot;, &quot;3 warnings&quot;, &quot;build&quot;);
+if (auto name = sq::termux::dialog_text(&quot;Your name?&quot;)) {
+    (void)sq::termux::toast(&quot;hello &quot; + *name);
+}</code></pre>
+<h2 id="how-it-works-and-what-that-costs">How it works, and what that costs</h2>
+<p>Termux:API is <b>not a library</b>. It is a set of command-line programs that talk to a companion Android app over a socket and print JSON. There is no C API to link against, so this kit runs those programs and parses their output.</p>
+<p>That is worth knowing rather than discovering:</p>
+<ul><li><b>Every call forks a process.</b> Milliseconds, not microseconds. Fine for a notification; wrong inside a loop that has to stay responsive.</li><li><b><code>location()</code> and <code>dialog_*()</code> block.</b> GPS can take many seconds outdoors and never resolve indoors. A dialog waits for a human.</li><li><b>Arguments are shell-quoted for you.</b> Pass them as separate strings. Never build a command line yourself — text from a clipboard or a dialog is exactly the text most likely to contain a quote.</li></ul>
+<h2 id="two-things-must-be-installed">Two things must be installed</h2>
+<pre><code class="lang-sh">pkg install termux-api        # the command-line programs</code></pre>
+<p><b>and</b> the <b>Termux:API app</b> from F-Droid. The package alone does nothing — it is a client for the app. This trips up nearly everyone once.</p>
+<pre><code class="lang-cpp">sq::termux::available();   // are the programs installed?
+sq::termux::probe();       // ...and does the app answer?</code></pre>
+<p><code>probe()</code> costs a real round trip; call it once at startup. It reports the two failures separately, because the fixes are different.</p>
+<pre><code class="lang-sh">make termux-status</code></pre>
+<h2 id="surface">Surface</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>available()</code>, <code>probe()</code></td><td>is the API usable</td></tr><tr><td><code>run(command, args)</code></td><td>any termux-api command; returns <code>Result</code></td></tr><tr><td><code>battery()</code></td><td>percentage, status, health, temperature</td></tr><tr><td><code>clipboard_get()</code>, <code>clipboard_set()</code></td><td></td></tr><tr><td><code>toast(text, position)</code></td><td>brief on-screen message</td></tr><tr><td><code>notify(title, content, id)</code>, <code>notification_remove(id)</code></td><td>reusing an <code>id</code> replaces rather than stacks</td></tr><tr><td><code>vibrate(ms, force)</code></td><td><code>force</code> overrides silent mode</td></tr><tr><td><code>dialog_text(title, hint)</code>, <code>dialog_choice(title, options)</code></td><td>empty optional when cancelled</td></tr><tr><td><code>speak(text)</code></td><td>text to speech</td></tr><tr><td><code>location(provider)</code></td><td><code>network</code>, <code>gps</code> or <code>passive</code></td></tr><tr><td><code>share(path)</code>, <code>open(path_or_url)</code></td><td>Android share sheet, system handler</td></tr><tr><td><code>torch(on)</code></td><td></td></tr><tr><td><code>sensor(name, count)</code>, <code>wifi_info()</code>, <code>telephony_info()</code></td><td>raw JSON</td></tr></tbody></table></div>
+<p>Anything not listed is one <code>run()</code> call away:</p>
+<pre><code class="lang-cpp">auto result = sq::termux::run(&quot;termux-camera-info&quot;);
+if (auto json = result.json()) { /* ... */ }</code></pre>
+<h2 id="the-json-type">The JSON type</h2>
+<p><code>sq::termux::Json</code> is a small complete parser, included because termux-api output is the only reason this kit exists and the alternative is everyone writing the same thing badly.</p>
+<pre><code class="lang-cpp">auto json = sq::termux::run(&quot;termux-sensor&quot;, {&quot;-s&quot;, &quot;accelerometer&quot;, &quot;-n&quot;, &quot;1&quot;}).json();
+if (json) {
+    double x = (*json)[&quot;BMI160 Accelerometer&quot;][&quot;values&quot;][0].as_number().value_or(0.0);
+}</code></pre>
+<p>Two properties worth relying on:</p>
+<p><b>Chaining through a missing key is safe.</b> <code>root[&quot;a&quot;][&quot;b&quot;][7]</code> on absent <code>a</code> yields a null <code>Json</code>, not a crash. Check with <code>.is_null()</code> or use <code>.as_*()</code>, which return <code>std::optional</code>.</p>
+<p><b>Accessors never coerce.</b> <code>as_number()</code> on <code>&quot;5&quot;</code> is empty; <code>as_string()</code> on <code>5</code> is empty. A wrong assumption about a field's type shows up as an empty optional rather than a plausible wrong value.</p>
+<p><code>string_or</code>, <code>number_or</code>, <code>int_or</code> and <code>bool_or</code> take a fallback for the common one-field read.</p>
+<p>Malformed input is rejected outright rather than half-parsed. The parser is exercised by <code>tools/smoke.sh</code> against real termux-api response shapes, including escapes, unicode, nulls, negative numbers and nested arrays.</p>
+<h2 id="platform">Platform</h2>
+<p><code>kit.termux</code> declares <code>platforms: [&quot;termux&quot;]</code>, so <code>--platform linux</code> will refuse it — correctly, since the commands do not exist there. The kit compiles anywhere; it simply reports the API as unavailable at runtime. That is deliberate: a project using it should build on a desktop for development even though it can only <i>work</i> on a phone.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

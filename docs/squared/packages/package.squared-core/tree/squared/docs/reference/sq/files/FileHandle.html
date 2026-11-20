@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class FileHandle · squared</title>
+<meta name="description" content="squared: class FileHandle">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/files/FileHandle.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/files/FileHandle.md">on GitHub</a></p><h1 id="class-filehandle">class FileHandle</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_handle.cppm#L34">files/file_handle.cppm:34</a></i></p>
+<p><b>brief</b> A named location, modelled on libGDX's FileHandle.</p>
+<p>A handle is a value: a file system, a root type, and a relative path. It is 48 bytes, it holds no descriptor, and constructing one touches nothing, so building handles in a loop costs only the path string. Nothing is opened until an operation is called, and nothing stays open after one returns.</p>
+<p>The file system is referenced, not owned, and must outlive every handle resolved from it. Handles are freely copyable and comparable.</p>
+<p><b>note</b> Every failing operation returns its failure. None of them throw, and none of them assert on a missing file — a missing file is an ordinary result here, not a programmer error.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="filehandle">FileHandle</h3>
+<p><i>public void FileHandle()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_handle.cppm#L38">files/file_handle.cppm:38</a></i></p>
+<p><b>brief</b> Construct an invalid handle that answers no operation.</p>
+<h3 id="filehandle">FileHandle</h3>
+<p><i>public void FileHandle(FileSystem &amp; system, FileType type, std::string path)</i></p>
+<p><b>brief</b> Bind a handle to a file system, a root, and a relative path.</p>
+<p><b>system</b> File system that outlives this handle.</p>
+<p><b>type</b> Root the path is relative to.</p>
+<p><b>path</b> Relative path using '/' separators; empty means the root.</p>
+<p><b>note</b> Prefer FileSystem::internal() and its siblings, which supply the first two arguments.</p>
+<h3 id="child">child</h3>
+<p><i>public FileHandle child(std::string_view name)</i></p>
+<p><b>brief</b> Return a handle to an entry inside this directory.</p>
+<p><b>name</b> Relative path to append; '/' separators are accepted.</p>
+<p><b>return</b> A handle under the same file system and root. No check is made that this handle is a directory or that the child exists.</p>
+<h3 id="exists">exists</h3>
+<p><i>public bool exists()</i></p>
+<p><b>brief</b> Report whether anything exists at this path.</p>
+<h3 id="extension">extension</h3>
+<p><i>public std::string_view extension()</i></p>
+<p><b>brief</b> Return the extension without its dot, or empty when there is none.</p>
+<h3 id="is_directory">is_directory</h3>
+<p><i>public bool is_directory()</i></p>
+<p><b>brief</b> Report whether this path names a directory.</p>
+<h3 id="length">length</h3>
+<p><i>public std::uint64_t length()</i></p>
+<p><b>brief</b> Return the file's size in bytes.</p>
+<p><b>return</b> Size in bytes, or zero when the file is missing, unreadable, or a directory. Use exists() to tell an empty file from a missing one.</p>
+<h3 id="list">list</h3>
+<p><i>public FileError list(std::vector&lt;FileHandle&gt; &amp; entries)</i></p>
+<p><b>brief</b> List the entries of this directory.</p>
+<p><b>entries</b> Cleared, then filled with one handle per entry, in no guaranteed order. <code>.</code> and <code>..</code> are excluded.</p>
+<p><b>return</b> A no-error FileError on success, otherwise the failure.</p>
+<p><b>note</b> The caller owns the vector so it can be reused across calls, which is why this is not a value-returning list().</p>
+<h3 id="make_directories">make_directories</h3>
+<p><i>public FileError make_directories()</i></p>
+<p><b>brief</b> Create this directory and any missing parents.</p>
+<p><b>return</b> A no-error FileError on success, including when the directory already exists.</p>
+<h3 id="map">map</h3>
+<p><i>public MapResult map()</i></p>
+<p><b>brief</b> Map the file to read in place, for as long as the result lives; see <code>MappedFile</code>. An invalid handle gives <code>NotSupported</code>.</p>
+<h3 id="name">name</h3>
+<p><i>public std::string_view name()</i></p>
+<p><b>brief</b> Return the final path segment, extension included.</p>
+<h3 id="name_without_extension">name_without_extension</h3>
+<p><i>public std::string_view name_without_extension()</i></p>
+<p><b>brief</b> Return the final path segment without its extension.</p>
+<h3 id="operator">operator==</h3>
+<p><i>public bool operator==(const FileHandle &amp; other)</i></p>
+<p><b>brief</b> Compare two handles by file system, root and path.</p>
+<h3 id="parent">parent</h3>
+<p><i>public FileHandle parent()</i></p>
+<p><b>brief</b> Return a handle to the containing directory.</p>
+<p><b>return</b> The parent handle, or a handle to the root when this is already a top-level entry.</p>
+<h3 id="path">path</h3>
+<p><i>public const std::string &amp; path()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_handle.cppm#L57">files/file_handle.cppm:57</a></i></p>
+<p><b>brief</b> Return the relative path, with '/' separators.</p>
+<h3 id="read_bytes">read_bytes</h3>
+<p><i>public FileReadResult read_bytes()</i></p>
+<p><b>brief</b> Read the whole file.</p>
+<p><b>return</b> The bytes, or a FileError describing why not.</p>
+<h3 id="read_string">read_string</h3>
+<p><i>public FileTextResult read_string()</i></p>
+<p><b>brief</b> Read the whole file as text.</p>
+<p><b>return</b> The contents, or a FileError describing why not. The bytes are returned unvalidated and untranscoded.</p>
+<h3 id="remove">remove</h3>
+<p><i>public FileError remove()</i></p>
+<p><b>brief</b> Remove this file, or this directory when it is empty.</p>
+<p><b>return</b> A no-error FileError on success, NotFound when nothing was there.</p>
+<h3 id="sibling">sibling</h3>
+<p><i>public FileHandle sibling(std::string_view name)</i></p>
+<p><b>brief</b> Return a handle to an entry beside this one.</p>
+<p><b>name</b> Relative path to append to this handle's parent.</p>
+<p><b>return</b> A handle under the same file system and root.</p>
+<h3 id="type">type</h3>
+<p><i>public FileType type()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_handle.cppm#L54">files/file_handle.cppm:54</a></i></p>
+<p><b>brief</b> Return the root this handle's path is relative to.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/files/file_handle.cppm#L51">files/file_handle.cppm:51</a></i></p>
+<p><b>brief</b> Report whether this handle is bound to a file system.</p>
+<h3 id="write_atomically">write_atomically</h3>
+<p><i>public FileError write_atomically(std::span&lt;const std::byte&gt; bytes)</i></p>
+<p><b>brief</b> Write bytes to this path so that it holds the old bytes or the new, never a part (<code>FileSystem::write_atomically</code>): for a save the process may die during. Missing parent directories are created first.</p>
+<p><b>return</b> A no-error FileError on success, otherwise the failure; the file as it was, when there was one.</p>
+<h3 id="write_atomically">write_atomically</h3>
+<p><i>public FileError write_atomically(std::string_view text)</i></p>
+<p><b>brief</b> Write text so, as <code>write_atomically( bytes )</code>.</p>
+<h3 id="write_bytes">write_bytes</h3>
+<p><i>public FileError write_bytes(std::span&lt;const std::byte&gt; bytes, bool append)</i></p>
+<p><b>brief</b> Write bytes to this path, creating the file if needed.</p>
+<p><b>bytes</b> Contents to write.</p>
+<p><b>append</b> Append rather than truncate.</p>
+<p><b>return</b> A no-error FileError on success, otherwise the failure.</p>
+<p><b>note</b> Missing parent directories are created first, as libGDX does.</p>
+<p><b>note</b> Writing to FileType::Internal fails with ReadOnly on every platform, so a build that works in Termux does not surprise you on a device where assets live inside the APK.</p>
+<h3 id="write_string">write_string</h3>
+<p><i>public FileError write_string(std::string_view text, bool append)</i></p>
+<p><b>brief</b> Write text to this path, creating the file if needed.</p>
+<p><b>text</b> Contents to write.</p>
+<p><b>append</b> Append rather than truncate.</p>
+<p><b>return</b> A no-error FileError on success, otherwise the failure.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>graphics · squared</title>
+<meta name="description" content="squared: graphics">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/graphics.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/graphics.md">on GitHub</a></p><h1 id="graphics">graphics</h1>
+<p>The rendering context and colour, then everything you draw with it: textures, atlases, regions, sprites, the sprite batch, the 2D camera, bitmap fonts and glyph layout.</p>
+<p><code>import sq.graphics;</code> gives every type here. Each type is written in a file of its own, a partition of the module: the ones at the module root (<code>squared/graphics/*.cppm</code>) are the everyday ones, those under <code>squared/graphics/src/</code> the supporting types they are made of. See <a href="include-layout.html">include-layout.md</a>.</p>
+<p>Developer counterpart: <a href="../developer/graphics.html">../developer/graphics.md</a></p>
+<h2 id="context-and-colour">Context and colour</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Context</code></td><td><code>squared/graphics/context.cppm</code></td><td>Own the native window and rendering context selected at link time</td></tr><tr><td><code>ContextConfig</code></td><td><code>squared/graphics/src/context_config.cppm</code></td><td>What <code>Context::create</code> needs: the native window, a title and the logical size</td></tr><tr><td><code>Color</code></td><td><code>squared/graphics/color.cppm</code></td><td>Normalized four-component color used by Squared graphics APIs</td></tr></tbody></table></div>
+<h2 id="textures-and-atlases">Textures and atlases</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Texture</code></td><td><code>squared/graphics/texture.cppm</code></td><td>Move-only texture owned by the selected graphics backend</td></tr><tr><td><code>TextureRegion</code></td><td><code>squared/graphics/texture_region.cppm</code></td><td>Non-owning rectangular view into a Texture</td></tr><tr><td><code>TextureAtlas</code></td><td><code>squared/graphics/texture_atlas.cppm</code></td><td>Owning, transactionally loaded libGDX text texture atlas</td></tr><tr><td><code>AtlasRegion</code></td><td><code>squared/graphics/atlas_region.cppm</code></td><td>One named region and its libGDX-compatible atlas metadata</td></tr><tr><td><code>TextureFilter</code></td><td><code>squared/graphics/src/texture_filter.cppm</code></td><td>Nearest or linear sampling; also what <code>gles::Texture2D</code> takes</td></tr><tr><td><code>TextureWrap</code></td><td><code>squared/graphics/src/texture_wrap.cppm</code></td><td>Clamp, repeat or mirrored outside zero to one; also what <code>gles::Texture2D</code> takes</td></tr><tr><td><code>TextureFormat</code></td><td><code>squared/graphics/src/texture_format.cppm</code></td><td>What a texel holds: <code>Rgba8</code>, or <code>Alpha8</code> (one byte, drawn tinted by the draw colour)</td></tr></tbody></table></div>
+<h3 id="alpha-textures-and-partial-updates-123d">Alpha textures and partial updates (12.3d)</h3>
+<p>A glyph atlas, a mask: one byte a texel, a quarter of RGBA's memory. It draws as the draw colour, each texel its alpha, so the same <code>SpriteBatch</code> and <code>Painter::draw_region</code> tint it; no shader of your own. Filled a piece at a time with <code>update</code>, which uploads only the rectangle that changed:</p>
+<pre><code class="lang-cpp">sq::graphics::Texture glyphs;
+glyphs.create_alpha( 1024, 1024, atlas.pixels(),
+                     TextureRecoveryOptions::regenerate( refill, &amp;atlas ) );
+// later, after new glyphs were drawn into the atlas&#x27;s image:
+glyphs.update( dirty.x, dirty.y, dirty.width, dirty.height,
+               atlas.pixels() + dirty.y * 1024 + dirty.x, 1024 );</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>create_alpha( w, h, pixels, recovery )</code></td><td>an <code>Alpha8</code> texture from <code>w * h</code> bytes. <code>ReloadFromAsset</code> is refused (no asset behind memory); <code>Regenerate</code> for pixels you keep (its callback calls <code>TextureRecoveryTarget::upload_alpha</code>), <code>RetainPixels</code> for a copy kept by the texture</td></tr><tr><td><code>update( x, y, w, h, pixels, stride )</code></td><td>replace that rectangle, in the texture's own format (1 or 4 bytes a texel), from rows <code>stride</code> texels apart. Regions stay valid: the generation does not move. A retained copy is updated too. False, changing nothing, outside the texture, for a stride under <code>w</code>, null pixels, or a texture with no content</td></tr><tr><td><code>format()</code></td><td><code>Rgba8</code> (loaded, <code>create_rgba</code>, <code>create_solid</code>) or <code>Alpha8</code></td></tr><tr><td><code>texel_bytes( format )</code></td><td>4 or 1</td></tr></tbody></table></div>
+<h2 id="recovering-textures-after-context-loss">Recovering textures after context loss</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>TextureRecoveryPolicy</code></td><td><code>squared/graphics/src/texture_recovery_policy.cppm</code></td><td>CPU-side recipe used to recover a texture after context loss</td></tr><tr><td><code>TextureRecoveryOptions</code></td><td><code>squared/graphics/src/texture_recovery_options.cppm</code></td><td>Recovery selection supplied when a texture is created</td></tr><tr><td><code>TextureRecoveryCallback</code></td><td><code>squared/graphics/src/texture_recovery_callback.cppm</code></td><td>Callback that regenerates a texture's pixels under the <code>Regenerate</code> policy</td></tr><tr><td><code>TextureRecoveryTarget</code></td><td><code>squared/graphics/src/texture_recovery_target.cppm</code></td><td>Synchronous destination supplied to a regeneration callback</td></tr></tbody></table></div>
+<h2 id="sprites-batching-and-the-camera">Sprites, batching and the camera</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Sprite</code></td><td><code>squared/graphics/sprite.cppm</code></td><td>Lightweight mutable state for drawing one TextureRegion</td></tr><tr><td><code>SpriteBatch</code></td><td><code>squared/graphics/sprite_batch.cppm</code></td><td>Efficiently draw ordered textured quads with the selected backend</td></tr><tr><td><code>OrthographicCamera</code></td><td><code>squared/graphics/orthographic_camera.cppm</code></td><td>Two-dimensional orthographic camera with pan and zoom</td></tr><tr><td><code>CoordinateOrigin</code></td><td><code>squared/graphics/src/coordinate_origin.cppm</code></td><td>Coordinate orientation used by an orthographic camera</td></tr></tbody></table></div>
+<h2 id="bitmap-fonts-and-text-layout">Bitmap fonts and text layout</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>BitmapFont</code></td><td><code>squared/graphics/bitmap_font.cppm</code></td><td>Transactionally parsed text BMFont resource</td></tr><tr><td><code>BitmapFontInfo</code></td><td><code>squared/graphics/src/bitmap_font_info.cppm</code></td><td>Portable BMFont face metadata</td></tr><tr><td><code>BitmapFontPage</code></td><td><code>squared/graphics/src/bitmap_font_page.cppm</code></td><td>One texture-page dependency declared by a BMFont</td></tr><tr><td><code>BitmapFontParseLimits</code></td><td><code>squared/graphics/src/bitmap_font_parse_limits.cppm</code></td><td>Explicit resource limits for one text BMFont descriptor</td></tr><tr><td><code>BitmapFontError</code></td><td><code>squared/graphics/src/bitmap_font_error.cppm</code></td><td>What <code>BitmapFont::load</code> or <code>GlyphLayout::set_text</code> returns: true when something failed</td></tr><tr><td><code>BitmapFontErrorCode</code></td><td><code>squared/graphics/src/bitmap_font_error_code.cppm</code></td><td>Stable failure categories for BMFont parsing and glyph layout</td></tr><tr><td><code>BitmapGlyph</code></td><td><code>squared/graphics/src/bitmap_glyph.cppm</code></td><td>One Unicode scalar's source rectangle and layout metrics</td></tr><tr><td><code>BitmapKerning</code></td><td><code>squared/graphics/src/bitmap_kerning.cppm</code></td><td>Pair-specific horizontal advance adjustment in source pixels</td></tr><tr><td><code>GlyphLayout</code></td><td><code>squared/graphics/glyph_layout.cppm</code></td><td>Reusable value-semantic layout of UTF-8 text into glyph quads</td></tr><tr><td><code>GlyphLayoutOptions</code></td><td><code>squared/graphics/src/glyph_layout_options.cppm</code></td><td>Controls for one UTF-8 glyph layout operation</td></tr><tr><td><code>GlyphAlignment</code></td><td><code>squared/graphics/src/glyph_alignment.cppm</code></td><td>Horizontal placement within an optional target width</td></tr><tr><td><code>GlyphLine</code></td><td><code>squared/graphics/src/glyph_line.cppm</code></td><td>One explicit line in a GlyphLayout</td></tr><tr><td><code>GlyphPlacement</code></td><td><code>squared/graphics/src/glyph_placement.cppm</code></td><td>One SpriteBatch-ready glyph quad in top-left logical coordinates</td></tr></tbody></table></div>
+<p><b>Keep one <code>GlyphLayout</code> and lay text out again into it.</b> <code>set_text()</code> reuses the layout's storage, and allocates only when the text needs more glyphs or lines than any earlier text did. A layout made fresh for every call allocates twice, every time:</p>
+<pre><code class="lang-cpp">// once, alongside your font
+sq::graphics::GlyphLayout layout;
+
+// every frame
+if (!layout.set_text(font, score_text)) {
+    for (const auto&amp; glyph : layout.glyphs()) { /* draw it */ }
+}</code></pre>
+<p><code>clear()</code> empties the layout and keeps that storage. Assign <code>sq::graphics::GlyphLayout{}</code> to give it back. <code>reserve( glyphs, lines )</code> makes the room up front, where allocating is expected (at load, not in a frame), so a text that fits lays out with no allocation. A failed <code>set_text()</code> leaves the previous layout as it was.</p>
+<h3 id="errors">Errors</h3>
+<p><code>BitmapFont::load()</code> and <code>GlyphLayout::set_text()</code> return a <code>BitmapFontError</code>. It is empty on success and true when something failed, so the failure path reads as one line:</p>
+<pre><code class="lang-cpp">sq::graphics::BitmapFont font;
+if (const auto error = font.load(descriptor_text)) {
+    std::printf(&quot;font: line %u: %s %s\n&quot;, error.line, error.message, error.field);
+}</code></pre>
+<p>A failed <code>load()</code> leaves the font as it was; a failed <code>set_text()</code> leaves the layout as it was. Nothing is thrown.</p>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>code</code></td><td>The category, a <code>BitmapFontErrorCode</code>; <code>none</code> on success</td></tr><tr><td><code>message</code></td><td>What failed, in words, such as <code>&quot;missing required field&quot;</code>. Never null; empty on success</td></tr><tr><td><code>field</code></td><td>The descriptor field involved, such as <code>&quot;lineHeight&quot;</code>; empty when none is</td></tr><tr><td><code>line</code></td><td>The descriptor line, counted from 1; 0 when the failure is not about one line</td></tr><tr><td><code>byte</code></td><td>For <code>invalid_utf8</code>: the offset of the first bad byte in the text; 0 otherwise</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Returned by</th><th>When</th></tr></thead><tbody><tr><td><code>invalid_argument</code></td><td>both</td><td>The parse limits include a zero; or the font is not valid, or the options are out of range</td></tr><tr><td><code>limit_exceeded</code></td><td>both</td><td>The descriptor, a line, a name or a count is over its parse limit; the text expands past 2^24 glyphs; out of memory</td></tr><tr><td><code>malformed</code></td><td><code>load</code></td><td>A record or field cannot be read, or the records disagree</td></tr><tr><td><code>unsupported</code></td><td><code>load</code></td><td>A record BMFont text does not define; <code>line</code> says which</td></tr><tr><td><code>duplicate</code></td><td><code>load</code></td><td>A record, page, glyph or kerning pair appears twice</td></tr><tr><td><code>missing_required</code></td><td><code>load</code></td><td>A required record or field is absent; <code>field</code> names a missing field</td></tr><tr><td><code>invalid_utf8</code></td><td><code>set_text</code></td><td>The text is not valid UTF-8 and <code>reject_invalid_utf8</code> is set, which is the default; <code>byte</code> says where</td></tr></tbody></table></div>
+<p>The error owns nothing, so making, copying and returning one never allocates. The texts in <code>message</code> and <code>field</code> live in the library for the life of the program; keep the pointers or print them, but don't free them.</p>
+<h2 id="creating-a-context">Creating a context</h2>
+<p>The platform layer owns the <code>Context</code>. Application code receives higher-level objects and never presents the window itself.</p>
+<pre><code class="lang-cpp">sq::graphics::Context context;
+if (!context.create(sq::graphics::ContextConfig{
+        .native_window = platform_window,   // ANativeWindow* on Android
+        .title = &quot;My Game&quot;,
+        .logical_width = 1280,
+        .logical_height = 720})) {
+    return;
+}</code></pre>
+<p>Leave <code>native_window</code> null on a backend that creates its own window.</p>
+<h2 id="per-frame">Per frame</h2>
+<pre><code class="lang-cpp">context.clear(background);
+// ... draw ...
+if (!context.present()) {
+    // The surface is gone. Stop drawing and wait for the platform layer to
+    // resume. generation() tells you whether GPU objects must be rebuilt.
+}</code></pre>
+<p><b><code>present()</code> is <code>[[nodiscard]]</code> on purpose.</b> Ignoring it is how an application ends up frozen on its last frame after a phone call.</p>
+<h2 id="surface-loss">Surface loss</h2>
+<p>Android takes the rendering surface away when your application goes to the background, and may or may not keep GPU objects alive when it comes back.</p>
+<pre><code class="lang-cpp">const std::uint64_t generation = context.generation();
+if (!context.resume()) { return; }
+if (context.generation() != generation &amp;&amp; !context.resources_preserved()) {
+    rebuild_gpu_objects();
+}</code></pre>
+<p>Atlases and sprite batches each have an <code>invalidate()</code> and <code>restore()</code> pair for this; see below.</p>
+<h2 id="choosing-a-backend">Choosing a backend</h2>
+<pre><code class="lang-sh">make SQUARED_GRAPHICS_BACKEND=null   # headless; the default
+make SQUARED_GRAPHICS_BACKEND=gles   # EGL and GLES 3.0</code></pre>
+<p>The null backend draws nothing and succeeds at everything. A project builds and runs before a real backend exists, and <code>graphics</code> and <code>gui</code> can be tested without a GPU.</p>
+<h2 id="loading-an-atlas">Loading an atlas</h2>
+<pre><code class="lang-cpp">sq::graphics::TextureAtlas atlas;
+if (!atlas.load(runtime.files.internal(&quot;skins/default/skin/uiskin.atlas&quot;))) {
+    return false;
+}
+
+const sq::graphics::AtlasRegion* button = atlas.find_region(&quot;default-round&quot;);
+if (button != nullptr &amp;&amp; button-&gt;region().valid()) {
+    // draw with button-&gt;region()
+}</code></pre>
+<p>Pages are resolved next to the atlas file, so the <code>.png</code> the atlas names is found wherever the atlas came from: inside the APK or on disk.</p>
+<p><code>find_region(name)</code> returns the first region with that name. <code>find_region(name, index)</code> selects among regions packed under the same name. Both return <code>nullptr</code> when there is none.</p>
+<p>Filtering is taken from the atlas file. A pixel-art skin that asks for <code>Nearest</code> gets it, and nothing you pass can override that.</p>
+<p>After context loss:</p>
+<pre><code class="lang-cpp">void App::surface_created(sq::graphics::Context&amp; graphics) {
+    if (!graphics.resources_preserved()) {
+        atlas_.invalidate();          // not release(): the old context is gone
+        if (!atlas_.restore()) { /* the atlas could not be rebuilt */ }
+    }
+}</code></pre>
+<p><code>restore()</code> reloads every page and re-validates every region for you. Any <code>AtlasRegion</code> you're holding is usable again afterwards, without being re-fetched.</p>
+<h2 id="drawing">Drawing</h2>
+<pre><code class="lang-cpp">sq::graphics::SpriteBatch batch;
+if (!batch.initialize()) { return false; }          // 2048 sprites by default
+
+// each frame
+if (batch.begin(camera)) {
+    batch.draw(*atlas.find_region(&quot;default-round&quot;), 10, 10, 64, 64);
+    batch.draw(sprite);
+    batch.end();
+}</code></pre>
+<p><code>begin()</code> returns false if the batch has no GPU objects: after context loss, before <code>restore()</code>. <code>end()</code> draws whatever is left queued.</p>
+<p><b>Which way is up comes from the camera.</b> <code>draw(region, x, y, w, h)</code> places the image's top edge at the top of the quad under either orientation:</p>
+<div class="tablewrap"><table><thead><tr><th><code>camera.origin()</code></th><th><code>(x, y)</code> is the quad's</th><th>y grows</th></tr></thead><tbody><tr><td><code>CoordinateOrigin::TopLeft</code> (default)</td><td>top-left corner</td><td>downwards</td></tr><tr><td><code>CoordinateOrigin::BottomLeft</code></td><td>bottom-left corner</td><td>upwards</td></tr></tbody></table></div>
+<pre><code class="lang-cpp">sq::graphics::OrthographicCamera ui_camera{720, 1280};    // TopLeft
+sq::graphics::OrthographicCamera world_camera{
+    720, 1280, sq::graphics::CoordinateOrigin::BottomLeft};</code></pre>
+<p>The GUI, glyph layout and <code>GlyphPlacement</code> all measure from the top, so use a <code>TopLeft</code> camera for them. A <code>Sprite</code>'s rotation is counter-clockwise under a <code>BottomLeft</code> camera, so it appears clockwise under a <code>TopLeft</code> one.</p>
+<p><b>Draw sprites that share a texture together.</b> The batch issues one draw call per run of sprites from the same texture. Ten sprites from one atlas cost one call; alternating between two textures six times costs six. Regions from the same atlas page share a texture, which is most of why atlases exist.</p>
+<p>A region whose texture was discarded or reloaded is skipped rather than drawn, so a stale region leaves a gap instead of showing the wrong pixels.</p>
+<p>After context loss:</p>
+<pre><code class="lang-cpp">if (!graphics.resources_preserved()) {
+    batch_.invalidate();
+    if (!batch_.restore()) { /* the batch could not be rebuilt */ }
+}</code></pre>
+<p><code>invalidate()</code> abandons anything queued, so you don't need to call <code>end()</code> first.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

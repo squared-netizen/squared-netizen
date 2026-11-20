@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Squared Cartridge Specification, Version 2.0 · sqcart</title>
+<meta name="description" content="sqcart: Squared Cartridge Specification, Version 2.0">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">sqcart</a> · <code>docs/developer/specs/sq-cartridge-2.0.md</code> · <a href="https://github.com/squared-netizen/sqcart/blob/main/docs/developer/specs/sq-cartridge-2.0.md">on GitHub</a></p><h1 id="squared-cartridge-specification-version-20">Squared Cartridge Specification, Version 2.0</h1>
+<p><b>Status:</b> Draft <b>Format identifier:</b> <code>squared-cartridge</code> <b><code>format_version</code>:</b> <code>2</code> <b>File extension:</b> <code>.sq</code> <b>Media type:</b> <code>application/vnd.squared.cartridge+zip</code> (provisional) <b>Supersedes:</b> version 1.0. See §0.2.</p>
+<hr>
+<h2 id="0-scope-and-relationship-to-squared-pg">0. Scope and relationship to squared-pg</h2>
+<p>This document specifies a container format. It does not specify the generator, the engine, or the Squared framework runtime.</p>
+<p>The container is the single physical representation for every named, versioned, manifest-identified resource in the Squared ecosystem:</p>
+<ul><li>generator resources consumed by <code>squared-pg</code> — templates, kits, packages, asset bundles;</li><li>generator extensions — plugins;</li><li>distributable applications produced by the Squared framework — cartridges.</li></ul>
+<p>This specification satisfies the resource identity model required by §2.4.4 of the Generator Architecture: a resource is identified by its manifest, never by its filesystem path.</p>
+<h3 id="01-independence-requirement">0.1 Independence requirement</h3>
+<p>The Squared framework MUST NOT depend on <code>squared-pg</code> (§2.7.6). Both systems need to read this format. Therefore:</p>
+<ul><li>This specification is normative and standalone.</li><li>Neither implementation may treat the other as its reference.</li><li>The reader is expected to be a small standalone component (<code>sqcart</code>) depending only on a ZIP codec and a JSON parser, vendored independently by each consumer.</li></ul>
+<p>Nothing in this document permits a cartridge to carry generator implementation details into a generated project.</p>
+<h3 id="02-relationship-to-version-10">0.2 Relationship to version 1.0</h3>
+<p>Version 2.0 is <b>not backward compatible</b> and no compatibility path is provided. A conforming reader implements exactly one <code>format_version</code> and MUST refuse any other, in either direction (§12.1 step 4).</p>
+<p>Three changes account for the break:</p>
+<ul><li><b>Kind bodies are replaced by <code>consumers</code> (§5.6).</b> Version 1.0 defined six typed bodies — <code>template</code>, <code>kit</code>, <code>package</code>, <code>asset-bundle</code>, <code>plugin</code>, <code>cartridge</code> — and every field in every one of them was a <code>squared-pg</code> or Squared framework concept. A reader implementing this specification therefore had to know the generator's vocabulary, which made §0.1 false in practice: a framework runtime linking a conforming reader acquired <code>integration_areas</code> and <code>project_types</code> whether it wanted them or not. Version 2.0 moves all of it into namespaced sections a reader carries and never opens.</li><li><b><code>kind</code> is an opaque token (§5.2).</b> It was a closed set of six. A closed set obliges a reader to know the ecosystem's roles, which is the same defect one level up.</li><li><b><code>tree</code> is a required envelope member (§5.1).</b> Version 1.0 gave the payload root to templates only, as a kind body field, and left every other kind to a convention the reader could not see.</li></ul>
+<p>The break is deliberate and was taken while the ecosystem was small enough for the migration to be mechanical. <code>tree</code> is required rather than defaulted because a defaulted field is invisible in the manifests an author learns the format from.</p>
+<p>What this costs is worth stating plainly. Version 1.0 could check that a cartridge's entry module named a present entry, that an asset bundle's declared paths existed, and that a template's ownership globs classified every file exactly once. Those were useful checks and they are gone, because none of them can be made without knowing a consumer's schema. They belong to the consumer now, which can give a better diagnostic anyway — it knows what the reference was for.</p>
+<p>Readers MUST NOT attempt to upgrade a version 1.0 manifest in place. The correct response to one is <code>cartridge.format_unsupported</code>, naming the version found and the version implemented.</p>
+<hr>
+<h2 id="1-design-rationale">1. Design rationale</h2>
+<p>The format is modelled on the Java Archive specification, which solved this problem correctly in outline and incorrectly in several specific places. Hindsight lets us keep the outline and discard the mistakes.</p>
+<h3 id="11-retained-from-jar">1.1 Retained from JAR</h3>
+<div class="tablewrap"><table><thead><tr><th>Property</th><th>Rationale</th></tr></thead><tbody><tr><td>Ordinary ZIP container</td><td>Universal tooling. Inspectable with <code>unzip</code>, mountable, streamable, random-access.</td></tr><tr><td>Reserved metadata directory</td><td>A well-known root directory tells a reader how to interpret the rest without out-of-band knowledge.</td></tr><tr><td>Explicit declared entry point</td><td>The equivalent of <code>Main-Class</code>. A container that runs must say what runs.</td></tr><tr><td>Forward compatibility by ignoring unknown metadata</td><td>Lets v1 readers survive v1.x additions.</td></tr><tr><td>Per-entry digests as the integrity primitive</td><td>Integrity attaches to content, not to the container envelope.</td></tr><tr><td>One container serving many roles</td><td><code>jar</code>/<code>war</code>/<code>ear</code>/<code>apk</code> are one format. Role belongs in metadata.</td></tr></tbody></table></div>
+<h3 id="12-corrected-from-jar">1.2 Corrected from JAR</h3>
+<div class="tablewrap"><table><thead><tr><th>JAR behaviour</th><th>Consequence</th><th>Correction here</th></tr></thead><tbody><tr><td>Bespoke manifest grammar with 72-byte continuation lines</td><td>Hand-parsing, subtle encoding bugs, poor tooling</td><td>JSON, UTF-8, parsed with a conventional parser</td></tr><tr><td><code>Class-Path</code> pulls dependencies by relative filesystem path</td><td>Fragile, non-relocatable, unresolvable offline</td><td>Dependencies declared by manifest identity only; resolution is the Package/Kit/Template Service's job</td></tr><tr><td>Signed archives accept unsigned added entries</td><td>Signature bypass by injection</td><td>The content digest covers the <b>complete</b> entry set; any addition, removal or modification invalidates it</td></tr><tr><td>Entry order, timestamps and compression unspecified</td><td>Reproducible builds impossible; hashes unstable</td><td>Canonical ordering and fixed timestamps for writers; reproducibility defined over <b>content</b>, not archive bytes</td></tr><tr><td>Multi-Release added a decade late as versioned directories</td><td>Retrofit with awkward precedence rules</td><td>Target overlay mechanism reserved from v1; base payload must always be complete</td></tr><tr><td>Path safety unspecified</td><td>"Zip slip" traversal, duplicate-name confusion, zip bombs</td><td>Strict, normative path and limit rules in §3</td></tr><tr><td>Role encoded in the file extension</td><td><code>.war</code> vs <code>.jar</code> divergence, extension-based trust</td><td>Single <code>.sq</code> extension; role is <code>kind</code> in the manifest and nothing is trusted by name</td></tr><tr><td>Sealed packages, trusted-library attributes</td><td>Complex trust semantics few implemented correctly</td><td>Deferred entirely; no trust semantics in v1</td></tr></tbody></table></div>
+<h3 id="13-non-goals-for-v1">1.3 Non-goals for v1</h3>
+<ul><li>Native executable code loading.</li><li>Signature verification and trust policy (layout reserved, behaviour undefined).</li><li>Delta or patch cartridges.</li><li>Network resolution of any kind. The format is offline-first by construction.</li></ul>
+<hr>
+<h2 id="2-terminology">2. Terminology</h2>
+<p>The key words MUST, MUST NOT, REQUIRED, SHOULD, SHOULD NOT, MAY and OPTIONAL are to be interpreted as described in RFC 2119.</p>
+<ul><li><b>Cartridge</b> — an instance of this format, in either archived or exploded form.</li><li><b>Reader</b> — an implementation that opens and validates a cartridge.</li><li><b>Writer</b> — an implementation that produces a cartridge.</li><li><b>Payload</b> — every entry not under <code>SQ-INF/</code>.</li><li><b>Kind</b> — the declared role of a cartridge (§6).</li></ul>
+<hr>
+<h2 id="3-container-format">3. Container format</h2>
+<h3 id="31-zip-profile">3.1 ZIP profile</h3>
+<p>A cartridge in archived form MUST be a ZIP archive conforming to PKWARE APPNOTE 6.3.x, restricted as follows.</p>
+<p>Writers MUST:</p>
+<ul><li>use only compression method <code>0</code> (Stored) or <code>8</code> (Deflate);</li><li>set general purpose bit 11 (UTF-8 filename encoding) on every entry;</li><li>record accurate CRC-32, compressed size and uncompressed size in both the local header and the central directory;</li><li>emit no encrypted entries (general purpose bit 0 MUST be clear);</li><li>emit no data descriptors (general purpose bit 3 MUST be clear);</li><li>emit no extra fields other than the ZIP64 extended information field;</li><li>omit directory entries.</li></ul>
+<p>Readers MUST:</p>
+<ul><li>treat the central directory as authoritative;</li><li>reject an entry whose local header disagrees with the central directory on name, method, CRC-32 or sizes;</li><li>support ZIP64;</li><li>reject any compression method other than 0 or 8;</li><li>ignore external file attributes, including Unix mode bits. Symbolic links, device nodes and executable bits carry no meaning in v1 and MUST NOT be materialised.</li></ul>
+<p>If a writer emits directory entries anyway, they MUST be zero-length, Stored, and end in <code>/</code>. Readers MUST NOT depend on their presence and MUST NOT infer structure from their absence.</p>
+<h3 id="32-first-entry-rule">3.2 First-entry rule</h3>
+<p><code>SQ-INF/manifest.json</code> MUST be the first entry in the archive and MUST use compression method <code>0</code> (Stored).</p>
+<p>This allows a reader to identify and parse the manifest from the head of the file, without scanning to the end for the central directory. It matters on constrained hosts — reading a manifest off a Termux filesystem or an Android asset stream should not require a seek to EOF.</p>
+<p>A reader MAY additionally locate the manifest through the central directory, but a cartridge that violates the first-entry rule is non-conforming and MUST be rejected at strict conformance (§12).</p>
+<h3 id="33-entry-path-rules">3.3 Entry path rules</h3>
+<p>An entry path is the ZIP entry name interpreted as UTF-8.</p>
+<p>A conforming entry path MUST:</p>
+<ul><li>use <code>/</code> as its only separator;</li><li>be relative — no leading <code>/</code>;</li><li>contain no <code>.</code> or <code>..</code> segment;</li><li>contain no NUL byte, no backslash, no <code>:</code> drive designator, and no C0 or C1 control character;</li><li>be non-empty and not end in <code>/</code> (except a tolerated directory entry);</li><li>be valid, NFC-normalised UTF-8.</li></ul>
+<p>A conforming cartridge MUST NOT contain:</p>
+<ul><li>two entries with byte-identical paths;</li><li>two entries whose paths differ only by ASCII case;</li><li>two entries whose paths differ only by Unicode normalisation form.</li></ul>
+<p>Logical paths are <b>case-sensitive</b>. The two collision rules above exist so that a case-sensitive logical model can be materialised safely onto a case-insensitive host filesystem, which is the normal situation on Android and macOS.</p>
+<p>Readers MUST reject a cartridge violating any rule in this section before extracting or mapping any entry. Path validation is a precondition of access, not a step during extraction.</p>
+<h3 id="34-resource-limits">3.4 Resource limits</h3>
+<p>Readers MUST enforce a default limit for each of the following, and MAY allow a host policy to raise them. They MUST NOT default to unbounded.</p>
+<div class="tablewrap"><table><thead><tr><th>Limit</th><th>Default</th></tr></thead><tbody><tr><td><code>SQ-INF/manifest.json</code> uncompressed size</td><td>1 MiB</td></tr><tr><td>Any single <code>SQ-INF/</code> file</td><td>4 MiB</td></tr><tr><td>Entry path length</td><td>1024 bytes</td></tr><tr><td>Path depth</td><td>32 segments</td></tr><tr><td>Entry count</td><td>65 536</td></tr><tr><td>Total uncompressed size</td><td>2 GiB</td></tr><tr><td>Per-entry compression ratio</td><td>200:1</td></tr><tr><td>Whole-archive compression ratio</td><td>100:1</td></tr></tbody></table></div>
+<p>Exceeding a limit MUST produce a structured error (§13) and MUST NOT produce a partially materialised result.</p>
+<h3 id="35-exploded-form">3.5 Exploded form</h3>
+<p>A cartridge MAY exist as a directory tree rather than an archive. A directory is an exploded cartridge if it contains a readable <code>SQ-INF/manifest.json</code>.</p>
+<p>Exploded and archived forms are semantically equivalent. A reader that supports one SHOULD support both.</p>
+<p>The rules of §3.3 apply to the relative paths within an exploded cartridge. Symbolic links inside an exploded cartridge MUST NOT be followed outside the cartridge root, and SHOULD be rejected.</p>
+<p>This is the mechanism that reconciles the format with the repository layout required by §1.13. A development checkout stores generator resources exploded:</p>
+<pre><code class="lang-text">resources/kits/sdl3/
+├── SQ-INF/
+│   └── manifest.json
+├── bridge/
+└── build/</code></pre>
+<p>Distribution and content-addressed caching store them archived:</p>
+<pre><code class="lang-text">resources/cache/kit.sdl3-1.2.0.sq</code></pre>
+<p>Neither form is canonical. Identity comes from the manifest in both cases. The repository layout remains a maintenance convenience and does not become part of the public generator contract, exactly as §2.4.4 requires.</p>
+<hr>
+<h2 id="4-the-sq-inf-directory">4. The <code>SQ-INF/</code> directory</h2>
+<p><code>SQ-INF/</code> is reserved. Payload MUST NOT be placed under it.</p>
+<div class="tablewrap"><table><thead><tr><th>Path</th><th>Status</th><th>Purpose</th></tr></thead><tbody><tr><td><code>SQ-INF/manifest.json</code></td><td>REQUIRED</td><td>Identity, kind and metadata</td></tr><tr><td><code>SQ-INF/hashes.json</code></td><td>OPTIONAL</td><td>Per-entry content digests (§9)</td></tr><tr><td><code>SQ-INF/thumbnail.png</code></td><td>OPTIONAL</td><td>Presentation image</td></tr><tr><td><code>SQ-INF/icon.png</code></td><td>OPTIONAL</td><td>Presentation icon</td></tr><tr><td><code>SQ-INF/licenses/</code></td><td>OPTIONAL</td><td>Licence texts and notices</td></tr><tr><td><code>SQ-INF/signatures/</code></td><td>RESERVED</td><td>Signature material (§10)</td></tr><tr><td><code>SQ-INF/targets/</code></td><td>RESERVED</td><td>Target overlays (§11)</td></tr><tr><td><code>SQ-INF/*</code> (other)</td><td>OPTIONAL</td><td>Implementation-defined</td></tr></tbody></table></div>
+<p>Readers MUST ignore unrecognised files under <code>SQ-INF/</code>. Validators SHOULD report them as informational diagnostics.</p>
+<p>Names not listed above are reserved for future versions of this specification. Third parties SHOULD namespace their additions, for example <code>SQ-INF/x-vendor-name/</code>.</p>
+<hr>
+<h2 id="5-the-manifest">5. The manifest</h2>
+<p><code>SQ-INF/manifest.json</code> is a JSON document encoded as UTF-8 <b>without</b> a byte order mark. It MUST be a JSON object.</p>
+<p>The manifest has a fixed <b>envelope</b>, common to every kind and fully defined here, and an optional <b><code>consumers</code></b> object carrying sections this specification does not define (§5.6).</p>
+<p>That division is the whole of version 2.0. The envelope is what any reader can act on without knowing who the cartridge is for; everything else is addressed to someone in particular and carried unopened.</p>
+<h3 id="51-envelope">5.1 Envelope</h3>
+<pre><code class="lang-json">{
+  &quot;format&quot;: &quot;squared-cartridge&quot;,
+  &quot;format_version&quot;: 2,
+
+  &quot;kind&quot;: &quot;kit&quot;,
+  &quot;id&quot;: &quot;kit.sdl3&quot;,
+  &quot;version&quot;: &quot;1.2.0&quot;,
+  &quot;tree&quot;: &quot;tree/&quot;,
+
+  &quot;title&quot;: &quot;SDL3 Integration Kit&quot;,
+  &quot;description&quot;: &quot;Bridges the Squared framework to SDL3.&quot;,
+
+  &quot;requires_features&quot;: [],
+
+  &quot;authors&quot;: [ { &quot;name&quot;: &quot;Example Studio&quot; } ],
+  &quot;license&quot;: &quot;MIT&quot;,
+
+  &quot;consumers&quot;: {
+    &quot;squared_pg&quot;: {
+      &quot;requires&quot;: { &quot;engine&quot;: &quot;&gt;=0.1.0 &lt;0.2.0&quot; }
+    }
+  }
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Type</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td><code>format</code></td><td>string</td><td>REQUIRED</td><td>MUST equal <code>&quot;squared-cartridge&quot;</code></td></tr><tr><td><code>format_version</code></td><td>integer</td><td>REQUIRED</td><td>MUST equal <code>2</code> for this specification</td></tr><tr><td><code>kind</code></td><td>string</td><td>REQUIRED</td><td>Opaque role token, §5.2.1</td></tr><tr><td><code>id</code></td><td>string</td><td>REQUIRED</td><td>Resource identity, §5.2</td></tr><tr><td><code>version</code></td><td>string</td><td>REQUIRED</td><td>Semantic version, §5.3</td></tr><tr><td><code>tree</code></td><td>string</td><td>REQUIRED</td><td>Payload root, §5.1.1</td></tr><tr><td><code>title</code></td><td>string</td><td>OPTIONAL</td><td>Human-facing display name</td></tr><tr><td><code>description</code></td><td>string</td><td>OPTIONAL</td><td>Short prose description</td></tr><tr><td><code>requires_features</code></td><td>array of string</td><td>OPTIONAL</td><td>Container features the READER must implement, §5.4</td></tr><tr><td><code>authors</code></td><td>array of object</td><td>OPTIONAL</td><td><code>name</code>, optional <code>email</code>, <code>url</code></td></tr><tr><td><code>license</code></td><td>string</td><td>OPTIONAL</td><td>SPDX identifier where one applies</td></tr><tr><td><code>presentation</code></td><td>object</td><td>OPTIONAL</td><td>Paths to thumbnail, icon, and display hints</td></tr><tr><td><code>provenance</code></td><td>object</td><td>OPTIONAL</td><td>§5.5</td></tr><tr><td><code>consumers</code></td><td>object</td><td>OPTIONAL</td><td>Consumer sections, §5.6</td></tr></tbody></table></div>
+<p>Members not listed here are ignored and preserved (§5.4). A reader MUST NOT reject a manifest for carrying a member it does not recognise, and MUST NOT ascribe meaning to one — in particular, a top-level member named after a kind carries no significance in this version.</p>
+<p><code>format</code>, <code>format_version</code> and <code>tree</code> MUST be validated before any other member is read (§12.1). Every field after them is interpreted under the rules of the version the manifest claims, so that claim is not something a reader may defer.</p>
+<h4 id="511-tree--the-payload-root">5.1.1 <code>tree</code> — the payload root</h4>
+<p><code>tree</code> names the directory at which the cartridge's payload begins, relative to the cartridge root. It has exactly two legal shapes:</p>
+<ul><li><code>&quot;.&quot;</code> — the payload begins at the cartridge root.</li><li>A relative directory path ending in <code>/</code>, for example <code>&quot;tree/&quot;</code> or <code>&quot;a/b/&quot;</code>.</li></ul>
+<p>A reader MUST refuse any other form. In particular it MUST refuse a path without the trailing separator: <code>&quot;tree&quot;</code> is not an accepted spelling of <code>&quot;tree/&quot;</code>, and a reader MUST NOT normalise one into the other. Accepting both spellings would put two ways of writing one path into the ecosystem and oblige every reader to canonicalise on the way out, or let the two forms diverge in indexes, error messages and provenance records.</p>
+<p>A reader MUST additionally refuse a <code>tree</code> that:</p>
+<ul><li>is absolute, or contains a <code>.</code> or <code>..</code> component, or contains an empty segment, or contains a character excluded from entry paths by §3.3. Entry paths are validated relative to this prefix, so a payload root that can escape the cartridge defeats every path check below it;</li><li>begins with <code>SQ-INF/</code>. The reserved directory is never payload (§4).</li></ul>
+<p><code>SQ-INF/</code> is excluded from the payload regardless of <code>tree</code>, including when <code>tree</code> is <code>&quot;.&quot;</code>. The exclusion is §4's, and does not depend on the payload root happening to point elsewhere.</p>
+<p>A <code>tree</code> naming a directory the cartridge does not contain is <b>not</b> an error. A manifest-only cartridge is legal, and a reader that refused one could not represent an asset bundle awaiting its assets. A validator SHOULD report it as an informational diagnostic, because the far more common cause is a misspelling that would otherwise surface as a missing-file error somewhere with nothing pointing back at the manifest.</p>
+<p><b>Why the envelope.</b> A reader must be able to find the payload without knowing the kind, and must be able to do so for kinds this version has not defined — which, since §5.2.1 makes <code>kind</code> opaque, is all of them. Version 1.0 placed the field on templates alone and gave the other five kinds prose conventions (<code>bridge/</code>, <code>platform/</code>, <code>include/</code>, <code>assets/</code>, <code>lua/</code>) that no reader could act on, so implementations guessed: look for entries under <code>tree/</code>, otherwise assume the root. That guess was correct for every resource that then existed and silently wrong for any cartridge shipping an unrelated <code>tree/</code> directory. The declaration replaces it.</p>
+<h3 id="52-identity">5.2 Identity</h3>
+<p><code>id</code> is a dotted identifier. Each segment MUST match <code>[a-z][a-z0-9_]*</code> and segments are joined with <code>.</code>. There MUST be at least two segments and no more than eight. <code>id</code> is compared byte-for-byte; there is no case folding and no aliasing.</p>
+<h4 id="521-kind">5.2.1 <code>kind</code></h4>
+<p><code>kind</code> is a single identity segment: <code>[a-z][a-z0-9_]*</code>, no dots.</p>
+<p><b>This specification does not enumerate legal kinds, and a conforming reader MUST NOT reject a <code>kind</code> it does not recognise.</b> A reader validates the token's shape and nothing else.</p>
+<p>Version 1.0 defined a closed set of six. The set was wrong to be closed for the same reason the kind bodies were wrong to exist: which roles the ecosystem has is the ecosystem's question, and a reader that answers it cannot open a cartridge for a role invented after it shipped. <code>kind</code> is closer to a media type than to a schema selector — it tells a human or a tool what a cartridge claims to be, without either needing to know the claim's contents.</p>
+<p>Consumers MAY require particular kinds, and MUST report an unusable one themselves rather than expecting the reader to have refused it.</p>
+<p>Kind tokens in use at the time of writing, listed as information and not as a constraint: <code>cartridge</code>, <code>template</code>, <code>kit</code>, <code>package</code>, <code>asset_bundle</code>, <code>plugin</code>.</p>
+<h4 id="522-identifier-prefixes">5.2.2 Identifier prefixes</h4>
+<p>Prefix conventions — <code>kit.</code> for kits, <code>template.</code> for templates and so on — are <b>ecosystem policy, not format rules</b>. Version 1.0 made them normative here; enforcing them requires knowing which prefix belongs to which role, which is the coupling this version removes.</p>
+<p>A conforming reader MUST NOT require or infer any relationship between <code>id</code> and <code>kind</code>. Consumers MAY impose one.</p>
+<p>The pair <code>(id, version)</code> is the complete identity of a cartridge. Nothing else — not the filename, not the directory, not the archive hash — participates in identity.</p>
+<h3 id="53-versioning">5.3 Versioning</h3>
+<p><code>version</code> MUST be a Semantic Versioning 2.0.0 version string.</p>
+<p>Version <i>ranges</i> appear in compatibility fields and use a restricted comparator grammar:</p>
+<pre><code class="lang-text">range      := clause ( &quot; &quot; clause )*
+clause     := op version
+op         := &quot;&gt;=&quot; | &quot;&gt;&quot; | &quot;&lt;=&quot; | &quot;&lt;&quot; | &quot;=&quot; | &quot;~&quot; | &quot;^&quot;</code></pre>
+<p>Clauses separated by spaces are conjunctive. Disjunction is expressed as an array of range strings. There is no wildcard syntax; <code>^1.2.0</code> and <code>~1.2.0</code> carry their usual SemVer meanings.</p>
+<p><code>format_version</code> is an integer owned by this specification and is unrelated to <code>version</code>. A reader MUST reject a cartridge whose <code>format_version</code> it does not implement.</p>
+<h3 id="54-compatibility-model">5.4 Compatibility model</h3>
+<p>Two tiers, because "ignore what you don't recognise" is safe for additive metadata and unsafe for semantic changes.</p>
+<p><b>Default tier.</b> A reader MUST ignore unrecognised members of any manifest object. This is what allows v1.1 to add fields without breaking v1.0 readers.</p>
+<p><b>Critical tier.</b> <code>requires_features</code> is an array of feature tokens. A reader MUST refuse to load the cartridge unless it implements every token listed. Tokens are opaque strings assigned by this specification.</p>
+<pre><code class="lang-json">&quot;requires_features&quot;: [&quot;compression.zstd&quot;, &quot;signing.v2&quot;]</code></pre>
+<p>The rule is that a writer relying on behaviour a v1.0 reader does not have MUST declare it here. Silence means "everything I depend on is in v1.0". This replaces JAR's blanket ignore-unknown rule, which had no way to say "this one actually matters".</p>
+<p>No feature tokens are defined by v1.0.</p>
+<h3 id="55-provenance">5.5 Provenance</h3>
+<p>For kinds produced by generation rather than authored by hand, the manifest MAY record how it was produced.</p>
+<pre><code class="lang-json">&quot;provenance&quot;: {
+  &quot;generator&quot;: { &quot;id&quot;: &quot;squared-pg&quot;, &quot;version&quot;: &quot;0.3.1&quot; },
+  &quot;template&quot;: &quot;template.android.cpp@1.4.0&quot;,
+  &quot;kits&quot;: [&quot;kit.android@1.1.0&quot;, &quot;kit.sdl3@1.2.0&quot;],
+  &quot;packages&quot;: [&quot;package.squared.core@1.0.2&quot;],
+  &quot;framework&quot;: &quot;1.0.0&quot;,
+  &quot;generated_at&quot;: &quot;1980-01-01T00:00:00Z&quot;
+}</code></pre>
+<p><code>provenance</code> MUST NOT contain machine-specific paths, hostnames, usernames, or temporary filesystem locations (§2.7.2). It exists to support update workflows and debugging, not to describe a build machine.</p>
+<hr>
+<h3 id="56-consumers">5.6 <code>consumers</code></h3>
+<p><code>consumers</code> is an OPTIONAL object carrying data addressed to consuming tools. Its keys are consumer identities; its values are sections whose contents this specification does not define and a conforming reader does not interpret.</p>
+<pre><code class="lang-json">&quot;consumers&quot;: {
+  &quot;squared_pg&quot;: {
+    &quot;project_types&quot;: [&quot;application&quot;],
+    &quot;working_directory&quot;: &quot;sq_app&quot;,
+    &quot;parameters&quot;: [
+      { &quot;name&quot;: &quot;project_name&quot;, &quot;type&quot;: &quot;identifier&quot;, &quot;required&quot;: true }
+    ],
+    &quot;ownership&quot;: {
+      &quot;generated&quot;: [&quot;mk/squared_generated.mk&quot;],
+      &quot;user&quot;: [&quot;sq_app/**&quot;]
+    }
+  },
+  &quot;squared_framework&quot;: {
+    &quot;entry&quot;: { &quot;module&quot;: &quot;game/main.lua&quot;, &quot;lua_abi&quot;: &quot;lua54&quot; }
+  }
+}</code></pre>
+<h4 id="what-a-reader-must-check">What a reader MUST check</h4>
+<ol><li><code>consumers</code>, if present, is an object.</li><li>Each key is a consumer identity: dotted segments matching <code>[a-z][a-z0-9_]*</code>, at most 128 characters.</li><li>Each value is an object.</li><li>The whole is within the reader's <code>Limits</code> (§3.4) for nesting depth and size.</li></ol>
+<h4 id="what-a-reader-must-not-do">What a reader MUST NOT do</h4>
+<p>A reader MUST NOT interpret, validate, transform, reorder or reject a section's contents. It MUST NOT require any particular key to be present, and a section addressed to a consumer the reader has never heard of is not an error — it is the mechanism working.</p>
+<p>A reader MUST make each section retrievable by identity, and MUST preserve member order within a section. Insignificant whitespace need not be preserved.</p>
+<h4 id="why-an-object-and-why-namespaced">Why an object, and why namespaced</h4>
+<p>The values are objects rather than string pairs because a consumer's data is not flat. <code>parameters</code> is an array of objects and <code>ownership</code> is an object of arrays; expressing either as key/value strings means encoding JSON inside a JSON string, and the consumer then parses JSON out of a string it got from a JSON parser. An object permits flat key/value for consumers that want it while not forbidding structure to those that don't.</p>
+<p>Namespacing costs one level of nesting and removes a whole class of collision. Two consumers both wanting a member called <code>entry</code> is not a hypothetical; <code>squared-pg</code> and the Squared framework runtime are different programs reading the same cartridge.</p>
+<h4 id="absent-is-not-empty">Absent is not empty</h4>
+<p>A consumer finding no section addressed to it MUST report that, rather than proceeding with defaults it invented. "This cartridge was not prepared for me" and "this cartridge asks nothing of me" are different facts and lead to different, correct behaviours.</p>
+<h4 id="engine-and-requires_capabilities-moved-here"><code>engine</code> and <code>requires_capabilities</code> moved here</h4>
+<p>Both were envelope members through version 1.0 and survive only as consumer data:</p>
+<pre><code class="lang-json">&quot;consumers&quot;: {
+  &quot;squared_pg&quot;: {
+    &quot;requires&quot;: {
+      &quot;engine&quot;: &quot;&gt;=0.1.0 &lt;0.2.0&quot;,
+      &quot;capabilities&quot;: [&quot;capability.project.plan@^1.0&quot;]
+    }
+  }
+}</code></pre>
+<p><code>engine</code> carried an <code>id</code> naming the tool it was addressed to, which is what a <code>consumers</code> key already says — the member was restating the section it belonged inside. And every <code>requires_capabilities</code> token that has been written names a <code>squared-pg</code> capability, in a namespace a reader can shape-check but never resolve.</p>
+<p>A reader therefore no longer validates a capability token's grammar. A malformed one reaches the consumer, which owns the namespace and can report which capability is missing and what provides it. A reader could only ever report that a string it did not understand was shaped wrongly.</p>
+<p><b><code>requires_features</code> stays in the envelope</b>, and the contrast is the point of §5.4:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Guards</th><th>Fails</th></tr></thead><tbody><tr><td><code>requires_features</code></td><td>the <b>reader</b></td><td>at <code>open()</code>, before anything else</td></tr><tr><td>a consumer's <code>requires</code></td><td>the <b>consumer</b></td><td>when that consumer resolves it</td></tr></tbody></table></div>
+<p>A cartridge whose reader is too old cannot be opened at all, and only this specification can define what a reader must implement. A cartridge whose consumer is too old opens fine and must be refused later, by the consumer, in code this document does not govern.</p>
+<hr>
+<h2 id="6-kinds--retired">6. Kinds — retired</h2>
+<p>This section defined six kind bodies in version 1.0: <code>cartridge</code>, <code>template</code>, <code>kit</code>, <code>package</code>, <code>asset-bundle</code> and <code>plugin</code>.</p>
+<p>It is retained as a numbered heading, with no normative content, so that every later section keeps the number it has carried since 1.0. Cross-references to §7 through §14 appear in source comments, in consuming projects and in this document; renumbering to close a gap would invalidate all of them to save one line of explanation.</p>
+<p><b><code>kind</code> is now an opaque token (§5.2.1) and kind bodies are now consumer sections (§5.6).</b></p>
+<h3 id="61-where-each-body-went">6.1 Where each body went</h3>
+<p>Every field of every version 1.0 kind body now belongs in a <code>consumers</code> section:</p>
+<div class="tablewrap"><table><thead><tr><th>Version 1.0 kind body</th><th>Where it lives now</th></tr></thead><tbody><tr><td><code>template</code></td><td><code>consumers.squared_pg</code></td></tr><tr><td><code>kit</code></td><td><code>consumers.squared_pg</code></td></tr><tr><td><code>package</code></td><td><code>consumers.squared_pg</code></td></tr><tr><td><code>asset-bundle</code></td><td><code>consumers.squared_pg</code></td></tr><tr><td><code>plugin</code></td><td><code>consumers.squared_pg</code></td></tr><tr><td><code>cartridge</code></td><td><code>consumers.squared_framework</code></td></tr></tbody></table></div>
+<p>Their schemas are normative in the documents owned by those consumers, not here. This specification has no opinion about whether a template must declare <code>parameters</code>, because it does not know what a template is.</p>
+<h3 id="62-payload-layout">6.2 Payload layout</h3>
+<p>Version 1.0 also gave each kind a customary payload layout — <code>bridge/</code> and <code>platform/</code> for kits, <code>include/</code> and <code>src/</code> for packages, and so on. Those conventions were prose a reader could not act on, and the guesswork they invited is what <code>tree</code> (§5.1.1) replaces.</p>
+<p>Layout below the payload root is a consumer's concern. A consumer that needs sub-roots declares them in its own section.</p>
+<hr>
+<h2 id="7-lua-code">7. Lua code</h2>
+<p>Lua bytecode is not portable. It is tied to a Lua version, to <code>LUAI_MAXSHORTLEN</code> and integer/float width, and in practice to the build. A format that ships bytecode as the only form of a module is a format that breaks when the host Lua changes.</p>
+<p>Rules:</p>
+<ol><li>Lua <b>source</b> is the normative representation. For every Lua module in a cartridge, the source form MUST be present.</li><li>Bytecode MAY additionally be present as a load accelerator. It MUST declare <code>lua_abi</code> and a <code>target</code> triple.</li><li>A reader MUST verify that bytecode matches its own Lua ABI and target before loading it, and MUST fall back to source on any mismatch rather than failing.</li><li>A reader MUST NOT load bytecode from an unverified cartridge as a trust decision. Lua bytecode is not memory-safe and the standard loader does not validate it.</li></ol>
+<pre><code class="lang-json">&quot;entry&quot;: {
+  &quot;module&quot;: &quot;game/main.lua&quot;,
+  &quot;type&quot;: &quot;lua-source&quot;,
+  &quot;lua_abi&quot;: &quot;lua54&quot;,
+  &quot;bytecode_cache&quot;: {
+    &quot;arm64-android&quot;: &quot;game/.cache/main.arm64-android.luac&quot;,
+    &quot;x86_64-linux&quot;:  &quot;game/.cache/main.x86_64-linux.luac&quot;
+  }
+}</code></pre>
+<p>Bytecode is a cache, and the format says so structurally.</p>
+<hr>
+<h2 id="8-native-code">8. Native code</h2>
+<p>A v1 cartridge MUST NOT contain loadable native code: no <code>.so</code>, <code>.dll</code>, <code>.dylib</code>, no platform executables, no Lua C modules.</p>
+<p>C and C++ <b>source</b> is expected and permitted — kits and packages consist largely of it. The prohibition is on artefacts a runtime could load directly, not on text a generated project will compile.</p>
+<p>Readers MUST reject a cartridge containing an entry matching the prohibited set. A future capability model may relax this; it will be gated behind a <code>requires_features</code> token so that v1.0 readers refuse such cartridges rather than silently ignoring the capability.</p>
+<hr>
+<h2 id="9-integrity">9. Integrity</h2>
+<h3 id="91-hashesjson">9.1 <code>hashes.json</code></h3>
+<pre><code class="lang-json">{
+  &quot;algorithm&quot;: &quot;sha256&quot;,
+  &quot;entries&quot;: {
+    &quot;SQ-INF/manifest.json&quot;: &quot;9f2c…&quot;,
+    &quot;bridge/sdl3_bridge.cpp&quot;: &quot;1a08…&quot;
+  },
+  &quot;content_digest&quot;: &quot;c7b1…&quot;
+}</code></pre>
+<p>Digests are lowercase hex over the <b>uncompressed</b> bytes of each entry.</p>
+<h3 id="92-content-digest">9.2 Content digest</h3>
+<p>The content digest is defined over the complete entry set, excluding only the files that cannot contain their own digest:</p>
+<ol><li>Take every entry except <code>SQ-INF/hashes.json</code> and any entry under <code>SQ-INF/signatures/</code>.</li><li>Sort by entry path, byte-wise ascending over the UTF-8 encoding.</li><li>For each, emit the line <code>&lt;path&gt; LF &lt;hex sha256 of content&gt; LF</code>.</li><li><code>content_digest</code> = SHA-256 over the concatenation of those lines.</li></ol>
+<p>Two consequences matter.</p>
+<p>Because the digest is computed over content and paths rather than over archive bytes, <b>reproducibility is a property of the payload, not of the compressor</b>. Two cartridges built by different zlib versions at different levels have the same content digest. This is the fix for the reproducible-build problem JAR left open, and it avoids the impossible task of specifying deflate output byte-for-byte.</p>
+<p>Because the digest covers the <i>complete</i> set rather than a per-entry list a verifier walks, <b>adding an entry changes the digest</b>. This closes the JAR signing hole where an attacker appends unsigned entries to a signed archive and the verifier, checking only listed entries, reports success.</p>
+<h3 id="93-canonical-writing">9.3 Canonical writing</h3>
+<p>For byte-stable output where a build system wants it, writers SHOULD:</p>
+<ul><li>order entries by the sort of §9.2, with <code>SQ-INF/manifest.json</code> first;</li><li>set every entry timestamp to <code>1980-01-01T00:00:00</code> local-as-UTC, or to a caller-supplied fixed epoch;</li><li>emit no extra fields other than ZIP64 when required;</li><li>emit no directory entries.</li></ul>
+<p>This is a SHOULD. The content digest is the normative identity.</p>
+<hr>
+<h2 id="10-signatures-reserved">10. Signatures (reserved)</h2>
+<p>v1.0 defines the layout and no behaviour.</p>
+<pre><code class="lang-text">SQ-INF/signatures/
+├── &lt;keyid&gt;.ed25519.pub
+└── &lt;keyid&gt;.ed25519.sig</code></pre>
+<p>A future version will define signatures as detached Ed25519 signatures over the <code>content_digest</code> of §9.2 together with a context string. It will not define signatures over "the JSON", because semantically identical JSON is not byte-identical.</p>
+<p>A v1.0 reader MUST ignore this directory and MUST NOT report a cartridge as verified. Signing arrives when a launcher exists that enforces a trust policy, and not before.</p>
+<hr>
+<h2 id="11-targets-and-variants-reserved">11. Targets and variants (reserved)</h2>
+<p>Multi-target support is designed in now and left unimplemented, because JAR demonstrated the cost of retrofitting it.</p>
+<p>Reserved mechanism: target-specific overlays under <code>SQ-INF/targets/&lt;triple&gt;/</code>, mirroring payload paths, applied over the base payload after base resolution.</p>
+<p>Invariant, normative in v1: <b>the base payload MUST be complete and usable on its own.</b> An overlay may replace or add; it may not be required for the cartridge to function. A cartridge that depends on an overlay MUST declare a <code>requires_features</code> token, and none is defined in v1.0, so such a cartridge is non-conforming.</p>
+<p>Target triples use the form <code>&lt;arch&gt;-&lt;os&gt;</code>, for example <code>arm64-android</code>, <code>x86_64-linux</code>, <code>aarch64-linux</code>.</p>
+<hr>
+<h2 id="12-validation-and-conformance">12. Validation and conformance</h2>
+<h3 id="121-validation-order">12.1 Validation order</h3>
+<p>Validation is ordered so that cheap structural rejection precedes any allocation proportional to attacker-controlled input.</p>
+<ol><li>Container — ZIP profile (§3.1), first-entry rule (§3.2).</li><li>Paths — every entry path against §3.3, before any read.</li><li>Limits — §3.4, enforced during read, not after.</li><li>Manifest envelope — well-formed JSON; then, in order, <code>format</code>, <code>format_version</code> and <code>tree</code> (§5.1.1). A reader MUST reject a <code>format_version</code> it does not implement here, before reading any further member, and MUST NOT accept an older version by ignoring fields it lacks. Every member below this point is read on the strength of the manifest claiming a format the reader implements. The remaining envelope members follow.</li><li>Features — <code>requires_features</code> against reader capability.</li><li>Consumers — <code>consumers</code> is an object, its keys are well-formed identities, its values are objects (§5.6). Contents are not inspected. Version 1.0 checked a kind body schema and a single-kind rule here; both are retired with the bodies (§6).</li><li>Payload — prohibited entries absent (§8). Version 1.0 also checked that manifest-declared paths existed, which required knowing which members of a kind body were paths. That check is a consumer's now.</li><li>Integrity — <code>hashes.json</code> if present.</li><li>Compatibility — engine, framework and dependency ranges. Requires a resolution context and is therefore the Package, Kit and Template Services' concern rather than the reader's.</li></ol>
+<p>Steps 1–8 are decidable from the cartridge alone, <b>and decidable without knowing any consumer</b>. That second property is what version 2.0 restored: several 1.0 checks were decidable from the cartridge yet required a consumer's schema to perform, which made them look like container rules while acting as coupling.</p>
+<p>Step 9 is decidable from neither, which is why it belongs to the consuming engine's services.</p>
+<p>Step 4's ordering is normative rather than an optimisation. A reader that defers the version check to a later validation pass parses a foreign manifest to completion against the wrong version's rules, and reports the mismatch only if the caller asks for validation at all — so a cartridge from an unknown format opens successfully and fails somewhere with no reference to the manifest.</p>
+<h3 id="122-conformance-levels">12.2 Conformance levels</h3>
+<ul><li><b>Strict</b> — every MUST enforced. Required for anything entering a generation pipeline or being executed.</li><li><b>Lenient</b> — steps 1–4 enforced; later violations reported as diagnostics. For inspection and authoring tools only. Note that step 4 includes the version check, so lenient conformance does not admit a foreign <code>format_version</code>: there is no mode in which a reader interprets a format it does not implement.</li></ul>
+<p>A reader MUST default to strict and MUST require an explicit caller opt-in for lenient.</p>
+<hr>
+<h2 id="13-error-taxonomy">13. Error taxonomy</h2>
+<p>Cartridge errors map onto the engine error categories of §2.4.8.</p>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Engine category</th><th>Meaning</th></tr></thead><tbody><tr><td><code>cartridge.container_invalid</code></td><td><code>resource_error</code></td><td>Not a conforming ZIP, or profile violation</td></tr><tr><td><code>cartridge.path_unsafe</code></td><td><code>resource_error</code></td><td>§3.3 violation</td></tr><tr><td><code>cartridge.limit_exceeded</code></td><td><code>resource_error</code></td><td>§3.4 violation</td></tr><tr><td><code>cartridge.manifest_missing</code></td><td><code>resource_error</code></td><td>No <code>SQ-INF/manifest.json</code></td></tr><tr><td><code>cartridge.manifest_malformed</code></td><td><code>validation_error</code></td><td>Not valid JSON, or envelope violation</td></tr><tr><td><code>cartridge.format_unsupported</code></td><td><code>compatibility_error</code></td><td>Unknown <code>format_version</code></td></tr><tr><td><code>cartridge.feature_unsupported</code></td><td><code>compatibility_error</code></td><td>Unimplemented <code>requires_features</code> token</td></tr><tr><td><code>cartridge.kind_invalid</code></td><td><code>validation_error</code></td><td>Malformed <code>kind</code> token (§5.2.1). Never raised for an <i>unrecognised</i> kind</td></tr><tr><td><code>cartridge.payload_missing</code></td><td><code>validation_error</code></td><td>Manifest references an absent entry</td></tr><tr><td><code>cartridge.native_code_prohibited</code></td><td><code>validation_error</code></td><td>§8 violation</td></tr><tr><td><code>cartridge.integrity_failed</code></td><td><code>resource_error</code></td><td>Digest mismatch</td></tr></tbody></table></div>
+<p>Every error MUST carry the cartridge <code>id</code> where the manifest parsed successfully, and the offending entry path where one applies. Errors cross the Lua boundary as structured results, never as exceptions (§2.6.12).</p>
+<hr>
+<h2 id="14-implementation-notes">14. Implementation notes</h2>
+<p>These are non-normative and belong to <code>squared-pg</code>'s developer tree.</p>
+<h3 id="141-dependencies">14.1 Dependencies</h3>
+<p>The reader needs a ZIP codec and a JSON parser. Both are already vendored: <b>miniz 3.1.2</b> and <b>yyjson 0.12.0</b>. The ZIP profile of §3.1 was chosen partly because miniz implements exactly Stored and Deflate — the restriction costs nothing and removes a whole class of "which codec do I need" failures on a Termux host. This is the justification required by the project's standard-library-first rule: neither capability is in the C++20 standard library.</p>
+<h3 id="142-standard-library-usage">14.2 Standard library usage</h3>
+<p><code>std::filesystem</code> for exploded-form traversal, <code>std::span</code> over mapped entry bytes, <code>std::expected</code> for the result channel, <code>std::variant</code> for the consumer sections, <code>std::ranges</code> for the sort in §9.2, <code>std::array</code> for digest storage. No manual <code>new</code>/<code>delete</code>; the miniz archive handle is owned by a <code>std::unique_ptr</code> with a custom deleter.</p>
+<h3 id="143-design-patterns">14.3 Design patterns</h3>
+<ul><li><b>Facade</b> — <code>Cartridge</code> presents one interface over miniz, yyjson, path validation and limit accounting. Chosen because callers should never touch <code>mz_zip_archive</code> directly, which is the same reasoning §2.6 applies to <code>lua_State</code>.</li><li><b>Strategy</b> — one validator per kind, selected on the <code>kind</code> field. Chosen over a switch because kinds are open to extension and each validator has independent state. Deviation from textbook form: the strategies are stateless and held as function objects in a static registry rather than as constructed policy objects.</li><li><b>Chain of Responsibility</b> — the §12.1 validation pipeline. Chosen because ordering is normative and each stage must be able to halt the chain. Deviation: stages are a fixed <code>std::array</code>, not a linked list; the order is specified, so runtime reconfiguration is undesirable.</li><li><b>Factory Method</b> — manifest to typed resource descriptor (<code>TemplateDescriptor</code>, <code>KitDescriptor</code>, …) consumed by the corresponding engine service.</li></ul>
+<h3 id="144-type-aliases">14.4 Type aliases</h3>
+<p>Per project convention, these cross a public API boundary or name a domain concept and are aliased:</p>
+<pre><code class="lang-cpp">using CartridgeId      = std::string;   // dotted identity, §5.2
+using EntryPath        = std::string;   // validated per §3.3
+using ContentDigest    = std::array&lt;std::byte, 32&gt;;
+using EntryDigestMap   = std::map&lt;EntryPath, ContentDigest&gt;;
+using CartridgeResult  = std::expected&lt;Cartridge, CartridgeError&gt;;</code></pre>
+<p><code>ContentDigest</code> and <code>EntryPath</code> add information — a validated path is not any old string. <code>EntryDigestMap</code> exceeds the nesting threshold and appears across the integrity API.</p>
+<hr>
+<h2 id="appendix-a--reserved-names">Appendix A — Reserved names</h2>
+<p>Reserved under <code>SQ-INF/</code>: <code>manifest.json</code>, <code>hashes.json</code>, <code>thumbnail.png</code>, <code>icon.png</code>, <code>licenses/</code>, <code>signatures/</code>, <code>targets/</code>.</p>
+<p><b>No kind tokens are reserved.</b> <code>kind</code> is opaque (§5.2.1) and this specification does not enumerate roles. The tokens in use today are listed there as information.</p>
+<p><b>No <code>id</code> prefixes are reserved.</b> Prefix conventions are ecosystem policy (§5.2.2), enforced by consumers if at all. Version 1.0 reserved <code>template.</code>, <code>kit.</code>, <code>package.</code>, <code>asset.</code>, <code>plugin.</code>, <code>squared.</code> and <code>sq.</code>; enforcing them required knowing which prefix belonged to which role.</p>
+<p>Consumer identities are not reserved either, and collisions between them are resolved socially rather than by this document.</p>
+<hr>
+<h2 id="appendix-b--open-decisions">Appendix B — Open decisions</h2>
+<p>Points where a project-level decision is still needed. Each has a provisional answer above, marked here so it is not mistaken for settled.</p>
+<ol><li><b>Reserved directory name.</b> <code>SQ-INF/</code> is used throughout. Alternatives considered: <code>SQUARED-INF/</code> (longer, clearer), <code>.sq/</code> (hidden by convention on Unix, which buys nothing and hurts discoverability).</li><li><b>Single extension.</b> One <code>.sq</code> for all six kinds, role in the manifest. The alternative — <code>.sqt</code>, <code>.sqk</code>, <code>.sqp</code>, <code>.sqcar</code> — is friendlier at a shell prompt but reintroduces the <code>jar</code>/<code>war</code>/<code>ear</code> divergence and invites trust decisions based on filename. If human ergonomics matter more, per-kind extensions can be permitted as <i>aliases</i> with the manifest remaining authoritative.</li><li><b>Whether generator resources ship archived at all.</b> §3.5 makes both forms equivalent, so this becomes a packaging policy rather than a format question. The repository can stay exploded indefinitely.</li><li><b>Where the reader lives.</b> §0.1 argues for a standalone <code>sqcart</code> component vendored by both <code>squared-pg</code> and the Squared framework runtime. The alternative — two independent implementations from this document — is more faithful to the independence requirement but doubles the attack surface for path-safety bugs.</li><li><b>Whether the envelope still keeps too much.</b> *Settled during 2.0 drafting, recorded because the reasoning generalises.* <code>engine</code> and <code>requires_capabilities</code> were kept on the argument that a foreign tool could act on them without knowing whose namespace they named. The data refuted it: <code>engine.id</code> was <code>&quot;squared-pg&quot;</code> in every manifest in existence, and every capability token was in that same namespace. Both moved into <code>consumers</code> (§5.6). The test that settled it is reusable: **if a member's value identifies the consumer it is addressed to, the member belongs inside that consumer's section.** <code>requires_features</code> passes the test — it names what a <i>reader</i> must implement, and readers are what this document defines. <code>presentation</code> and <code>provenance</code> also pass, though <code>provenance</code> is worth revisiting: its <code>generator</code>, <code>template</code> and <code>kits</code> members are squared-pg vocabulary, and it survives only because a foreign tool genuinely can display "made by X version Y" without understanding any of it.</li><li><b>Whether the shared schema is a real loss.</b> Version 1.0's §6 was a contract two independent implementations could be written against, which is the JAR precedent: jar manifests do standardise attributes. Version 2.0 gives that up. Nothing now mechanically enforces that two tools agree on what a <code>squared_pg</code> section contains, and the consuming project's own conformance tests become the only enforcement. This was accepted deliberately; it should not be forgotten.</li><li><b>Whether <code>cartridge</code> belongs in this specification at all.</b> The generator kinds are squared-pg's concern; the runtime application kind is the framework's. They share a container, which is the argument for one document. If the framework's cartridge needs diverge substantially, <code>cartridge</code> could split into a separate specification layered on this container.</li></ol></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

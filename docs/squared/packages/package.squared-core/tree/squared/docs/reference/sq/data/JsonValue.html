@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class JsonValue · squared</title>
+<meta name="description" content="squared: class JsonValue">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/data/JsonValue.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/data/JsonValue.md">on GitHub</a></p><h1 id="class-jsonvalue">class JsonValue</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/data/json_value.cppm#L15">data/json_value.cppm:15</a></i></p>
+<p><b>brief</b> One owned JSON value independent of the parser backend.</p>
+<p>Objects use bytewise UTF-8 key ordering. This makes serialization stable across runs while retaining distinct signed integers, unsigned integers, and floating-point numbers.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/data/json_value.cppm#L37">data/json_value.cppm:37</a></i></p>
+<p><b>brief</b> Default-construct a JSON null value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(Array value)</i></p>
+<p><b>brief</b> Construct a JSON array by moving the vector.</p>
+<p><b>value</b> Array whose storage is moved into the value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(Object value)</i></p>
+<p><b>brief</b> Construct a JSON object by moving the map.</p>
+<p><b>value</b> Object whose storage is moved into the value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(bool value)</i></p>
+<p><b>brief</b> Construct a JSON boolean.</p>
+<p><b>value</b> Boolean to store.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(const char * value)</i></p>
+<p><b>brief</b> Construct a JSON string from a null-terminated value.</p>
+<p><b>value</b> Null-terminated UTF-8 text to copy.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(double value)</i></p>
+<p><b>brief</b> Construct a JSON real number.</p>
+<p><b>value</b> Finite or non-finite double to store; writing a non-finite value yields a JsonError.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(std::int64_t value)</i></p>
+<p><b>brief</b> Construct a JSON signed integer.</p>
+<p><b>value</b> Signed 64-bit integer to store.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(std::nullptr_t )</i></p>
+<p><b>brief</b> Construct a JSON null value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(std::string value)</i></p>
+<p><b>brief</b> Construct a JSON string, copying the value.</p>
+<p><b>value</b> UTF-8 text to copy into the stored value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(std::string_view value)</i></p>
+<p><b>brief</b> Construct a JSON string, copying the view.</p>
+<p><b>value</b> UTF-8 text to copy into the stored value.</p>
+<h3 id="jsonvalue">JsonValue</h3>
+<p><i>public void JsonValue(std::uint64_t value)</i></p>
+<p><b>brief</b> Construct a JSON unsigned integer.</p>
+<p><b>value</b> Unsigned 64-bit integer to store.</p>
+<h3 id="array_if">array_if</h3>
+<p><i>public Array * array_if()</i></p>
+<p><b>brief</b> Return the stored array, or null when the type differs.</p>
+<p><b>return</b> Pointer to the stored array, or null.</p>
+<h3 id="array_if">array_if</h3>
+<p><i>public const Array * array_if()</i></p>
+<p><b>brief</b> Return the stored array, read-only.</p>
+<p><b>return</b> Pointer to the stored array, or null when the type differs.</p>
+<h3 id="boolean_if">boolean_if</h3>
+<p><i>public const bool * boolean_if()</i></p>
+<p><b>brief</b> Return the stored boolean, or null when the type differs.</p>
+<p><b>return</b> Pointer to the stored bool, or null.</p>
+<h3 id="find">find</h3>
+<p><i>public JsonValue * find(std::string_view key)</i></p>
+<p><b>brief</b> Find an object member without allocating a temporary key.</p>
+<p><b>key</b> Member name to look up.</p>
+<p><b>return</b> Pointer to the member value, or null when the value is not an object or the key is absent.</p>
+<h3 id="find">find</h3>
+<p><i>public const JsonValue * find(std::string_view key)</i></p>
+<p><b>brief</b> Find an object member, read-only.</p>
+<p><b>key</b> Member name to look up.</p>
+<p><b>return</b> Pointer to the member value, or null when the value is not an object or the key is absent.</p>
+<h3 id="is_null">is_null</h3>
+<p><i>public bool is_null()</i></p>
+<p><b>brief</b> Return whether this value stores JSON null.</p>
+<p><b>return</b> <code>true</code> when type() is Type::Null.</p>
+<h3 id="object_if">object_if</h3>
+<p><i>public Object * object_if()</i></p>
+<p><b>brief</b> Return the stored object, or null when the type differs.</p>
+<p><b>return</b> Pointer to the stored object, or null.</p>
+<h3 id="object_if">object_if</h3>
+<p><i>public const Object * object_if()</i></p>
+<p><b>brief</b> Return the stored object, read-only.</p>
+<p><b>return</b> Pointer to the stored object, or null when the type differs.</p>
+<h3 id="real_if">real_if</h3>
+<p><i>public const double * real_if()</i></p>
+<p><b>brief</b> Return the stored real number, or null when the type differs.</p>
+<p><b>return</b> Pointer to the stored double, or null.</p>
+<h3 id="signed_integer_if">signed_integer_if</h3>
+<p><i>public const std::int64_t * signed_integer_if()</i></p>
+<p><b>brief</b> Return the stored signed integer, or null when it differs.</p>
+<p><b>return</b> Pointer to the stored std::int64_t, or null.</p>
+<h3 id="string_if">string_if</h3>
+<p><i>public const std::string * string_if()</i></p>
+<p><b>brief</b> Return the stored UTF-8 string, or null when it differs.</p>
+<p><b>return</b> Pointer to the stored std::string, or null.</p>
+<h3 id="type">type</h3>
+<p><i>public Type type()</i></p>
+<p><b>brief</b> Return the exact stored JSON type.</p>
+<p><b>return</b> The Type of the stored value or Type::Null.</p>
+<h3 id="unsigned_integer_if">unsigned_integer_if</h3>
+<p><i>public const std::uint64_t * unsigned_integer_if()</i></p>
+<p><b>brief</b> Return the stored unsigned integer, or null when it differs.</p>
+<p><b>return</b> Pointer to the stored std::uint64_t, or null.</p>
+<h2 id="enums">Enums</h2>
+<p>| enum class Type |</p>
+<p>--</p>
+<p>| Null | | Boolean | | SignedInteger | | UnsignedInteger | | Real | | String | | Array | | Object |</p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/data/json_value.cppm#L25">data/json_value.cppm:25</a></i></p>
+<p><b>brief</b> Exact stored JSON type.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

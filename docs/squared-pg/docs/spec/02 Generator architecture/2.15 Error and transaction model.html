@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.15 Error and transaction model · squared-pg</title>
+<meta name="description" content="squared-pg: 2.15 Error and transaction model">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.15 Error and transaction model.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.15 Error and transaction model.md">on GitHub</a></p><hr>
+<p>section: "2.15" title: Error and transaction model status: review tags: [spec, architecture, errors, transactions]</p>
+<hr>
+<h1 id="215-error-and-transaction-model">2.15 Error and transaction model</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.14 Extensibility model]] · Next: [[2.16 Architectural invariants]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines how failures are detected, classified, and reported, and the transaction mechanics that make "leave the workspace unchanged" a guarantee rather than an intention.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; error structure, categories, codes</li><li>&#9745; recoverable vs fatal</li><li>&#9745; propagation and machine readability</li><li>&#9745; logging vs errors</li><li>&#9745; transaction model and staging strategy</li><li>&#9745; the journal and crash recovery</li><li>&#9745; durability policy</li><li>&#9745; workspace locking</li><li>&#9745; rollback failure</li><li>&#9745; validation before mutation</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="part-1--errors">Part 1 — Errors</h3>
+<h3 id="2151-error-structure">2.15.1 Error structure</h3>
+<blockquote><p>[!note] Resolution of Q-17 (D-017) Two identifier fields: a coarse <code>category</code> for control flow, and a stable dotted <code>code</code> for diagnosis and documentation.</p></blockquote>
+<pre><code class="lang-text">EngineError {
+    category      closed enum, for branching
+    code          stable dotted string, for diagnosis
+    message       human-readable, not for parsing
+    operation     operation identity that failed
+    resource      affected resource identity, when applicable
+    path          affected workspace path, when applicable
+    diagnostics   structured detail
+    recovery      recovery information when available
+}</code></pre>
+<p><code>category</code> is closed so a workflow can exhaustively switch on it. <code>code</code> is open within its category so new specific failures can be added without a breaking change.</p>
+<h3 id="2152-categories">2.15.2 Categories</h3>
+<pre><code class="lang-text">configuration   validation   resource       template
+kit             package      asset          framework
+filesystem      transaction  compatibility  capability
+lifecycle       internal</code></pre>
+<p><code>internal</code> means a defect in the engine. It MUST NOT be used for any failure the user could have caused, because a user cannot act on it.</p>
+<h3 id="2153-codes">2.15.3 Codes</h3>
+<p>Codes are <code>&lt;category&gt;.&lt;subject&gt;.&lt;condition&gt;</code>:</p>
+<pre><code class="lang-text">template.not_found
+template.parameter.missing
+template.parameter.invalid
+kit.integration_point.conflict
+kit.compatibility.template
+package.version.unsatisfiable
+package.dependency.cycle
+package.resolution.exhausted
+asset.integrity
+asset.transform.unavailable
+filesystem.permission
+filesystem.space
+transaction.rollback_failed
+transaction.journal.incomplete
+capability.unsatisfied
+lifecycle.invalid_state</code></pre>
+<p>Every code MUST be documented in <code>docs/programmer/</code>. A code is part of the public contract: workflows branch on codes, so removing or repurposing one is a breaking change.</p>
+<p>Example:</p>
+<pre><code class="lang-text">category:  package
+code:      package.version.unsatisfiable
+operation: package.resolve
+resource:  package.squared.gui
+message:   no version of package.squared.gui satisfies all constraints
+diagnostics:
+  constraints:
+    - &quot;^1.0&quot;  required by template.android.cpp
+    - &quot;&gt;=2.0&quot; required by kit.sdl3
+  considered: [1.4.2, 1.3.0, 1.0.0]</code></pre>
+<p>That diagnostic is actionable. "No compatible version found" is not.</p>
+<h3 id="2154-recoverable-and-fatal">2.15.4 Recoverable and fatal</h3>
+<p><b>Recoverable</b> — the workflow may reasonably continue by choosing differently: missing optional assets, unavailable optional packages, unsupported configuration options, validation failures the user can correct. The engine SHOULD supply enough information to choose an alternative.</p>
+<p><b>Fatal</b> — execution cannot safely continue: corrupted resource metadata, invalid engine state, transaction failure, internal consistency failure. The operation MUST fail, dependent operations MUST NOT execute, the engine MUST remain in a defined state, and cleanup MUST remain possible.</p>
+<p>The engine classifies. Lua decides policy: retry, alternative, report, or abort. The engine MUST NOT enforce user-facing behaviour.</p>
+<h3 id="2155-propagation">2.15.5 Propagation</h3>
+<p>Errors travel through the same result channel as successes ([[2.4 Engine lifecycle]] §2.4.7).</p>
+<p>The engine MUST NOT terminate the host process, report failures only as console output, hide failures behind partial success, or let exceptions cross the Lua boundary. Internal exceptions MUST be converted before crossing; if conversion itself fails, the boundary emits <code>internal</code> with the operation identity attached ([[2.6 Engine-Lua boundary]] §2.6.12).</p>
+<p>Errors MUST be machine-readable. IDE integrations, automation, and build systems MUST be able to determine failure without parsing human output.</p>
+<h3 id="2156-logging-is-not-error-reporting">2.15.6 Logging is not error reporting</h3>
+<p>The engine MAY provide diagnostic logging. Logs are for debugging and troubleshooting. Results and errors are for control flow and automation. Logs MUST NOT replace structured errors, and a workflow MUST NEVER need to read a log to determine what happened.</p>
+<h3 id="part-2--transactions">Part 2 — Transactions</h3>
+<h3 id="2157-validation-before-mutation">2.15.7 Validation before mutation</h3>
+<p>The complete resource set MUST be resolved and cross-validated before the first workspace mutation ([[2.7 Project generation model]] §2.7.9). Most failures should therefore occur before a transaction is ever opened — the transaction system exists for the failures that cannot be predicted, chiefly filesystem ones.</p>
+<h3 id="2158-staging-strategy">2.15.8 Staging strategy</h3>
+<blockquote><p>[!note] Resolution of Q-06 (D-024) The hardest requirement here is Termux/Android, where <code>/tmp</code> is frequently on a different filesystem and cross-device <code>rename(2)</code> fails. <b>Staging therefore always occurs on the target filesystem</b>, so cross-device rename cannot arise.</p></blockquote>
+<p><b>New project generation.</b> Build the entire workspace in a sibling temporary directory, then land it with one rename:</p>
+<pre><code class="lang-text">&lt;parent&gt;/.&lt;name&gt;.squared-tmp/     build here
+        |
+        | rename()
+        v
+&lt;parent&gt;/&lt;name&gt;/                  atomic appearance</code></pre>
+<p>If anything fails, the temporary directory is removed and the target never existed. This is the simple case and MUST be used whenever the target does not yet exist.</p>
+<p><b>Regeneration.</b> The workspace already exists, so a single rename is not available. Stage per file inside the workspace:</p>
+<pre><code class="lang-text">&lt;workspace&gt;/.squared/staging/&lt;txn&gt;/…     new content, same filesystem
+&lt;workspace&gt;/.squared/journal/&lt;txn&gt;.json  the plan of record</code></pre>
+<p>Apply by renaming each staged file into place, recording progress in the journal.</p>
+<p>The engine MUST NOT stage in <code>/tmp</code>, <code>TMPDIR</code>, or any location not known to be on the workspace filesystem.</p>
+<h3 id="2159-the-journal">2.15.9 The journal</h3>
+<p>The journal is a write-ahead record making an interrupted transaction recoverable.</p>
+<pre><code class="lang-json">{
+  &quot;txn&quot;: &quot;01J8…&quot;,
+  &quot;state&quot;: &quot;prepared&quot;,
+  &quot;workspace_metadata_version&quot;: 1,
+  &quot;operations&quot;: [
+    { &quot;op&quot;: &quot;replace&quot;, &quot;path&quot;: &quot;cmake/squared_generated.cmake&quot;,
+      &quot;staged&quot;: &quot;.squared/staging/01J8…/0001&quot;,
+      &quot;backup&quot;: &quot;.squared/staging/01J8…/0001.bak&quot;,
+      &quot;hash_before&quot;: &quot;…&quot;, &quot;hash_after&quot;: &quot;…&quot; },
+    { &quot;op&quot;: &quot;create&quot;,  &quot;path&quot;: &quot;sq_app/src/kit_sdl3.cpp&quot;,
+      &quot;staged&quot;: &quot;.squared/staging/01J8…/0002&quot;, &quot;hash_after&quot;: &quot;…&quot; },
+    { &quot;op&quot;: &quot;delete&quot;,  &quot;path&quot;: &quot;cmake/kit_sfml.cmake&quot;,
+      &quot;backup&quot;: &quot;.squared/staging/01J8…/0003.bak&quot;, &quot;hash_before&quot;: &quot;…&quot; }
+  ]
+}</code></pre>
+<p>States:</p>
+<pre><code class="lang-text">prepared  -&gt; committing -&gt; committed -&gt; (journal removed)
+    |            |
+    |            +--&gt; rolling_back -&gt; rolled_back -&gt; (journal removed)
+    +--&gt; rolling_back</code></pre>
+<p>Protocol:</p>
+<ol><li>Write every staged file. Write the journal in <code>prepared</code>. Flush the journal and its directory.</li><li>Transition to <code>committing</code> and flush.</li><li>Apply each operation in journal order, renaming staged content into place and moving replaced content to its backup path first.</li><li>Transition to <code>committed</code> and flush.</li><li>Remove staging and the journal.</li></ol>
+<p>A file that is replaced MUST have its previous content moved to a backup path before the new content lands, so rollback never depends on regenerating anything.</p>
+<h3 id="21510-crash-recovery">2.15.10 Crash recovery</h3>
+<p>On opening a workspace the engine MUST check for a journal. If one exists, the workspace is in an indeterminate state and the engine MUST NOT begin a new transaction.</p>
+<div class="tablewrap"><table><thead><tr><th>Journal state</th><th>Meaning</th><th>Action</th></tr></thead><tbody><tr><td><code>prepared</code></td><td>nothing applied</td><td>roll back: discard staging</td></tr><tr><td><code>committing</code></td><td>partially applied</td><td>resolvable either way; default is roll back using backups</td></tr><tr><td><code>committed</code></td><td>fully applied</td><td>complete cleanup: remove staging and journal</td></tr><tr><td><code>rolling_back</code></td><td>rollback interrupted</td><td>resume rollback</td></tr></tbody></table></div>
+<p>Recovery MUST be idempotent — interrupting recovery and re-running it MUST reach the same state.</p>
+<p>The engine MUST report the recovery to the caller as a diagnostic rather than performing it silently. A user whose generation was killed deserves to know their workspace was repaired.</p>
+<p>Recovery MUST NOT run automatically as a side effect of an unrelated operation unless the caller requested it; it is an explicit operation with an explicit result.</p>
+<h3 id="21511-durability-policy">2.15.11 Durability policy</h3>
+<p>Two modes, because Termux and a CI machine want different tradeoffs:</p>
+<div class="tablewrap"><table><thead><tr><th>Mode</th><th>Behaviour</th></tr></thead><tbody><tr><td><code>durable</code> (default)</td><td>fsync staged content before rename; fsync the journal and its directory at each state transition</td></tr><tr><td><code>fast</code></td><td>fsync only the journal state transitions</td></tr></tbody></table></div>
+<p><code>fast</code> remains crash-<i>consistent</i> — the journal still describes what happened — but may lose recently written content on power loss. It MUST be opt-in and MUST be recorded in the operation result so the caller knows which was used.</p>
+<h3 id="21512-workspace-locking">2.15.12 Workspace locking</h3>
+<blockquote><p>[!note] Related to Q-15 (D-015)</p></blockquote>
+<p>Exactly one writer per workspace.</p>
+<p><code>&lt;workspace&gt;/.squared/lock</code> holds the process id, a start timestamp, and a generator version. Acquisition is exclusive; the lock is released at shutdown, including failure shutdown.</p>
+<p>A stale lock — the recorded process no longer exists — MAY be broken, and the break MUST be reported. A lock held by a live process MUST NOT be broken; the operation fails with <code>transaction.locked</code>.</p>
+<p>Read-only operations, including producing a plan, do not require the lock.</p>
+<h3 id="21513-rollback-failure">2.15.13 Rollback failure</h3>
+<p>Rollback can itself fail, typically on permission or space exhaustion. There must be a defined terminal state rather than undefined behaviour.</p>
+<p>On rollback failure the engine MUST:</p>
+<ul><li>mark the journal <code>damaged</code> with the failing operation recorded;</li><li>fail with <code>transaction.rollback_failed</code>;</li><li>refuse further mutating operations on that workspace until the journal is resolved;</li><li>leave the journal, staging content, and backups in place, since they are the only route to manual repair.</li></ul>
+<p>The engine MUST provide an operation to inspect a damaged journal and report what was and was not applied. It MUST NOT silently delete a damaged journal — that would destroy the user's only recovery information.</p>
+<h3 id="21514-transaction-invariants">2.15.14 Transaction invariants</h3>
+<ul><li>No workspace mutation occurs outside a transaction.</li><li>Every replaced or deleted path has a backup before the change lands.</li><li>A failed transaction leaves the workspace unchanged or restored.</li><li>An interrupted transaction is detectable and resolvable on next open.</li><li>Recovery is idempotent.</li><li>One writer per workspace.</li><li>The engine never leaves the workspace in a state its metadata does not describe.</li><li>Staging never crosses a filesystem boundary.</li></ul>
+<h2 id="open-questions">Open questions</h2>
+<ul><li><b>Q-24</b> — metadata format migration. <code>.squared/</code> is versioned, but there is no rule for a newer generator opening an older record. Proposal: readers are forward-compatible within a major version and refuse-and-report across one.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.4 Engine lifecycle]] · [[2.7 Project generation model]] · [[2.6 Engine-Lua boundary]] · [[2.3 Generation pipeline]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

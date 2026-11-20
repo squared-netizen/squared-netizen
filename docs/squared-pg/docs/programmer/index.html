@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Programmer documentation · squared-pg</title>
+<meta name="description" content="squared-pg: Programmer documentation">
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
+  <a href="../../../../docs/index.html">Docs</a>
+  <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared-pg</a> · <code>docs/programmer/README.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/README.md">on GitHub</a></p><h1 id="programmer-documentation">Programmer documentation</h1>
+<p>For people <b>using</b> squared-pg: calling its APIs, writing workflows, authoring templates and kits.</p>
+<p>Nothing here describes how the engine works internally. That is <a href="../developer/index.html"><code>docs/developer/</code></a>, and each page below links to its counterpart there.</p>
+<h2 id="pages">Pages</h2>
+<h3 id="engine">Engine</h3>
+<ul><li><a href="engine/control-surface.html">Control surface</a> — the <code>Engine</code> class, lifecycle, and how to call an operation</li><li><a href="engine/operations.html">Operations</a> — every registered operation, its parameters and its result</li><li><a href="engine/errors.html">Errors</a> — categories, codes, and how to branch on them</li><li><a href="engine/values.html">Values</a> — the data types that cross the boundary</li><li><a href="engine/capabilities.html">Capabilities</a> — what a manifest may require</li></ul>
+<h3 id="lua">Lua</h3>
+<ul><li><a href="lua/workflows.html">Writing a workflow</a> — the <code>engine</code> and <code>sqpg</code> tables, discovery, trust</li><li><a href="lua/cli.html">The CLI</a> — <code>sqpg</code> commands and options</li></ul>
+<h3 id="resources">Resources</h3>
+<ul><li><a href="resources/android.html">Android projects</a> — the NDK workspace and its rendering kits</li><li><a href="resources/termux.html">Termux projects</a> — Termux:API through <code>kit.termux</code></li><li><a href="resources/templates.html">Authoring a template</a></li><li><a href="resources/kits.html">Authoring a kit</a></li><li><a href="resources/manifests.html">Manifest reference</a></li></ul>
+<h3 id="teaching-workspace">Teaching workspace</h3>
+<ul><li><a href="templates/template.term.edu.cpp.html">template.term.edu.cpp</a> — the simplest template: one program and a self-explaining Makefile</li><li><a href="kits/kit.edu_cpp.html">kit.edu_cpp</a> — optional C++ lessons for that template</li></ul>
+<h3 id="kits">Kits</h3>
+<ul><li><a href="kits/kit.terminal.html">kit.terminal</a> — simple terminal utilities: console I/O, regex helpers, FileHandle</li></ul>
+<h2 id="two-minute-version">Two-minute version</h2>
+<pre><code class="lang-cpp">#include &lt;squared/pg/engine.hpp&gt;
+
+squared::pg::EngineConfig config;
+config.resource_roots.emplace_back(&quot;resources/templates&quot;);
+config.resource_roots.emplace_back(&quot;resources/kits&quot;);
+
+auto engine = squared::pg::Engine::create(std::move(config));
+if (!engine-&gt;initialize().succeeded()) { /* report and stop */ }
+
+squared::pg::Value request = squared::pg::Value::object();
+request.set(&quot;name&quot;, &quot;hello&quot;);
+request.set(&quot;output&quot;, &quot;./hello&quot;);
+request.set(&quot;template&quot;, &quot;template.terminal.cpp&quot;);
+request.set(&quot;kits&quot;, squared::pg::Value::strings({&quot;kit.terminal&quot;}));
+
+const auto result = engine-&gt;execute(&quot;project.generate&quot;, request);
+if (!result.succeeded()) { /* result.errors() tells you why */ }
+
+(void)engine-&gt;shutdown();</code></pre>
+<p>The same thing from Lua:</p>
+<pre><code class="lang-lua">local result = engine.project.generate({
+  name = &quot;hello&quot;,
+  output = &quot;./hello&quot;,
+  [&quot;template&quot;] = &quot;template.terminal.cpp&quot;,
+  kits = { &quot;kit.terminal&quot; },
+})
+if not result.ok then print(result.error.code, result.error.message) end</code></pre>
+<p>And from a shell:</p>
+<pre><code class="lang-sh">sqpg new hello --template template.terminal.cpp --kit kit.terminal</code></pre>
+<p>All three go through the same operation registry entry.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

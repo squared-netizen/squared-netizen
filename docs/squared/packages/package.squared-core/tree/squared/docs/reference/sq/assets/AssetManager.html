@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class AssetManager · squared</title>
+<meta name="description" content="squared: class AssetManager">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/assets/AssetManager.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/assets/AssetManager.md">on GitHub</a></p><h1 id="class-assetmanager">class AssetManager</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L32">assets/asset_manager.cppm:32</a></i></p>
+<p><b>brief</b> Typed asset cache over one file system.</p>
+<p>One place to ask for an asset: the manager loads it once, hands out shared immutable references, records what each asset pulled in, and drops the lot on unload. It knows nothing about graphics, GUI, or any other subsystem; consumers register a loader per type.</p>
+<p>It is a cache, not an allocator. Subsystems still own their own memory; this owns loaded asset bytes and the handles to them, bounded by AssetManagerOptions.</p>
+<p>Not thread-safe. The file system is referenced, not owned, and must outlive the manager.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="assetmanager">AssetManager</h3>
+<p><i>public void AssetManager(AssetManager &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L45">assets/asset_manager.cppm:45</a></i></p>
+<h3 id="assetmanager">AssetManager</h3>
+<p><i>public void AssetManager(const AssetManager &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L43">assets/asset_manager.cppm:43</a></i></p>
+<h3 id="assetmanager">AssetManager</h3>
+<p><i>public void AssetManager(files::FileSystem &amp; file_system, AssetManagerOptions options)</i></p>
+<p><b>brief</b> Bind a manager to a file system that outlives it.</p>
+<p><b>file_system</b> Byte source for every load.</p>
+<p><b>options</b> Limits; every field is a positive-value precondition.</p>
+<h3 id="cached_count">cached_count</h3>
+<p><i>public std::size_t cached_count()</i></p>
+<p><b>brief</b> Return the number of cached assets across all types.</p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear()</i></p>
+<p><b>brief</b> Drop every cached asset. Registered loaders are kept.</p>
+<h3 id="contains">contains</h3>
+<p><i>public bool contains(std::string_view path)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L186">assets/asset_manager.cppm:186</a></i></p>
+<p><b>brief</b> Report whether one asset is currently cached.</p>
+<h3 id="load">load</h3>
+<p><i>public AssetLoadResult&lt;T&gt; load(std::string_view path)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L156">assets/asset_manager.cppm:156</a></i></p>
+<p><b>brief</b> Load one asset, or return the cached copy.</p>
+<p><b>T</b> Asset value type with a registered loader.</p>
+<p><b>path</b> Path relative to the file system's root.</p>
+<p><b>return</b> The asset, or the failure that prevented it.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public AssetManager &amp; operator=(AssetManager &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L46">assets/asset_manager.cppm:46</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public AssetManager &amp; operator=(const AssetManager &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L44">assets/asset_manager.cppm:44</a></i></p>
+<h3 id="options">options</h3>
+<p><i>public const AssetManagerOptions &amp; options()</i></p>
+<p><b>brief</b> Return the limits this manager was constructed with.</p>
+<h3 id="register_loader">register_loader</h3>
+<p><i>public AssetError register_loader(AssetLoader&lt;T&gt; loader)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L129">assets/asset_manager.cppm:129</a></i></p>
+<p><b>brief</b> Register the loader for one asset type.</p>
+<p><b>T</b> Asset value type; each type accepts one loader.</p>
+<p><b>loader</b> Non-empty callback, invoked on the calling thread.</p>
+<p><b>return</b> A no-error AssetError, LoaderAlreadyRegistered, or InvalidArgument for an empty callback.</p>
+<h3 id="reload">reload</h3>
+<p><i>public AssetLoadResult&lt;T&gt; reload(std::string_view path)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L168">assets/asset_manager.cppm:168</a></i></p>
+<p><b>brief</b> Reload one asset from its source, replacing the cached copy.</p>
+<p><b>T</b> Asset value type with a registered loader.</p>
+<p><b>path</b> Path relative to the file system's root.</p>
+<p><b>return</b> The reloaded asset, or the failure that prevented it.</p>
+<p><b>note</b> References already handed out keep pointing at the old asset. That is what makes reload safe to call while a frame is in flight.</p>
+<h3 id="unload">unload</h3>
+<p><i>public AssetError unload(std::string_view path)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/assets/asset_manager.cppm#L180">assets/asset_manager.cppm:180</a></i></p>
+<p><b>brief</b> Drop one cached asset and the dependency edges it recorded.</p>
+<p><b>T</b> Asset value type.</p>
+<p><b>path</b> Path relative to the file system's root.</p>
+<p><b>return</b> A no-error AssetError, or NotLoaded when nothing was cached.</p>
+<p><b>note</b> Dependencies are dropped from the cache too, but any still held by another asset or by the caller stay alive through their handles.</p>
+<h3 id="assetmanager">~AssetManager</h3>
+<p><i>public void ~AssetManager()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

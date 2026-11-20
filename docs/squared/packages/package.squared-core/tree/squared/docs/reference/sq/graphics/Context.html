@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Context · squared</title>
+<meta name="description" content="squared: class Context">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Context.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Context.md">on GitHub</a></p><h1 id="class-context">class Context</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L17">graphics/context.cppm:17</a></i></p>
+<p><b>brief</b> Own the native window and rendering context selected at link time.</p>
+<p>The generated platform layer owns this object. Application rendering code receives higher-level graphics objects and does not present the window directly.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="context">Context</h3>
+<p><i>public void Context()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L20">graphics/context.cppm:20</a></i></p>
+<h3 id="context">Context</h3>
+<p><i>public void Context(Context &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L23">graphics/context.cppm:23</a></i></p>
+<h3 id="context">Context</h3>
+<p><i>public void Context(const Context &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L21">graphics/context.cppm:21</a></i></p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear(Color color)</i></p>
+<p><b>brief</b> Clear the active color buffer.</p>
+<p><b>color</b> Fill color for the clear.</p>
+<h3 id="create">create</h3>
+<p><i>public bool create(const ContextConfig &amp; config)</i></p>
+<p><b>brief</b> Adopt or create a window and make its rendering context current.</p>
+<p><b>config</b> Native window handle, or the size and title for a backend that creates its own.</p>
+<p><b>return</b> <code>true</code> when the window and context are ready.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Destroy the context and window.</p>
+<h3 id="generation">generation</h3>
+<p><i>public std::uint64_t generation()</i></p>
+<p><b>brief</b> Monotonic identity of the current native rendering context.</p>
+<p><b>return</b> Generation counter advanced by every successful activation.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Context &amp; operator=(Context &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L24">graphics/context.cppm:24</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Context &amp; operator=(const Context &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/context.cppm#L22">graphics/context.cppm:22</a></i></p>
+<h3 id="pixel_height">pixel_height</h3>
+<p><i>public int pixel_height()</i></p>
+<p><b>brief</b> Return the current framebuffer height in pixels.</p>
+<p><b>return</b> Physical pixel height of the active drawable.</p>
+<h3 id="pixel_width">pixel_width</h3>
+<p><i>public int pixel_width()</i></p>
+<p><b>brief</b> Return the current framebuffer width in pixels.</p>
+<p><b>return</b> Physical pixel width of the active drawable.</p>
+<h3 id="present">present</h3>
+<p><i>public bool present()</i></p>
+<p><b>brief</b> Present the completed frame.</p>
+<p><b>return</b> <code>false</code> when the surface was lost and the frame did not reach the display. Stop drawing and wait for the platform layer to resume; <code>generation()</code> tells you whether GPU objects have to be rebuilt.</p>
+<p><b>note</b> The return value is the only notice some devices give that the surface has gone, which is why it is [[nodiscard]]. Discarding it shows up as an application frozen on its last frame after a phone call.</p>
+<h3 id="refresh_viewport">refresh_viewport</h3>
+<p><i>public void refresh_viewport()</i></p>
+<p><b>brief</b> Refresh drawable dimensions and the backend viewport.</p>
+<h3 id="resources_preserved">resources_preserved</h3>
+<p><i>public bool resources_preserved()</i></p>
+<p><b>brief</b> Return whether the GPU objects an application owns are still valid.</p>
+<p><b>return</b> <code>false</code> only when objects that existed before have been lost and must be rebuilt.</p>
+<p><b>note</b> This answers the question a caller actually asks - "do I need to rebuild?" - rather than "did a resume preserve anything". The two differ exactly once, at the first <code>create()</code>: there was no previous context, so nothing was lost, and this returns <code>true</code>. Reporting <code>false</code> there made every application reload its assets before drawing its first frame.</p>
+<h3 id="resume">resume</h3>
+<p><i>public bool resume()</i></p>
+<p><b>brief</b> Create a new rendering context for the retained window.</p>
+<p>A successful restoration advances <code>generation()</code>. Applications then receive <code>surface_created()</code> and restore their GPU objects.</p>
+<p><b>return</b> <code>true</code> when a usable context was activated.</p>
+<h3 id="set_native_window">set_native_window</h3>
+<p><i>public void set_native_window(void * native_window)</i></p>
+<p><b>brief</b> Adopt a new native window before the next resume().</p>
+<p><b>native_window</b> Handle the platform layer received, or null.</p>
+<p><b>note</b> Android destroys the window on backgrounding and hands back a different one, so suspend() and resume() are not enough on their own: the platform layer calls this between them. A backend with no such concept ignores it.</p>
+<h3 id="suspend">suspend</h3>
+<p><i>public void suspend()</i></p>
+<p><b>brief</b> Release the native rendering context while retaining the window.</p>
+<p>Callers may release GPU objects before this call while the context is current. On Android this is driven by the platform layer losing the surface, not by application code.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Return whether a usable context exists.</p>
+<p><b>return</b> <code>true</code> after <code>create()</code> or a successful <code>resume()</code>.</p>
+<h3 id="context">~Context</h3>
+<p><i>public void ~Context()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.12 Generated-project boundary · squared-pg</title>
+<meta name="description" content="squared-pg: 2.12 Generated-project boundary">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.12 Generated-project boundary.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.12 Generated-project boundary.md">on GitHub</a></p><hr>
+<p>section: "2.12" title: Generated-project boundary status: review tags: [spec, architecture, boundary, ownership, invariant]</p>
+<hr>
+<h1 id="212-generated-project-boundary">2.12 Generated-project boundary</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.11 Packages]] · Next: [[2.13 Dependency graph]]</p></blockquote>
+<blockquote><p>[!note] Scope (D-006a) This section states the <b>guarantee</b>. The <b>mechanism</b> — ownership classes, provenance, conflict detection, ownership transfer — is [[2.7 Project generation model]] §2.7.10 and §2.7.12 and is not restated here. Keeping the guarantee separate from the mechanism means it can be checked without reading the generation model.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>States, in checkable terms, what a generated project may never contain and may never require. This is the promise <code>squared-pg</code> makes to every project it creates.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; the independence guarantee</li><li>&#9745; the leakage prohibition</li><li>&#9745; the preservation guarantee</li><li>&#9745; the reproducibility guarantee</li><li>&#9745; what the generator retains</li><li>&#9745; how the guarantee is verified</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="2121-independence-guarantee">2.12.1 Independence guarantee</h3>
+<p>A generated project MUST NOT require <code>squared-pg</code> to be present in order to:</p>
+<ul><li>build;</li><li>run;</li><li>test;</li><li>version control;</li><li>relocate to another path, machine, or filesystem;</li><li>share or distribute.</li></ul>
+<p>Deleting <code>squared-pg</code> entirely, or deleting the workspace's <code>.squared/</code> metadata, MUST leave a fully working project. The only capability lost is the optional regeneration and update workflow.</p>
+<p>The generated project depends on the Squared framework. It MUST NOT depend on the generator that created it.</p>
+<pre><code class="lang-text">squared-pg  --generates--&gt;  Generated Project  --consumes--&gt;  Squared Framework</code></pre>
+<p><code>squared-pg</code> creates the relationship. It is not part of it.</p>
+<h3 id="2122-leakage-prohibition">2.12.2 Leakage prohibition</h3>
+<p>A generated project MUST NOT contain:</p>
+<ul><li>generator implementation source;</li><li>generator service interfaces, headers, or symbols;</li><li>references to the generator repository layout;</li><li>generator-internal identifiers in build configuration;</li><li>absolute paths to the generator installation;</li><li>machine-specific paths of any kind;</li><li>resources from <code>resources/generator/</code>;</li><li>generator-internal state, handles, or temporary artifacts.</li></ul>
+<p>A generated project MAY contain generator-<b>authored</b> files. It MUST NOT contain generator-<b>coupled</b> files. The distinction: an authored file works after the generator is deleted; a coupled file does not.</p>
+<h3 id="2123-preservation-guarantee">2.12.3 Preservation guarantee</h3>
+<p>The generator MUST NOT destroy user work.</p>
+<ul><li>A file the user authored is never overwritten.</li><li>A file the generator seeded and the user then modified is never overwritten without explicit, per-operation authorization.</li><li>A path the generator did not create is never deleted.</li><li>Any operation that would violate the above is reported as a conflict and requires explicit action.</li></ul>
+<p>A blanket override mode MAY exist. It MUST be explicit, MUST NOT be the default, and MUST report every path it overwrites.</p>
+<h3 id="2124-reproducibility-guarantee">2.12.4 Reproducibility guarantee</h3>
+<p>Given the recorded generation configuration and the same resource versions, the generator MUST resolve the same resource set and SHOULD produce byte-identical output where no timestamp- or ordering-sensitive content is involved ([[Spec conventions]]).</p>
+<p>The workspace records what produced it, so this is checkable rather than assumed.</p>
+<h3 id="2125-what-the-generator-retains">2.12.5 What the generator retains</h3>
+<p>After finalization the generator retains <b>nothing</b>: no lock, no handle, no reference, no background state, no requirement to be run again.</p>
+<p>The workspace metadata record is generator-<i>written</i> but user-<i>owned</i>. The user may delete it, edit it, or commit it to version control.</p>
+<h3 id="2126-verification">2.12.6 Verification</h3>
+<p>The guarantee is testable and SHOULD be tested. A conformance check for a generated project:</p>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>Method</th></tr></thead><tbody><tr><td>Independence</td><td>build the project with the generator absent from the machine</td></tr><tr><td>Leakage</td><td>grep the workspace for the generator install path, repository paths, and internal symbol prefixes</td></tr><tr><td>Relocatability</td><td>move the workspace to a different path and rebuild</td></tr><tr><td>Metadata optionality</td><td>delete <code>.squared/</code> and rebuild</td></tr><tr><td>Preservation</td><td>modify a seeded file, regenerate, assert the modification survives</td></tr><tr><td>Reproducibility</td><td>generate twice from the same configuration and diff the resolved set</td></tr></tbody></table></div>
+<p>These checks belong in the generator's own test suite. An untested guarantee is a claim (see [[2.16 Architectural invariants]]).</p>
+<h2 id="related">Related</h2>
+<ul><li>[[2.7 Project generation model]] · [[1.11 Dependency direction]] · [[2.13 Dependency graph]] · [[2.16 Architectural invariants]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

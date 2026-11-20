@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Writing a workflow · squared-pg</title>
+<meta name="description" content="squared-pg: Writing a workflow">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/lua/workflows.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/lua/workflows.md">on GitHub</a></p><h1 id="writing-a-workflow">Writing a workflow</h1>
+<p>Developer counterpart: <a href="../../developer/lua/binding.html">binding layer</a>.</p>
+<p>A workflow is a directory with a <code>workflow.json</code> and an entry script. It decides which template is selected, which kits are applied, in what order the engine is called, and what to do when a call fails. The engine decides none of that.</p>
+<h2 id="discovery">Discovery</h2>
+<p>Searched in order:</p>
+<pre><code class="lang-text">1. repository     lua/workflows/
+2. user config    $XDG_CONFIG_HOME/squared-pg/workflows/</code></pre>
+<p>Run one with <code>sqpg --workflow &lt;id&gt;</code>. To customise the default, copy <code>lua/workflows/workflow.generate.default/</code> into your config directory, change it, and run it by id. No rebuild.</p>
+<h2 id="workflowjson"><code>workflow.json</code></h2>
+<pre><code class="lang-json">{
+  &quot;schema_version&quot;: 1,
+  &quot;id&quot;: &quot;workflow.generate.default&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;entry&quot;: &quot;init.lua&quot;,
+  &quot;requires_engine&quot;: &quot;^0.1&quot;,
+  &quot;requires_capabilities&quot;: [&quot;capability.project.generate@^1.0&quot;],
+  &quot;trust&quot;: &quot;trusted&quot;
+}</code></pre>
+<p><code>trust</code> is a <i>request</i>. The host assigns the tier and may refuse.</p>
+<p><b><code>sandboxed</code> is currently refused.</b> Enforcing it means constructing a restricted <code>_ENV</code> — no <code>io</code>, no <code>os.execute</code>, no <code>loadfile</code>, no <code>package</code> — and giving the workflow a host-provided I/O channel instead of the standard library's. None of that exists yet, so <code>sqpg</code> declines to run a workflow that asks for the tier rather than granting it more than it requested. A tier that is declared but silently unenforced is worse than none.</p>
+<p>Declare <code>trusted</code> for now. Tracked as Q-26.</p>
+<h2 id="what-the-host-gives-you">What the host gives you</h2>
+<h3 id="engine"><code>engine</code></h3>
+<pre><code class="lang-lua">engine.execute{ operation = &quot;project.generate&quot;, parameters = config }
+engine.project.generate(config)              -- sugar; same registry entry
+engine.template.resolve(&quot;template.terminal.cpp&quot;)  -- a lone string binds to the
+                                                -- first required parameter
+engine.state()        -- &quot;ready&quot;
+engine.version()      -- &quot;0.1.0&quot;
+engine.api_version    -- boundary contract version
+engine.capabilities   -- array of { token, version, summary }</code></pre>
+<p>The call surface is generated from the operation registry, so it always matches what the engine actually implements. <code>engine.operations()</code> enumerates it.</p>
+<h3 id="sqpg"><code>sqpg</code></h3>
+<pre><code class="lang-lua">sqpg.args           -- argv after the program name, unparsed
+sqpg.program        -- argv[0]
+sqpg.workflow_id
+sqpg.workflow_path
+sqpg.cwd</code></pre>
+<p>Host information, not engine information. Parsing <code>sqpg.args</code> is your job — that is the point.</p>
+<h2 id="results">Results</h2>
+<pre><code class="lang-lua">local result = engine.project.plan(config)
+
+result.ok            -- boolean
+result.status        -- &quot;success&quot; | &quot;warning&quot; | &quot;failure&quot; | &quot;cancelled&quot;
+result.data          -- operation-specific payload
+result.warnings      -- always check these, even on success
+result.diagnostics
+result.errors        -- array
+result.error         -- alias for errors[1]</code></pre>
+<p>Branch on <code>result.error.code</code> or <code>result.error.category</code>. Never on <code>result.error.message</code> — its wording is not part of the contract.</p>
+<h2 id="rules">Rules</h2>
+<ul><li><b>Never reimplement an engine capability.</b> Filesystem management, template processing, resolution, transactions and validation are engine services. If one is missing, that is an engine gap to raise.</li><li><b>Never address a resource by path.</b> Resources are identities. A workflow that knows where <code>resources/templates/</code> lives has coupled itself to repository layout.</li><li><b>User-space I/O only.</b> Read the config files and streams the user pointed you at; write to stdout and stderr. Do not read generator-owned resources or write into a workspace directly — the engine owns both.</li><li><b>Document your precedence.</b> If you combine sources, say which wins.</li></ul>
+<h2 id="shared-modules">Shared modules</h2>
+<pre><code class="lang-lua">local args   = require(&quot;squaredpg.args&quot;)    -- parsing, config loading, merging
+local report = require(&quot;squaredpg.report&quot;)  -- output, errors, JSON, plan rendering</code></pre>
+<h2 id="smallest-useful-workflow">Smallest useful workflow</h2>
+<pre><code class="lang-lua">local report = require(&quot;squaredpg.report&quot;)
+
+local name = sqpg.args[1]
+if name == nil then
+  report.err(&quot;usage: sqpg --workflow workflow.mine &lt;name&gt;&quot;)
+  return 2
+end
+
+local result = engine.project.generate({
+  name = name,
+  output = &quot;./&quot; .. name,
+  [&quot;template&quot;] = &quot;template.terminal.cpp&quot;,
+  kits = { &quot;kit.terminal&quot; },
+})
+
+if not result.ok then
+  report.failure(result)
+  return 1
+end
+
+report.out(&quot;created &quot; .. result.data.workspace)
+return 0</code></pre>
+<p>Note <code>[&quot;template&quot;]</code> — <code>template</code> is not a Lua keyword, but writing it bracketed keeps it visually distinct from the many other places the word appears.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

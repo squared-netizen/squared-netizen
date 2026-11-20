@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.14 Extensibility model · squared-pg</title>
+<meta name="description" content="squared-pg: 2.14 Extensibility model">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.14 Extensibility model.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.14 Extensibility model.md">on GitHub</a></p><hr>
+<p>section: "2.14" title: Extensibility model status: review tags: [spec, architecture, extensibility, capabilities]</p>
+<hr>
+<h1 id="214-extensibility-model">2.14 Extensibility model</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.13 Dependency graph]] · Next: [[2.15 Error and transaction model]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines how <code>squared-pg</code> is extended without modifying core generator code — the mechanism behind the vision's requirement that the Lua layer remain programmable after release, and that the generator be embeddable in other tools.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; engine capability tokens</li><li>&#9745; extension services</li><li>&#9745; Lua workflows: discovery and loading</li><li>&#9745; Lua trust model and sandboxing</li><li>&#9745; custom resources</li><li>&#9745; compatibility and versioning</li><li>&#9745; what an extension may never do</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="2141-engine-capability-tokens">2.14.1 Engine capability tokens</h3>
+<blockquote><p>[!note] Resolution of Q-05 (D-023), amended by D-053 This is the registry that gives a resource's capability requirements meaning. The original note said four <i>manifest types</i> declare <code>requires_capabilities</code> as a cartridge envelope field; that stopped being true when cartridge format 2.0 trimmed the envelope. See §2.14.1.1.</p></blockquote>
+<p>A <b>capability token</b> is a named, versioned engine feature.</p>
+<pre><code class="lang-text">capability.template.substitute@1.0
+capability.archive.zip@1.0
+capability.asset.transform.texture.compress.etc2@1.0
+capability.build.emit.cmake@1.2
+capability.build.emit.gradle@1.0</code></pre>
+<p>Rules:</p>
+<ul><li>Tokens follow the identifier grammar of [[2.8 Templates]] §2.8.1 with the type <code>capability</code>, and are versioned as SemVer.</li><li>The capability set is compiled into the engine and MUST be enumerable through the control surface.</li><li>Extensions MAY register additional tokens at initialization; they MUST NOT redefine an existing one.</li><li>A resource declaring capability requirements is satisfied when every token is present at a version satisfying its constraint.</li><li>Unsatisfied requirements MUST fail at <b>resolution</b>, never at materialization. The workflow must learn it cannot proceed before anything is written.</li></ul>
+<h4 id="21411-how-a-resource-demands-a-capability">2.14.1.1 How a resource demands a capability</h4>
+<p>A resource declares its requirements in its own consumer section (§2.8.6, §2.9.2):</p>
+<pre><code class="lang-json">&quot;consumers&quot;: {
+  &quot;squared_pg&quot;: {
+    &quot;requires&quot;: { &quot;capabilities&quot;: [&quot;capability.project.plan@^1.0&quot;] }
+  }
+}</code></pre>
+<p>Each entry is <code>name</code> or <code>name@range</code>. A bare name is satisfied by any version.</p>
+<p><b>Nothing validates the token's grammar before the engine sees it.</b> Cartridge format 2.0 carries the consumer section as opaque text (§5.6), so a malformed token arrives here rather than being refused at open. That is correct: this engine owns the <code>capability.</code> namespace and is the only party that can say which capability is missing and what provides it. A container reader could only ever have said that a string it did not understand looked wrong.</p>
+<h4 id="21412-requires_features-is-a-different-thing">2.14.1.2 <code>requires_features</code> is a different thing</h4>
+<p>The cartridge envelope retains <code>requires_features</code>, and the contrast is the reason it does:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Guards</th><th>Declared in</th><th>Fails</th></tr></thead><tbody><tr><td><code>requires_features</code></td><td>the <b>reader</b></td><td>the cartridge envelope</td><td>at <code>open()</code>, before anything else</td></tr><tr><td><code>requires.capabilities</code></td><td>the <b>consumer</b></td><td>the consumer section</td><td>at resolution</td></tr></tbody></table></div>
+<p>A cartridge whose <i>reader</i> is too old cannot be opened at all — it may use a compression method or a signature scheme the reader does not implement, and only the container format can define what a reader must provide.</p>
+<p>A cartridge whose <i>consumer</i> is too old opens perfectly well and must be refused later, by that consumer, for reasons the container format has no opinion about.</p>
+<p>Stated as a rule: <b>a newer <code>sqcart</code> satisfies <code>requires_features</code>; a newer generator satisfies <code>requires.capabilities</code>.</b> They are not alternatives and a resource may need both.</p>
+<p>Capability versions are part of the public contract. Removing or narrowing a capability is a breaking change and MUST be documented.</p>
+<h3 id="2142-extension-services">2.14.2 Extension services</h3>
+<p>Extension services expand engine functionality without modifying the core. They MAY provide additional template processors, package providers, platform integrations, validation systems, resource handlers, asset transformers, or build emitters.</p>
+<p>An extension service MUST declare its identity, version, compatibility requirements, the capability tokens it provides, and the ones it requires. It MUST expose explicit APIs, follow engine ownership rules, and register through the controlled mechanism.</p>
+<p>An extension service MUST NOT replace or modify a core service. A core service is part of the engine's contract; an extension that could swap one out would make that contract unverifiable. Extensions add; they do not substitute.</p>
+<p>A missing optional extension MUST be reported but MUST NOT prevent operation unless an active workflow requires a capability only it provides.</p>
+<p>Extensions participate in the shutdown lifecycle ([[2.4 Engine lifecycle]] §2.4.9) and MUST NOT prevent core cleanup.</p>
+<h3 id="2143-lua-workflow-discovery">2.14.3 Lua workflow discovery</h3>
+<blockquote><p>[!note] Resolution of Q-16, part 1 (D-016)</p></blockquote>
+<p>Workflows are discovered from an ordered search path:</p>
+<pre><code class="lang-text">1. repository       lua/workflows/
+2. user config      $XDG_CONFIG_HOME/squared-pg/workflows/
+3. project-local    &lt;workspace&gt;/.squared/workflows/
+4. explicit         paths supplied by the host or CLI</code></pre>
+<p>Each workflow directory contains <code>workflow.json</code> declaring:</p>
+<pre><code class="lang-json">{
+  &quot;schema_version&quot;: 1,
+  &quot;id&quot;: &quot;workflow.generate.android&quot;,
+  &quot;version&quot;: &quot;1.0.0&quot;,
+  &quot;entry&quot;: &quot;init.lua&quot;,
+  &quot;requires_engine&quot;: &quot;^1.0&quot;,
+  &quot;requires_capabilities&quot;: [&quot;capability.build.emit.gradle@^1.0&quot;],
+  &quot;trust&quot;: &quot;sandboxed&quot;
+}</code></pre>
+<p>Discovery is deterministic: search paths in declared order, entries within a path sorted. A later path MAY shadow an earlier identity only when the host explicitly enables shadowing; otherwise a duplicate identity is an error.</p>
+<p>Workflow capability requirements are checked at load, so a workflow that cannot run fails before it starts rather than midway.</p>
+<h3 id="2144-trust-model">2.14.4 Trust model</h3>
+<blockquote><p>[!note] Resolution of Q-16, part 2 (D-016)</p></blockquote>
+<p>Two tiers:</p>
+<p><b><code>trusted</code></b> — the repository's own workflows and workflows in the user's configuration directory. Full Lua 5.4 standard library. These are the user's own code, on the user's own machine.</p>
+<p><b><code>sandboxed</code></b> — everything else, including project-local workflows and anything obtained from a third party. Default for any workflow that does not declare otherwise, and the only tier a host may grant to downloaded content.</p>
+<p>Sandboxed workflows run without:</p>
+<ul><li><code>os.execute</code>, <code>os.remove</code>, <code>os.rename</code>, <code>os.tmpname</code></li><li><code>package.loadlib</code> and C module loading</li><li>the <code>debug</code> library</li><li>raw <code>io</code> write access</li><li><code>load</code>/<code>loadstring</code> over arbitrary strings</li></ul>
+<p>Sandboxed workflows reach the filesystem only through engine services, which is where provenance, validation, and transactions already live. They may read declared input paths supplied by the host.</p>
+<p>A workflow MUST NOT elevate its own trust tier. Trust is assigned by the host, not claimed by the workflow — a <code>trust</code> field in <code>workflow.json</code> is a <i>request</i>, and the host MAY refuse it.</p>
+<h3 id="2145-custom-resources">2.14.5 Custom resources</h3>
+<p>Users MAY author custom templates, kits, packages, and assets. A custom resource is an ordinary resource: same manifest envelope, same identity grammar, same validation. It is placed on a resource search path and indexed like any other.</p>
+<p>Custom resources SHOULD use a vendor segment (<code>kit.acme.raylib</code>) and MUST NOT use a reserved namespace ([[2.8 Templates]] §2.8.1).</p>
+<p>Nothing about authoring a custom resource requires modifying the engine. If it does, that is a defect in the resource model, not a reason to modify the engine.</p>
+<h3 id="2146-compatibility-and-versioning">2.14.6 Compatibility and versioning</h3>
+<p>Extensions declare an engine version constraint and capability constraints. The engine MUST refuse to load an extension whose constraints it cannot satisfy, and MUST report why.</p>
+<p>Breaking changes to the capability set, the manifest schema, the operation registry, or the binding surface are compatibility changes and MUST be documented with a migration path ([[2.6 Engine-Lua boundary]] §2.6.15).</p>
+<h3 id="2147-prohibitions">2.14.7 Prohibitions</h3>
+<p>An extension MUST NOT:</p>
+<ul><li>replace or modify a core service;</li><li>bypass the resource index, validation, or the transaction system;</li><li>write to a workspace except through engine services;</li><li>register a capability token that already exists;</li><li>elevate its own trust tier;</li><li>require network access in the core generation path;</li><li>introduce non-determinism into resolution.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.4 Engine lifecycle]] · [[2.5 Lua control layer]] · [[2.8 Templates]] · [[2.10 Assets and generator resources]] · [[2.6 Engine-Lua boundary]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

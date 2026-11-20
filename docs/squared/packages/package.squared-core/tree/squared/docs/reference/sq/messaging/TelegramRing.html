@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TelegramRing · squared</title>
+<meta name="description" content="squared: class TelegramRing">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegramRing.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegramRing.md">on GitHub</a></p><h1 id="class-telegramring">class TelegramRing</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L51">messaging/telegram_ring.cppm:51</a></i></p>
+<p><b>brief</b> One direction of the Telegraph: telegrams from one thread to one other, in order, with no lock and no allocation.</p>
+<p>Exactly one thread pushes and exactly one thread reads. A text or uid list is copied into the ring's data ring by <code>push</code>, and the telegram that arrives says where; it stays there until the telegram is popped. Over storage its owner gives it, sized at init.</p>
+<p>Neither side ever waits: a full ring says so (<code>RingResult::full</code>), and an empty one has no <code>front()</code>. Waking a consumer that sleeps is its owner's business.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="telegramring">TelegramRing</h3>
+<p><i>public void TelegramRing(TelegramRing &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L64">messaging/telegram_ring.cppm:64</a></i></p>
+<h3 id="telegramring">TelegramRing</h3>
+<p><i>public void TelegramRing(const TelegramRing &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L62">messaging/telegram_ring.cppm:62</a></i></p>
+<h3 id="telegramring">TelegramRing</h3>
+<p><i>public void TelegramRing(std::span&lt;std::byte&gt; slots, std::span&lt;std::byte&gt; data)</i></p>
+<p><b>brief</b> A ring over <code>slots</code> (32 bytes a telegram) and <code>data</code> (text and uid lists). Both sizes are powers of two: at least 2 telegrams, and the data at least 16 bytes, or empty for a ring that carries no text. Asserted; the storage needs no alignment.</p>
+<h3 id="front">front</h3>
+<p><i>public std::optional&lt;Received&gt; front()</i></p>
+<p><b>brief</b> The oldest telegram not yet popped; nothing when the ring is empty.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegramRing &amp; operator=(TelegramRing &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L65">messaging/telegram_ring.cppm:65</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegramRing &amp; operator=(const TelegramRing &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L63">messaging/telegram_ring.cppm:63</a></i></p>
+<h3 id="pop">pop</h3>
+<p><i>public void pop()</i></p>
+<p><b>brief</b> Done with the front telegram and its data. The ring must not be empty.</p>
+<h3 id="push">push</h3>
+<p><i>public RingResult push(const Telegram &amp; telegram, std::span&lt;const std::byte&gt; data)</i></p>
+<p><b>brief</b> Send <code>telegram</code>. A <code>text</code> or <code>uids</code> telegram takes its value from <code>data</code> (its own <code>DataRef</code> is replaced by where the bytes went); any other type takes no data. A uid list is 4 bytes a uid.</p>
+<h3 id="stats">stats</h3>
+<p><i>public RingStats stats()</i></p>
+<p><b>brief</b> The ring's sizes and the highest fill so far.</p>
+<h3 id="telegramring">~TelegramRing</h3>
+<p><i>public void ~TelegramRing()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram_ring.cppm#L66">messaging/telegram_ring.cppm:66</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

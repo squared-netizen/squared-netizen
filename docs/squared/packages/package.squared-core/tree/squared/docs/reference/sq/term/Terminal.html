@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Terminal · squared</title>
+<meta name="description" content="squared: class Terminal">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/term/Terminal.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/term/Terminal.md">on GitHub</a></p><h1 id="class-terminal">class Terminal</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L41">term/terminal.cppm:41</a></i></p>
+<p><b>brief</b> A terminal: the bytes a program writes in, a screen of cells out.</p>
+<p>It reads ECMA-48 (control functions, control sequences, SGR colours and attributes, operating system commands) over UTF-8, with the DEC and xterm functions sqterm takes: the alternate screen, scroll regions, cursor keys and visibility, bracketed paste. Compatibility with other terminals comes last (decided 2026-11-02): what it does not implement it ignores.</p>
+<p>It owns no pty, draws nothing and reads no keys: its owner feeds it what it reads from the program, draws the rows marked dirty, and writes back the replies (a cursor position report) to the program. So it runs on any thread, and in a test with no program at all.</p>
+<p>Memory: the two screens (rows x columns x 12 bytes each), the scrollback (1 MB unless configured), allocated by the constructor and by <code>resize</code>; <code>feed</code> never allocates. 80 x 24 with the default scrollback: about 1.05 MB.</p>
+<p>sq::term::Terminal terminal{ { .columns = 80, .rows = 24 } };</p>
+<p>terminal.feed( "\x1b[1mbold\x1b[0m plain\r\n" );</p>
+<p>auto first = terminal.row( 0 ); // first[0].code == U'b', bold</p>
+<h2 id="functions">Functions</h2>
+<h3 id="terminal">Terminal</h3>
+<p><i>public void Terminal(Terminal &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L48">term/terminal.cppm:48</a></i></p>
+<h3 id="terminal">Terminal</h3>
+<p><i>public void Terminal(const Terminal &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L46">term/terminal.cppm:46</a></i></p>
+<h3 id="terminal">Terminal</h3>
+<p><i>public void Terminal(const TerminalConfig &amp; config)</i></p>
+<h3 id="clear_dirty">clear_dirty</h3>
+<p><i>public void clear_dirty()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L78">term/terminal.cppm:78</a></i></p>
+<h3 id="clear_replies">clear_replies</h3>
+<p><i>public void clear_replies()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L141">term/terminal.cppm:141</a></i></p>
+<h3 id="columns">columns</h3>
+<p><i>public std::uint16_t columns()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L64">term/terminal.cppm:64</a></i></p>
+<h3 id="copy_text">copy_text</h3>
+<p><i>public std::size_t copy_text(TextPoint from, TextPoint to, std::span&lt;char&gt; out)</i></p>
+<p>The text from <code>from</code> to <code>to</code> (both included, either first), as UTF-8, into <code>out</code>; the bytes it takes, all of them, whatever <code>out</code> holds. Scrollback lines, then the screen in use's rows, held to the lines there are. A line that wrapped runs on into the next; any other ends with LF, its trailing blanks left out. A wide character's second cell gives nothing.</p>
+<p><code>out</code> takes whole characters, in order, until one does not fit: call it with an empty <code>out</code> for the size, then with that much. No allocation; finding the first scrollback line walks back to it.</p>
+<h3 id="cursor">cursor</h3>
+<p><i>public Cursor cursor()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L80">term/terminal.cppm:80</a></i></p>
+<h3 id="feed">feed</h3>
+<p><i>public void feed(std::span&lt;const std::byte&gt; bytes)</i></p>
+<p>What the program wrote, in any pieces: a sequence split between two calls is read whole.</p>
+<h3 id="feed">feed</h3>
+<p><i>public void feed(std::string_view text)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L54">term/terminal.cppm:54</a></i></p>
+<h3 id="first_line">first_line</h3>
+<p><i>public std::uint64_t first_line()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L97">term/terminal.cppm:97</a></i></p>
+<p>Its lines are numbered from the first it took: the scrollback's oldest kept line is <code>first_line()</code>, the screen's row 0 is <code>screen_line()</code>, row r is <code>screen_line() + r</code>. A line keeps its number as more scroll off (they move up the scrollback, then out).</p>
+<h3 id="history_line">history_line</h3>
+<p><i>public std::span&lt;const Cell&gt; history_line(std::size_t back)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L86">term/terminal.cppm:86</a></i></p>
+<p>Line <code>back</code>, 0 the newest; <code>back</code> is below <code>history_size()</code>.</p>
+<h3 id="history_size">history_size</h3>
+<p><i>public std::size_t history_size()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L84">term/terminal.cppm:84</a></i></p>
+<p>Lines scrolled off the top of the main screen.</p>
+<h3 id="modes">modes</h3>
+<p><i>public TerminalModes modes()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L81">term/terminal.cppm:81</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Terminal &amp; operator=(Terminal &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L49">term/terminal.cppm:49</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Terminal &amp; operator=(const Terminal &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L47">term/terminal.cppm:47</a></i></p>
+<h3 id="replies">replies</h3>
+<p><i>public std::span&lt;const std::byte&gt; replies()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L137">term/terminal.cppm:137</a></i></p>
+<p>Bytes for the program (replies to a device status report or a device attributes request), for the owner to write to it; then <code>clear_replies</code>. At most 256 wait; more are dropped.</p>
+<h3 id="resize">resize</h3>
+<p><i>public void resize(std::uint16_t columns, std::uint16_t rows)</i></p>
+<p>A new size (at least 1 x 1). The main screen keeps its top left; when it loses rows below the cursor, the rows above go to the scrollback first, so the cursor's line stays in view. Lines are not rewrapped. Every row is marked dirty.</p>
+<h3 id="row">row</h3>
+<p><i>public std::span&lt;const Cell&gt; row(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L68">term/terminal.cppm:68</a></i></p>
+<p>Row <code>row</code> of the screen in use (the alternate one while a program has it).</p>
+<h3 id="row_dirty">row_dirty</h3>
+<p><i>public bool row_dirty(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L74">term/terminal.cppm:74</a></i></p>
+<p>Changed since <code>clear_dirty</code>.</p>
+<h3 id="row_wrapped">row_wrapped</h3>
+<p><i>public bool row_wrapped(std::uint16_t row)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L104">term/terminal.cppm:104</a></i></p>
+<p>Row <code>row</code> of the screen in use went on into the next by autowrap.</p>
+<h3 id="rows">rows</h3>
+<p><i>public std::uint16_t rows()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L65">term/terminal.cppm:65</a></i></p>
+<h3 id="screen_line">screen_line</h3>
+<p><i>public std::uint64_t screen_line()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L101">term/terminal.cppm:101</a></i></p>
+<h3 id="take_events">take_events</h3>
+<p><i>public TerminalEvents take_events()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L130">term/terminal.cppm:130</a></i></p>
+<p>What happened since the last call: the bell, a new title.</p>
+<h3 id="title">title</h3>
+<p><i>public std::string_view title()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L124">term/terminal.cppm:124</a></i></p>
+<p>The title a program set (OSC 0 or 2), UTF-8, at most 128 bytes.</p>
+<h3 id="terminal">~Terminal</h3>
+<p><i>public void ~Terminal()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/term/terminal.cppm#L50">term/terminal.cppm:50</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

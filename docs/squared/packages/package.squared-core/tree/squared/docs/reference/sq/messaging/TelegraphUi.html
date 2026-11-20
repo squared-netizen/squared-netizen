@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TelegraphUi · squared</title>
+<meta name="description" content="squared: class TelegraphUi">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegraphUi.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/TelegraphUi.md">on GitHub</a></p><h1 id="class-telegraphui">class TelegraphUi</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L354">messaging/telegraph.cppm:354</a></i></p>
+<p><b>brief</b> The UI's end of the Telegraph: the Stage's, on the UI thread. An app reaches it through its screens, not directly.</p>
+<p>It sends <code>set</code> and <code>do</code>, asks lists for rows, takes what the model sent into the latest-value cache (<code>drain</code>), reads values back, binds the ones on screen, and passes Android's lifecycle to the model. It never waits: a full ring is <code>full</code>. Each send wakes the model's thread if it sleeps; when the UI sleeps itself, <code>wake_fd</code> wakes it for what the model sends.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="telegraphui">TelegraphUi</h3>
+<p><i>public void TelegraphUi(TelegraphUi &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L359">messaging/telegraph.cppm:359</a></i></p>
+<h3 id="telegraphui">TelegraphUi</h3>
+<p><i>public void TelegraphUi(const TelegraphUi &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L357">messaging/telegraph.cppm:357</a></i></p>
+<h3 id="background">background</h3>
+<p><i>public void background()</i></p>
+<p><b>brief</b> Android's lifecycle, for the model: it gets them at its next turn.</p>
+<h3 id="bind">bind</h3>
+<p><i>public bool bind(Address address)</i></p>
+<p><b>brief</b> An actor shows <code>address</code>: its value is kept in the cache.</p>
+<h3 id="cache_stats">cache_stats</h3>
+<p><i>public CacheStats cache_stats()</i></p>
+<h3 id="cached_from">cached_from</h3>
+<p><i>public std::optional&lt;BoundEntry&gt; cached_from(std::uint32_t from)</i></p>
+<p><b>brief</b> A walk over every value the cache holds, as <code>ValueCache::entry_from</code>: from 0, then from the last found plus 1. A value's text is valid until the next <code>drain</code>.</p>
+<h3 id="do_">do_</h3>
+<p><i>public DoResult do_(const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L388">messaging/telegraph.cppm:388</a></i></p>
+<p><b>brief</b> <code>do &lt;key&gt;</code>: an intent, with no value.</p>
+<h3 id="do_">do_</h3>
+<p><i>public DoResult do_(const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L397">messaging/telegraph.cppm:397</a></i></p>
+<p><b>brief</b> <code>do &lt;key&gt; &lt;value&gt;</code>.</p>
+<h3 id="do_">do_</h3>
+<p><i>public DoResult do_(const K &amp; key, std::uint32_t uid)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L407">messaging/telegraph.cppm:407</a></i></p>
+<p><b>brief</b> <code>do &lt;key&gt;[uid]</code>, for a key with no value that takes a uid (a row's button).</p>
+<h3 id="drain">drain</h3>
+<p><i>public std::uint32_t drain()</i></p>
+<p><b>brief</b> <code>drain</code>, with events dropped.</p>
+<h3 id="drain">drain</h3>
+<p><i>public std::uint32_t drain(H &amp; handler)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L781">messaging/telegraph.cppm:781</a></i></p>
+<p><b>brief</b> Take what the model sent: each <code>state</code> into the cache, then to <code>handler.state(received)</code> if it has one (what shows it is told it changed); each <code>event</code> to <code>handler.event(received)</code> if it has one. At most a ring's worth, so one frame never takes more. The telegrams taken.</p>
+<h3 id="find">find</h3>
+<p><i>public std::optional&lt;CachedValue&gt; find(Address address)</i></p>
+<p><b>brief</b> The latest value at <code>address</code>, as it came.</p>
+<h3 id="foreground">foreground</h3>
+<p><i>public void foreground(std::uint64_t elapsed_milliseconds)</i></p>
+<h3 id="low_memory">low_memory</h3>
+<p><i>public void low_memory()</i></p>
+<h3 id="model_stats">model_stats</h3>
+<p><i>public ModelStats model_stats()</i></p>
+<h3 id="names">names</h3>
+<p><i>public const NameTable * names()</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegraphUi &amp; operator=(TelegraphUi &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L360">messaging/telegraph.cppm:360</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegraphUi &amp; operator=(const TelegraphUi &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L358">messaging/telegraph.cppm:358</a></i></p>
+<h3 id="quit">quit</h3>
+<p><i>public void quit()</i></p>
+<h3 id="ready_to_sleep">ready_to_sleep</h3>
+<p><i>public bool ready_to_sleep()</i></p>
+<p><b>brief</b> Before sleeping on <code>wake_fd</code>: false when the model has sent already (drain instead). True means sleep: the next send wakes it.</p>
+<h3 id="register_names">register_names</h3>
+<p><i>public void register_names(const K &amp;... keys)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L484">messaging/telegraph.cppm:484</a></i></p>
+<p><b>brief</b> Add each key's name, for names only the model sends. Nothing without a table.</p>
+<h3 id="reset_view">reset_view</h3>
+<p><i>public SendResult reset_view(Name rows, std::string_view text)</i></p>
+<p><b>brief</b> <code>do &lt;list&gt;.view (1 0)</code>: a new list widget, which knows nothing. The model forgets what it sent, so the next <code>view</code> is answered in full, and sends the count.</p>
+<h3 id="send">send</h3>
+<p><i>public SendResult send(const Telegram &amp; telegram, std::span&lt;const std::byte&gt; data)</i></p>
+<p><b>brief</b> Send a telegram as it is, read from its text (a replay): its text or uid list is in <code>data</code>, as <code>read_telegram</code> left it. Meant for <code>set</code> and <code>do</code>; nothing checks its type against a key.</p>
+<h3 id="set">set</h3>
+<p><i>public SendResult set(const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L366">messaging/telegraph.cppm:366</a></i></p>
+<p><b>brief</b> <code>set &lt;key&gt; &lt;value&gt;</code>: the user changed a value.</p>
+<h3 id="set">set</h3>
+<p><i>public SendResult set(const K &amp; key, std::uint32_t uid, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L377">messaging/telegraph.cppm:377</a></i></p>
+<p><b>brief</b> <code>set &lt;key&gt;[uid] &lt;value&gt;</code>.</p>
+<h3 id="set_names">set_names</h3>
+<p><i>public void set_names(NameTable * names)</i></p>
+<p><b>brief</b> Where the names of keys go, for the text form: a table the dev tools own (nullptr, the default, keeps none). Each key the UI uses (<code>set</code>, <code>do_</code>, <code>view</code>, <code>value</code>) is added the first time, and <code>register_names</code> adds others. Not owned; it must outlive its use.</p>
+<h3 id="set_tap">set_tap</h3>
+<p><i>public void set_tap(Tap tap, void * context)</i></p>
+<p><b>brief</b> Hand each telegram the UI sends, and each it drains, to <code>tap</code> (nullptr, the default: none). One at a time.</p>
+<h3 id="snapshot">snapshot</h3>
+<p><i>public std::optional&lt;SnapshotView&gt; snapshot(const SnapshotKey &amp; key)</i></p>
+<p><b>brief</b> The newest snapshot of <code>key</code> the model has published: its bytes stay as they are until the next call for this key. Nothing before the first publish. Never waits.</p>
+<h3 id="to_model_stats">to_model_stats</h3>
+<p><i>public RingStats to_model_stats()</i></p>
+<h3 id="to_ui_stats">to_ui_stats</h3>
+<p><i>public RingStats to_ui_stats()</i></p>
+<h3 id="unbind">unbind</h3>
+<p><i>public void unbind(Address address)</i></p>
+<h3 id="value">value</h3>
+<p><i>public detail::value_of&lt;K&gt; value(const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L457">messaging/telegraph.cppm:457</a></i></p>
+<p><b>brief</b> The latest value of <code>key</code>, as its type (text: valid until the next <code>drain</code>).</p>
+<h3 id="value">value</h3>
+<p><i>public detail::value_of&lt;K&gt; value(const K &amp; key, std::uint32_t uid)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L466">messaging/telegraph.cppm:466</a></i></p>
+<p><b>brief</b> The latest value of <code>key</code> at <code>uid</code>, as its type.</p>
+<h3 id="view">view</h3>
+<p><i>public SendResult view(Name rows, std::string_view text, RowSpan span)</i></p>
+<p><b>brief</b> The same, for a list known by its name and its dotted text (a layout's list node: <code>rows</code>, <code>layout.text( bind_text )</code>).</p>
+<h3 id="view">view</h3>
+<p><i>public SendResult view(const K &amp; rows, RowSpan span)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L764">messaging/telegraph.cppm:764</a></i></p>
+<p><b>brief</b> <code>do &lt;list&gt;.view (first last)</code>: the rows a list widget shows (<code>ListWindow</code>).</p>
+<h3 id="wait_stats">wait_stats</h3>
+<p><i>public WaitStats wait_stats()</i></p>
+<h3 id="wake_fd">wake_fd</h3>
+<p><i>public int wake_fd()</i></p>
+<p><b>brief</b> The descriptor that becomes readable when the model sends while the UI sleeps: poll it beside the others (Android's looper, a desktop event loop). -1 if it could not be made.</p>
+<h3 id="woke">woke</h3>
+<p><i>public void woke()</i></p>
+<p><b>brief</b> After sleeping, woken or not: the model no longer wakes the UI.</p>
+<h3 id="telegraphui">~TelegraphUi</h3>
+<p><i>public void ~TelegraphUi()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L361">messaging/telegraph.cppm:361</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TelegraphTools · squared</title>
+<meta name="description" content="squared: class TelegraphTools">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/console/TelegraphTools.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/console/TelegraphTools.md">on GitHub</a></p><h1 id="class-telegraphtools">class TelegraphTools</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L28">console/telegraph_tools.cppm:28</a></i></p>
+<p><b>brief</b> The Telegraph's development tools, on the UI's end of a line: its Console commands, the name table its text form uses, the tap that writes every telegram as a line, and recording and replaying what the UI sends.</p>
+<p>| Typed | Does | |---|---| | <code>telegraph</code> | each capacity and its highest fill since start | | <code>telegraph state</code> | every value the UI holds, one line each, ordered by address | | <code>telegraph tap [on \| off]</code> | every telegram as a line (<code>ui&gt;model set settings.sound false</code>), or not; off at first | | <code>telegraph record [file] \| record stop</code> | what the UI sends, each line with the milliseconds since the start, to <code>file</code> (<code>replay.txt</code>) in the files directory | | <code>telegraph replay [file] [fast] \| replay stop</code> | send a recording again, at its pace or as fast as the ring takes it (<code>update</code> paces it) |</p>
+<p>For Console builds: about 15 KB inline (the name table, <code>TELEGRAPH_NAMES</code>, most of it), nothing allocated. One to a line, on the UI thread; it must outlive the line's use of it, and it detaches itself when it goes.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="telegraphtools">TelegraphTools</h3>
+<p><i>public void TelegraphTools(TelegraphTools &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L43">console/telegraph_tools.cppm:43</a></i></p>
+<h3 id="telegraphtools">TelegraphTools</h3>
+<p><i>public void TelegraphTools(const TelegraphTools &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L41">console/telegraph_tools.cppm:41</a></i></p>
+<h3 id="telegraphtools">TelegraphTools</h3>
+<p><i>public void TelegraphTools(messaging::TelegraphUi &amp; ui, const char * directory)</i></p>
+<p><b>brief</b> The tools for <code>ui</code>; they keep its name table from now on.</p>
+<p><b>directory</b> Where <code>record</code> writes and <code>replay</code> reads: the app's <code>files/</code> directory. nullptr: neither is offered.</p>
+<h3 id="add_commands">add_commands</h3>
+<p><i>public std::size_t add_commands(Console &amp; console)</i></p>
+<p><b>brief</b> <code>telegraph</code>, and the groups <code>telegraph</code> and <code>state</code>. How many did not fit.</p>
+<h3 id="names">names</h3>
+<p><i>public const messaging::NameTable &amp; names()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L67">console/telegraph_tools.cppm:67</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegraphTools &amp; operator=(TelegraphTools &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L44">console/telegraph_tools.cppm:44</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public TelegraphTools &amp; operator=(const TelegraphTools &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L42">console/telegraph_tools.cppm:42</a></i></p>
+<h3 id="record">record</h3>
+<p><i>public bool record(std::string_view file)</i></p>
+<p><b>brief</b> Record to <code>file</code> in the directory; false when it cannot be opened.</p>
+<h3 id="recording">recording</h3>
+<p><i>public bool recording()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L70">console/telegraph_tools.cppm:70</a></i></p>
+<h3 id="replay">replay</h3>
+<p><i>public bool replay(std::string_view file, bool fast)</i></p>
+<p><b>brief</b> Replay <code>file</code>, paced by <code>update</code> (or <code>fast</code>); false when it cannot be opened.</p>
+<h3 id="replaying">replaying</h3>
+<p><i>public bool replaying()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L71">console/telegraph_tools.cppm:71</a></i></p>
+<h3 id="set_sink">set_sink</h3>
+<p><i>public void set_sink(Sink sink, void * context)</i></p>
+<p><b>brief</b> Where the tap's lines go; nullptr (the default): the Console's scrollback.</p>
+<h3 id="stop_recording">stop_recording</h3>
+<p><i>public std::uint32_t stop_recording()</i></p>
+<p><b>brief</b> Stop recording; how many telegrams were written.</p>
+<h3 id="stop_replay">stop_replay</h3>
+<p><i>public void stop_replay()</i></p>
+<h3 id="tap">tap</h3>
+<p><i>public void tap(bool on)</i></p>
+<p><b>brief</b> Turn the tap on or off.</p>
+<h3 id="tapping">tapping</h3>
+<p><i>public bool tapping()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L69">console/telegraph_tools.cppm:69</a></i></p>
+<h3 id="ui">ui</h3>
+<p><i>public const messaging::TelegraphUi &amp; ui()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/console/telegraph_tools.cppm#L68">console/telegraph_tools.cppm:68</a></i></p>
+<h3 id="update">update</h3>
+<p><i>public void update(time::TimePoint now)</i></p>
+<p><b>brief</b> Once a frame: the replay's next telegrams, as their time comes.</p>
+<h3 id="telegraphtools">~TelegraphTools</h3>
+<p><i>public void ~TelegraphTools()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

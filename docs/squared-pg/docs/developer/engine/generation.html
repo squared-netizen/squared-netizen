@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generation · squared-pg</title>
+<meta name="description" content="squared-pg: Generation">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/engine/generation.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/engine/generation.md">on GitHub</a></p><h1 id="generation">Generation</h1>
+<p>Plan building, substitution and ownership. Programmer counterpart: <a href="../../programmer/engine/operations.html">operations</a>. Specification: §2.7.</p>
+<h2 id="phases">Phases</h2>
+<p><code>Engine::Impl::resolve_set</code> runs §2.7.9 phases 2–6; <code>ProjectService::build_plan</code> is phase 7; <code>TransactionService::apply</code> is phases 8–18.</p>
+<p>Phases 2–6 mutate nothing. That is not a convention — <code>ProjectService</code> and the four typed resolution services hold no reference to <code>FilesystemService</code>, so mutating during resolution would not compile.</p>
+<h2 id="cross-validation-phase-6">Cross-validation (phase 6)</h2>
+<p>Runs after everything resolves, before a transaction can open. It detects:</p>
+<div class="tablewrap"><table><thead><tr><th>Check</th><th>Code</th></tr></thead><tbody><tr><td>kit writes an integration area the template does not declare</td><td><code>kit.integration_point.undeclared</code></td></tr><tr><td>two kits write a <code>single</code>-arity area</td><td><code>kit.integration_point.conflict</code></td></tr><tr><td>two resources contribute the same workspace path</td><td><code>kit.integration_point.conflict</code></td></tr><tr><td>a kit declares <code>conflicts_with</code> another selected kit</td><td><code>kit.compatibility.conflict</code></td></tr><tr><td>the template requires a kit the workflow did not select</td><td><code>template.kit.required</code></td></tr><tr><td>a <code>generated</code> path falls inside the working directory</td><td><code>template.ownership.invalid</code></td></tr></tbody></table></div>
+<p>Integration-point arity comes from the template's <code>integration_arity</code> map, defaulting to <code>single</code>. Conservative on purpose: a false conflict is reported and fixed, a missed one silently produces a workspace where two kits fought over a file.</p>
+<h2 id="ownership-classification">Ownership classification</h2>
+<p><code>detail::classify_path</code> matches a workspace path against the resource's <code>ownership</code> globs, read from <code>consumers.squared_pg.ownership</code>.</p>
+<p><b>At most one list may match.</b> Two lists claiming one path is a manifest defect: the author has said two contradictory things about one file, and only they know which was meant. It is reported as a warning and resolved toward the class that cannot destroy work — <code>generated</code> is the only class this engine overwrites, so anything else wins. Two patterns in the <i>same</i> list is not a conflict and is silent.</p>
+<p><b>An unmatched path takes <code>default</code>.</b> Absent <code>default</code> means <code>seeded</code> (§2.7.10). Defaulting to <code>generated</code> would make the safe case the one you have to remember, and forgetting would mean overwriting user work.</p>
+<h3 id="what-this-replaced-and-why">What this replaced, and why</h3>
+<p>Until D-051 this used a specificity heuristic: <code>glob_specificity</code> scored literal characters up and wildcards down, <code>**</code> more than <code>*</code>, and the highest score won.</p>
+<p><b>That heuristic worked.</b> Every shipped template classified correctly under it, and <code>user: [&quot;**&quot;]</code> behaved exactly as <code>default: &quot;user&quot;</code> does now. Nothing was broken.</p>
+<p>It was replaced because nobody can predict its outcome without knowing the scoring table. Whether <code>mk/**</code> outranks <code>**/*.mk</code> is a question you have to compute — it does, −2 against −4 — and ownership is a thing template authors meet on their first day. A rule that fits in a sentence beats a rule that fits in a lookup table, even when the lookup table is correct.</p>
+<p>What went with it: wildcard carve-outs. Under specificity, <code>generated: [&quot;mk/**&quot;]</code> with <code>user: [&quot;mk/local.mk&quot;]</code> worked, the literal beating the wildcard. That is now an overlap warning, and the author writes non-overlapping patterns instead — <code>generated: [&quot;mk/squared_*.mk&quot;]</code>. A real cost, and a small one in practice.</p>
+<h3 id="two-vocabularies">Two vocabularies</h3>
+<p><code>ownership_class_from_manifest</code> maps the manifest's words onto the engine's, and the mapping is not the identity.</p>
+<p>A manifest author writes about <i>who owns the file</i>. The engine reasons about <i>what it may do on a later pass</i>. So the manifest's <code>user</code> maps to <code>OwnershipClass::seeded</code>, not to <code>::user</code>: a file the generator is materialising cannot be <code>user</code>, because the generator is by definition writing it. <code>OwnershipClass::user</code> is for files that appear afterwards by the author's own hand, which no manifest can enumerate.</p>
+<p>The list-based path always did this mapping, inline and unremarked. <code>default</code> made it visible by getting it wrong — routing the field through <code>ownership_class_from_string</code> produced <code>::user</code> for every materialised file and broke two suites.</p>
+<p>The manifest's <code>shared</code> also maps to <code>seeded</code>, because <code>shared</code> is what §2.7.10 reserves as <code>merged</code> and explicitly does not implement in v1 (D-020).</p>
+<h2 id="substitution">Substitution</h2>
+<p><code>detail::substitute</code> expands <code>{{ name }}</code>. Three behaviours are worth knowing.</p>
+<p><b>An unknown parameter is an error, never an empty string</b> (§2.8.8). A silent substitution failure produces a project that looks correctly generated and does not build, which is the most expensive kind of wrong.</p>
+<p><b>A placeholder name must be an identifier.</b> Templates are mostly C++ source, so <code>std::vector&lt;int&gt; v{{1, 2}}</code> will appear in one. Without the identifier check, <code>1, 2</code> would be read as a parameter name and the file would fail to substitute. Tested directly in <code>test_support.cpp</code>.</p>
+<p><b>Binary payloads are copied verbatim.</b> Detected by a NUL byte in the first 8 KiB. Substituting into a PNG would corrupt it in a way nothing downstream would notice.</p>
+<p>Paths are substituted too, so a template can emit <code>{{project_name}}.desktop</code> without a special case.</p>
+<h2 id="effective-parameters">Effective parameters</h2>
+<p>Three layers, later winning: the template's declared defaults (§2.8.7), the engine's built-ins derived from the request, then the workflow's values.</p>
+<p><code>detail::effective_parameters</code> is shared by validation and plan building, and that sharing is load-bearing. Validating the raw workflow values while substituting the effective ones would reject <code>project_name</code> as missing every time — a parameter the engine was about to supply itself. That bug existed during development and is the reason the function is not inlined into <code>build_plan</code>.</p>
+<p>Built-ins derive only from the request and the engine. No clock, no environment — §2.7.13 needs byte-identical output from equivalent inputs, and a timestamp would end that immediately.</p>
+<h2 id="step-ordering">Step ordering</h2>
+<p>Steps are stable-sorted by phase, then directories before files, then path. <code>std::stable_sort</code> rather than <code>sort</code> so contribution order survives among equals, which is what makes two runs over the same inputs emit the same list.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

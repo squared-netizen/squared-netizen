@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>time · squared</title>
+<meta name="description" content="squared: time">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/time.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/time.md">on GitHub</a></p><h1 id="time">time</h1>
+<p>The time between ticks (<code>Timepiece</code>), the two clocks it is read from, and a model's timers (<code>DeadlineQueue</code>). Time is a value: a loop reads the clock once and passes the time in, so a test passes its own times and needs no clock at all.</p>
+<p>Every type below lives in its own header. Include exactly the ones a translation unit names; <code>squared/time/module.cppm</code> pulls in all of them and exists for convenience, not for use inside headers of your own.</p>
+<p>Developer counterpart: <a href="../developer/time.html">../developer/time.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type or function</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Duration</code>, <code>TimePoint</code></td><td><code>squared/time/duration.cppm</code>, <code>squared/time/time_point.cppm</code></td><td><code>std::chrono::nanoseconds</code>: a span, and a time since a clock's start</td></tr><tr><td><code>now()</code>, <code>since_boot()</code></td><td><code>squared/time/now.cppm</code></td><td>The monotonic clock; the time since boot, deep sleep included</td></tr><tr><td><code>Timepiece</code></td><td><code>squared/time/timepiece.cppm</code></td><td>The step between ticks, clamped, and the tick count: 24 bytes</td></tr><tr><td><code>DeadlineQueue&lt;Value, N&gt;</code></td><td><code>squared/time/deadline_queue.cppm</code></td><td>A model's timers, at most <code>N</code> waiting at once</td></tr></tbody></table></div>
+<h2 id="timepiece">Timepiece</h2>
+<pre><code class="lang-cpp">sq::time::Timepiece time;                      // 24 bytes, one per loop
+for( ;; ) {
+    const double dt = time.tick( sq::time::now() );   // seconds since the last tick
+    world.step( dt );
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>tick(now)</code></td><td>a tick at <code>now</code>; returns the seconds since the last tick (or since <code>start</code>), at most <code>longest_step</code> (250 ms). The first tick with no <code>start</code> returns 0: there is nothing to measure from. A <code>now</code> earlier than the last time returns 0</td></tr><tr><td><code>start(now)</code></td><td>measure the next tick from <code>now</code>; clears the step and the count</td></tr><tr><td><code>step()</code>, <code>seconds()</code></td><td>the last step, as a <code>Duration</code> or in seconds</td></tr><tr><td><code>last()</code>, <code>ticks()</code>, <code>started()</code></td><td>the last time given, the ticks since <code>start</code>, whether there is a time to measure from</td></tr></tbody></table></div>
+<p>Preconditions: one thread uses a <code>Timepiece</code>. Failure modes: none; a step longer than a quarter second is reported as a quarter second (a debugger, a suspended app), so a model never takes one huge step.</p>
+<p>Slow motion and pause are not part of it: multiply <code>dt</code>, or skip the step, in the model that wants them.</p>
+<h2 id="the-clocks">The clocks</h2>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Returns</th></tr></thead><tbody><tr><td><code>sq::time::now()</code></td><td>nanoseconds on the monotonic clock: never goes back, does not count deep sleep. One call into the vDSO, no system call</td></tr><tr><td><code>sq::time::since_boot()</code></td><td>nanoseconds since the device started, deep sleep included: how long an app was away, for <code>foreground(elapsed)</code></td></tr></tbody></table></div>
+<p>Read the clock once a frame or a tick and pass the value on; everything else takes the time as an argument.</p>
+<h2 id="deadlinequeue">DeadlineQueue</h2>
+<p>A model's timers: values due at times, handed back in order once their time has come. It allocates nothing: it holds an array of <code>N</code> entries, as many as may be waiting at once.</p>
+<pre><code class="lang-cpp">struct Shop {
+    sq::time::DeadlineQueue&lt;Restock, 16&gt; timers;
+
+    void receive( Telegraph &amp;t, const Received &amp;m ) {
+        timers.schedule_after( sq::time::now(), std::chrono::seconds( 30 ), Restock{ 17 } );
+    }
+    std::optional&lt;sq::time::TimePoint&gt; wake_at() const { return timers.next_due(); }
+    void due( Telegraph &amp;t, sq::time::TimePoint now ) {
+        timers.poll_due( now, 16, [&amp;]( Restock r ) { restock( t, r ); } );
+    }
+};</code></pre>
+<p>The model's thread sleeps until <code>wake_at()</code>, then calls <code>due</code> (see <a href="messaging.html#the-models-thread">messaging.md</a>): no tick, no polling.</p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>DeadlineQueue&lt;Value, N&gt;</code></td><td>empty; holds at most <code>N</code> at once (<code>N</code> at least 1)</td></tr><tr><td><code>schedule_at(due, value)</code></td><td>due at <code>due</code>; returns a <code>Scheduled</code>: <code>result</code>, and the <code>ticket</code> when scheduled (true when it was)</td></tr><tr><td><code>schedule_after(now, delay, value)</code></td><td>due <code>delay</code> after <code>now</code></td></tr><tr><td><code>cancel(ticket)</code>, <code>cancel(ticket, visitor)</code></td><td>remove it (the visitor gets the value first); false if it is not there</td></tr><tr><td><code>poll_due(now, limit, visitor)</code></td><td>hand each value due at <code>now</code> or before to <code>visitor</code>, in order, at most <code>limit</code>; returns how many</td></tr><tr><td><code>next_due()</code></td><td>when the first is due; nothing when empty</td></tr><tr><td><code>visit_ordered(visitor)</code></td><td>every entry in the order they come due: <code>visitor(due, ticket, value)</code></td></tr><tr><td><code>size()</code>, <code>capacity()</code> (<code>N</code>), <code>empty()</code></td><td></td></tr></tbody></table></div>
+<p>Values due at the same time come back in the order they were scheduled. <code>Value</code> must be default-constructible and move without throwing.</p>
+<p><b><code>ScheduleResult</code>:</b> <code>scheduled</code>; <code>full</code> (every entry in use); <code>invalid_time</code> (before the epoch, a negative delay, or past the largest time); <code>tickets_exhausted</code> (2^64 - 1 entries over the queue's life).</p>
+<p>Not bound to Lua.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

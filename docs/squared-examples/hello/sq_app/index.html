@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sq_app — your code · squared-examples</title>
+<meta name="description" content="squared-examples: sq_app — your code">
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
+  <a href="../../../../docs/index.html">Docs</a>
+  <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared-examples</a> · <code>hello/sq_app/README.md</code> · <a href="https://github.com/squared-netizen/squared-examples/blob/main/hello/sq_app/README.md">on GitHub</a></p><h1 id="sq_app--your-code">sq_app — your code</h1>
+<p>The <b>user working directory</b>. Everything in it is yours; the generator will not write here again.</p>
+<pre><code class="lang-text">sq_app/src/        your sources — every .cpp here is compiled
+sq_app/layouts/    your screens, one JSON file each
+sq_app/names.json  your model&#x27;s addresses, when you have a model</code></pre>
+<h2 id="where-it-starts">Where it starts</h2>
+<p><code>src/main.cpp</code> defines <code>squared_main</code>, which the framework calls once, when the first window is up:</p>
+<pre><code class="lang-cpp">void squared_main(sq::App&amp; app)
+{
+    app.run&lt;Prefs&gt;();                    // your model, on its own thread
+    app.stage.push(layouts::landing);    // the first screen
+}</code></pre>
+<h2 id="import-squared">import squared;</h2>
+<p>squared is C++20 modules: a file of yours writes</p>
+<pre><code class="lang-cpp">#include &lt;layouts.hpp&gt;   // what the build makes of layouts/ (a header)
+
+import squared;          // the App, the Stage, widgets, the Telegraph, std</code></pre>
+<p><code>import squared;</code> brings the whole standard library too (C++23's <code>import std;</code>: <code>std::string</code>, <code>std::map</code>, <code>std::print</code>, ...). Only C macros still need an include (<code>assert</code>, <code>errno</code>, <code>va_start</code>, <code>UINT32_MAX</code>: <code>#include &lt;assert.h&gt;</code>, ...), and every <code>#include</code> goes above the imports: a header such as <code>&lt;stdio.h&gt;</code> read after the standard library came in by import is refused. Keep <code>CXXSTD</code> at <code>c++23</code>: a file compiled otherwise cannot read squared's modules. More: <code>squared/docs/programmer/include-layout.md</code>.</p>
+<h2 id="screens-are-layout-files">Screens are layout files</h2>
+<p><code>layouts/landing.json</code> is the screen <code>layouts::landing</code>. The build compiles every file in <code>layouts/</code> (and <code>names.json</code>) into C++ before your sources, and a mistake in one stops the build with the file and the place: <code>landing.json: rows[1][0].tap: not a tap</code>. The format, every key, and the taps: <code>squared/docs/programmer/layouts.md</code>.</p>
+<p>A button's <code>tap</code> is one line:</p>
+<div class="tablewrap"><table><thead><tr><th>Tap</th><th>Does</th></tr></thead><tbody><tr><td><code>push settings</code></td><td>the screen <code>settings</code>, over this one</td></tr><tr><td><code>replace settings</code></td><td>the screen <code>settings</code>, instead of this one</td></tr><tr><td><code>back</code></td><td>back to the screen beneath; at the first screen, leave</td></tr><tr><td><code>quit</code></td><td>quit: your model saves and stops</td></tr><tr><td><code>set settings.sound false</code>, <code>do file.open &quot;a.txt&quot;</code></td><td>a telegram, to your model</td></tr></tbody></table></div>
+<h2 id="the-one-rule">The one rule</h2>
+<p><b>No Android headers in this directory.</b></p>
+<p>No <code>&lt;android/...&gt;</code>, no <code>&lt;EGL/...&gt;</code>, no <code>&lt;GLES3/...&gt;</code>. The platform layer in <code>sq_android/</code> owns all of that and runs your app through <code>sq::App</code>. Keeping Android out of <code>sq_app/</code> is what lets the same code build under another platform layer, and it is easy to lose one include at a time.</p>
+<h2 id="lifecycle">Lifecycle</h2>
+<p>You write <code>squared_main</code> and your model; the App does the rest:</p>
+<div class="tablewrap"><table><thead><tr><th>Android</th><th>What happens</th></tr></thead><tbody><tr><td>the first window</td><td><code>squared_main</code>, once a process</td></tr><tr><td>leaving the screen</td><td>your model's <code>background()</code>: save here, it may never come back</td></tr><tr><td>coming back</td><td>your model's <code>foreground(elapsed)</code></td></tr><tr><td>short of memory</td><td>your model's <code>low_memory()</code></td></tr><tr><td>back at the first screen, or <code>quit</code></td><td>your model saves and stops; the app closes</td></tr></tbody></table></div>
+<p>Your model runs on its own thread, so nothing in it blocks the screen. <code>squared/docs/programmer/stage.md</code> has the App and the Stage.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

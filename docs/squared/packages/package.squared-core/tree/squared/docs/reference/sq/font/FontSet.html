@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class FontSet · squared</title>
+<meta name="description" content="squared: class FontSet">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/font/FontSet.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/font/FontSet.md">on GitHub</a></p><h1 id="class-fontset">class FontSet</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/font_set.cppm#L26">font/font_set.cppm:26</a></i></p>
+<p><b>brief</b> The faces a terminal draws with: a primary face (its cell size is the grid's), its bold face if there is one, and fallback faces for what the primary lacks (CJK, symbols), tried in order.</p>
+<p>Up to <code>max_faces</code> regular faces, one bold; all at one pixel size. Holds the faces themselves (32 bytes each), so 320 bytes and FreeType's memory for each face opened.</p>
+<p>sq::font::FontSet fonts;</p>
+<p>(void)fonts.add( std::move( jetbrains_mono ) );        // the primary</p>
+<p>(void)fonts.set_bold( std::move( jetbrains_mono_bold ) );</p>
+<p>fonts.add_system_fallbacks();                          // Noto CJK and the rest</p>
+<p>(void)fonts.set_pixel_size( 32 );</p>
+<h2 id="members">Members</h2>
+<p>public static const std::size_t max_faces</p>
+<h2 id="records">Records</h2>
+<p>Choice</p>
+<h2 id="functions">Functions</h2>
+<h3 id="add">add</h3>
+<p><i>public FaceError add(Face face)</i></p>
+<p>A regular face, after those added before; the first is the primary.</p>
+<h3 id="add_system_fallbacks">add_system_fallbacks</h3>
+<p><i>public std::size_t add_system_fallbacks()</i></p>
+<p>The system's fallback fonts that exist here, in order (Android's Noto CJK, or the 5.1 tablet's Droid Sans Fallback, then symbols; on Linux, Noto CJK and DejaVu): how many were added.</p>
+<h3 id="choose">choose</h3>
+<p><i>public std::optional&lt;Choice&gt; choose(char32_t code, bool bold)</i></p>
+<p>The face for <code>code</code>: for bold, the bold face when it has it; else the first that does.</p>
+<h3 id="has_bold">has_bold</h3>
+<p><i>public bool has_bold()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/font_set.cppm#L56">font/font_set.cppm:56</a></i></p>
+<h3 id="metrics">metrics</h3>
+<p><i>public FontMetrics metrics()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/font_set.cppm#L53">font/font_set.cppm:53</a></i></p>
+<h3 id="render">render</h3>
+<p><i>public std::optional&lt;GlyphBitmap&gt; render(char32_t code, GlyphStyle style, Choice * chosen)</i></p>
+<p><code>code</code> rendered by the face <code>choose</code> picks, <code>style</code> made where that face lacks it. Nothing when no face has it. Valid until the next render by the same face.</p>
+<h3 id="set_bold">set_bold</h3>
+<p><i>public FaceError set_bold(Face face)</i></p>
+<p>The primary's bold face.</p>
+<h3 id="set_pixel_size">set_pixel_size</h3>
+<p><i>public FaceError set_pixel_size(std::uint16_t pixels)</i></p>
+<p>Every face at <code>pixels</code>; the metrics are the primary's.</p>
+<h3 id="size">size</h3>
+<p><i>public std::size_t size()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/font_set.cppm#L55">font/font_set.cppm:55</a></i></p>
+<p>Regular faces held, the primary among them.</p>
+<h3 id="system_fallback_paths">system_fallback_paths</h3>
+<p><i>public static std::span&lt;const std::string_view&gt; system_fallback_paths()</i></p>
+<p>Paths <code>add_system_fallbacks</code> looks for, in order.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

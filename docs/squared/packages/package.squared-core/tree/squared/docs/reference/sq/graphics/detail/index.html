@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace detail · squared</title>
+<meta name="description" content="squared: namespace detail">
+<link rel="stylesheet" href="../../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/detail/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/detail/index.md">on GitHub</a></p><h1 id="namespace-detail">namespace detail</h1>
+<h2 id="records">Records</h2>
+<ul><li><a href="DecodedImage.html">DecodedImage</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="decode_image">decode_image</h3>
+<p><i>DecodedImage decode_image(std::span&lt;const std::byte&gt; bytes, std::size_t maximum_pixels)</i></p>
+<p><b>brief</b> Decode an encoded image to RGBA8888.</p>
+<p><b>bytes</b> Encoded file contents; PNG today.</p>
+<p><b>maximum_pixels</b> Reject an image with more pixels than this, before allocating for it. Zero disables the check.</p>
+<p><b>return</b> The decoded image, or a DecodedImage carrying the decoder's message.</p>
+<p><b>note</b> Always produces four channels, whatever the source had, because every path above this wants RGBA8888 and converting once here is cheaper than every caller handling three formats.</p>
+<p><b>note</b> The dimension check happens before the decode allocates. A malicious or corrupt PNG header can claim 65535x65535, which is 17 GB of RGBA; finding that out after the allocation is too late on a phone.</p>
+<p><b>note</b> Internal to the squared build. Not installed, not public API: there is one consumer today, and the extension policy says a second concrete use comes before a public interface.</p>
+<h3 id="decode_utf8">decode_utf8</h3>
+<p><i>std::optional&lt;char32_t&gt; decode_utf8(std::string_view text, std::size_t &amp; cursor)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L156">graphics/src/detail/bitmap_font_detail.cppm:156</a></i></p>
+<h3 id="fail">fail</h3>
+<p><i>void fail(BitmapFontError &amp; error, BitmapFontErrorCode code, std::size_t line, const char * message, const char * field)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L29">graphics/src/detail/bitmap_font_detail.cppm:29</a></i></p>
+<p>Record a failure. <code>message</code> and <code>field</code> must be string literals: the error keeps the pointers, not copies.</p>
+<h3 id="integer_field">integer_field</h3>
+<p><i>bool integer_field(const Fields &amp; fields, const char * name, Integer &amp; result, BitmapFontError &amp; error, std::size_t line)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L115">graphics/src/detail/bitmap_font_detail.cppm:115</a></i></p>
+<h3 id="is_space">is_space</h3>
+<p><i>bool is_space(char value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L17">graphics/src/detail/bitmap_font_detail.cppm:17</a></i></p>
+<h3 id="parse_record">parse_record</h3>
+<p><i>bool parse_record(std::string_view line, std::string_view &amp; tag, Fields &amp; fields, BitmapFontError &amp; error, std::size_t line_number)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L39">graphics/src/detail/bitmap_font_detail.cppm:39</a></i></p>
+<h3 id="safe_page_path">safe_page_path</h3>
+<p><i>bool safe_page_path(std::string_view path)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L134">graphics/src/detail/bitmap_font_detail.cppm:134</a></i></p>
+<h3 id="valid_scalar">valid_scalar</h3>
+<p><i>bool valid_scalar(char32_t value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/src/detail/bitmap_font_detail.cppm#L22">graphics/src/detail/bitmap_font_detail.cppm:22</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

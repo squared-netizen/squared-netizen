@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Texture2D · squared</title>
+<meta name="description" content="squared: class Texture2D">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gles/Texture2D.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gles/Texture2D.md">on GitHub</a></p><h1 id="class-texture2d">class Texture2D</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L23">gles/texture2d.cppm:23</a></i></p>
+<p><b>brief</b> One 2D GL texture, owned.</p>
+<p>16 bytes: a name, dimensions and a format. <b>No pixel data is retained.</b> That is the priority-1 decision at the heart of this class: keeping a CPU copy would make recovery after context loss automatic and would double the resident cost of every texture in the application.</p>
+<p>Recovery is the caller's business, and squared::graphics::Texture is where the policy for it lives. This class only offers what recovery needs: upload() to refill, and invalidate() to forget a name whose context is gone.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="texture2d">Texture2D</h3>
+<p><i>public void Texture2D()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L26">gles/texture2d.cppm:26</a></i></p>
+<h3 id="texture2d">Texture2D</h3>
+<p><i>public void Texture2D(Texture2D &amp;&amp; other)</i></p>
+<h3 id="texture2d">Texture2D</h3>
+<p><i>public void Texture2D(const Texture2D &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L29">gles/texture2d.cppm:29</a></i></p>
+<h3 id="bind">bind</h3>
+<p><i>public void bind(int unit)</i></p>
+<p><b>brief</b> Bind to a texture unit.</p>
+<p><b>unit</b> Unit index; the value a sampler uniform is set to.</p>
+<h3 id="bytes_per_pixel">bytes_per_pixel</h3>
+<p><i>public static int bytes_per_pixel(TextureFormat format)</i></p>
+<p><b>brief</b> Return the bytes one pixel of a format occupies.</p>
+<h3 id="create">create</h3>
+<p><i>public GlesError create(int width, int height, TextureFormat format, std::span&lt;const std::byte&gt; pixels)</i></p>
+<p><b>brief</b> Allocate storage and optionally fill it.</p>
+<p><b>width</b> Width in pixels; must be positive.</p>
+<p><b>height</b> Height in pixels; must be positive.</p>
+<p><b>format</b> Pixel format of the storage.</p>
+<p><b>pixels</b> Initial contents, tightly packed, or empty to allocate uninitialised storage.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<p><b>note</b> Row alignment is set to 1 before upload. GL defaults to 4, which corrupts any R8 texture whose width is not a multiple of four — the classic skewed-font-atlas bug.</p>
+<h3 id="destroy">destroy</h3>
+<p><i>public void destroy()</i></p>
+<p><b>brief</b> Release the GL object. Safe to call more than once.</p>
+<h3 id="format">format</h3>
+<p><i>public TextureFormat format()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L105">gles/texture2d.cppm:105</a></i></p>
+<p><b>brief</b> Return the storage format.</p>
+<h3 id="height">height</h3>
+<p><i>public int height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L102">gles/texture2d.cppm:102</a></i></p>
+<p><b>brief</b> Return the height in pixels.</p>
+<h3 id="invalidate">invalidate</h3>
+<p><i>public void invalidate()</i></p>
+<p><b>brief</b> Forget the GL name without deleting it, after context loss.</p>
+<h3 id="name">name</h3>
+<p><i>public std::uint32_t name()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L96">gles/texture2d.cppm:96</a></i></p>
+<p><b>brief</b> Return the raw GL name, or zero.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Texture2D &amp; operator=(Texture2D &amp;&amp; other)</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Texture2D &amp; operator=(const Texture2D &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L30">gles/texture2d.cppm:30</a></i></p>
+<h3 id="set_sampling">set_sampling</h3>
+<p><i>public GlesError set_sampling(graphics::TextureFilter minify, graphics::TextureFilter magnify, graphics::TextureWrap wrap)</i></p>
+<p><b>brief</b> Set minification, magnification and wrapping.</p>
+<p><b>minify</b> Filter used when the texture is drawn smaller.</p>
+<p><b>magnify</b> Filter used when it is drawn larger.</p>
+<p><b>wrap</b> Behaviour outside the zero-to-one range.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<h3 id="upload">upload</h3>
+<p><i>public GlesError upload(std::span&lt;const std::byte&gt; pixels)</i></p>
+<p><b>brief</b> Replace the whole contents, keeping the same storage.</p>
+<p><b>pixels</b> Tightly packed pixels matching the existing size and format.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<h3 id="upload_region">upload_region</h3>
+<p><i>public GlesError upload_region(int x, int y, int width, int height, std::span&lt;const std::byte&gt; pixels)</i></p>
+<p><b>brief</b> Replace a rectangle of the contents.</p>
+<p><b>x</b> Left edge in pixels.</p>
+<p><b>y</b> Top edge in pixels.</p>
+<p><b>width</b> Width of the rectangle.</p>
+<p><b>height</b> Height of the rectangle.</p>
+<p><b>pixels</b> Tightly packed pixels for the rectangle.</p>
+<p><b>return</b> A no-error GlesError on success.</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L93">gles/texture2d.cppm:93</a></i></p>
+<p><b>brief</b> Report whether this holds a GL object.</p>
+<h3 id="width">width</h3>
+<p><i>public int width()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gles/texture2d.cppm#L99">gles/texture2d.cppm:99</a></i></p>
+<p><b>brief</b> Return the width in pixels.</p>
+<h3 id="texture2d">~Texture2D</h3>
+<p><i>public void ~Texture2D()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class TextureRegion · squared</title>
+<meta name="description" content="squared: class TextureRegion">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/TextureRegion.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/TextureRegion.md">on GitHub</a></p><h1 id="class-textureregion">class TextureRegion</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L15">graphics/texture_region.cppm:15</a></i></p>
+<p><b>brief</b> Non-owning rectangular view into a Texture.</p>
+<p>The referenced Texture must outlive the region and every draw operation that uses it.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="textureregion">TextureRegion</h3>
+<p><i>public void TextureRegion()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L19">graphics/texture_region.cppm:19</a></i></p>
+<p><b>brief</b> Construct an empty, invalid region.</p>
+<h3 id="textureregion">TextureRegion</h3>
+<p><i>public void TextureRegion(const Texture &amp; texture)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L41">graphics/texture_region.cppm:41</a></i></p>
+<p><b>brief</b> Reference the complete texture.</p>
+<p><b>texture</b> Texture shared non-owningly; must outlive the region.</p>
+<h3 id="textureregion">TextureRegion</h3>
+<p><i>public void TextureRegion(const Texture &amp; texture, int x, int y, int width, int height, bool rotated_clockwise)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L60">graphics/texture_region.cppm:60</a></i></p>
+<p><b>brief</b> Reference a pixel rectangle using top-left image coordinates.</p>
+<p>For clockwise-packed atlas entries, width and height describe the logical unrotated region; their storage extents are swapped.</p>
+<p><b>texture</b> Texture shared non-owningly; must outlive the region.</p>
+<p><b>x</b> Left rect coordinate in source pixels.</p>
+<p><b>y</b> Top rect coordinate in source pixels.</p>
+<p><b>width</b> Logical width in source pixels.</p>
+<p><b>height</b> Logical height in source pixels.</p>
+<p><b>rotated_clockwise</b> Whether atlas storage is rotated.</p>
+<h3 id="textureregion">TextureRegion</h3>
+<p><i>public void TextureRegion(int width, int height, bool rotated_clockwise)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L31">graphics/texture_region.cppm:31</a></i></p>
+<p><b>brief</b> Create an unbacked logical region for recording and validation.</p>
+<p>The region has dimensions and normalized coordinates but is not valid for GPU rendering because it references no Texture.</p>
+<p><b>width</b> Logical width in pixels; clamped to non-negative.</p>
+<p><b>height</b> Logical height in pixels; clamped to non-negative.</p>
+<p><b>rotated_clockwise</b> Whether atlas storage is rotated 90 degrees clockwise.</p>
+<h3 id="height">height</h3>
+<p><i>public int height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L146">graphics/texture_region.cppm:146</a></i></p>
+<p><b>brief</b> Read the region height.</p>
+<p><b>return</b> Height in source pixels.</p>
+<h3 id="refresh">refresh</h3>
+<p><i>public bool refresh()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L121">graphics/texture_region.cppm:121</a></i></p>
+<p><b>brief</b> Re-bind this region to its texture's current content.</p>
+<p><b>return</b> true when the region is valid afterwards.</p>
+<p><b>note</b> For a region whose texture was restored with the same dimensions and layout - the common case after context loss, where the pixels come back exactly as they were. A region into an atlas that was repacked is not made correct by this, because its coordinates never described the new layout.</p>
+<h3 id="rotated_clockwise">rotated_clockwise</h3>
+<p><i>public bool rotated_clockwise()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L176">graphics/texture_region.cppm:176</a></i></p>
+<p><b>brief</b> Report whether atlas storage is rotated.</p>
+<p><b>return</b> true when storage is rotated 90 degrees clockwise.</p>
+<h3 id="stale">stale</h3>
+<p><i>public bool stale()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L106">graphics/texture_region.cppm:106</a></i></p>
+<p><b>brief</b> Report whether the texture's content changed under this region.</p>
+<p><b>return</b> true when the region still references a texture but that texture's content has since been replaced or discarded.</p>
+<p><b>note</b> Distinguishes "never had a texture" from "had one and lost it", which valid() alone cannot. A caller rebuilding an atlas wants the second; a caller checking an empty slot wants neither.</p>
+<h3 id="subregion">subregion</h3>
+<p><i>public TextureRegion subregion(int x, int y, int width, int height)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L190">graphics/texture_region.cppm:190</a></i></p>
+<p><b>brief</b> Return a logical subregion using top-left coordinates.</p>
+<p>The returned view references the same texture and preserves atlas rotation. Invalid bounds return an empty region.</p>
+<p><b>x</b> Left coordinate in logical pixels.</p>
+<p><b>y</b> Top coordinate in logical pixels.</p>
+<p><b>width</b> Subregion width in logical pixels.</p>
+<p><b>height</b> Subregion height in logical pixels.</p>
+<p><b>return</b> A non-owning subregion view, or an empty region when the requested bounds fall outside this region.</p>
+<h3 id="texture">texture</h3>
+<p><i>public const Texture &amp; texture()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L134">graphics/texture_region.cppm:134</a></i></p>
+<p><b>brief</b> Access the referenced texture.</p>
+<p><b>return</b> Reference to the texture; undefined when valid() is false.</p>
+<h3 id="u1">u1</h3>
+<p><i>public float u1()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L152">graphics/texture_region.cppm:152</a></i></p>
+<p><b>brief</b> Read the left normalized texture coordinate.</p>
+<p><b>return</b> U coordinate in the inclusive range [0, 1].</p>
+<h3 id="u2">u2</h3>
+<p><i>public float u2()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L164">graphics/texture_region.cppm:164</a></i></p>
+<p><b>brief</b> Read the right normalized texture coordinate.</p>
+<p><b>return</b> U coordinate in the inclusive range [0, 1].</p>
+<h3 id="v1">v1</h3>
+<p><i>public float v1()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L158">graphics/texture_region.cppm:158</a></i></p>
+<p><b>brief</b> Read the top normalized texture coordinate.</p>
+<p><b>return</b> V coordinate in the inclusive range [0, 1].</p>
+<h3 id="v2">v2</h3>
+<p><i>public float v2()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L170">graphics/texture_region.cppm:170</a></i></p>
+<p><b>brief</b> Read the bottom normalized texture coordinate.</p>
+<p><b>return</b> V coordinate in the inclusive range [0, 1].</p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L91">graphics/texture_region.cppm:91</a></i></p>
+<p><b>brief</b> Check whether this region can be rendered.</p>
+<p><b>return</b> true when the referenced texture still holds the content this region was built against, and the region has positive size.</p>
+<p><b>note</b> The generation check is what stops a crash after a phone call. A texture whose content was discarded, reloaded or regenerated has moved its content_generation(); this region's coordinates then describe pixels that are no longer there, or are not there at all. Drawing it would sample whatever now occupies that texture unit.</p>
+<h3 id="width">width</h3>
+<p><i>public int width()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/texture_region.cppm#L140">graphics/texture_region.cppm:140</a></i></p>
+<p><b>brief</b> Read the region width.</p>
+<p><b>return</b> Width in source pixels.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

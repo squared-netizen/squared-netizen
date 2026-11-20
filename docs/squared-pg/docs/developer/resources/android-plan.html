@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plan — template.android.cpp and kit.opengl · squared-pg</title>
+<meta name="description" content="squared-pg: Plan — template.android.cpp and kit.opengl">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/resources/android-plan.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/resources/android-plan.md">on GitHub</a></p><h1 id="plan--templateandroidcpp-and-kitopengl">Plan — <code>template.android.cpp</code> and <code>kit.opengl</code></h1>
+<p>Written against the host capability probes in <code>tools/probe/</code>, not against assumptions. Every path and flag below came from a run on the target device (Samsung SM-A155M, Android 16 / SDK 36, arm64-v8a, Termux, clang 21.1.8).</p>
+<p>Status: <b>design agreed, one item unverified</b> — see <a href="#open">Open</a>.</p>
+<hr>
+<h2 id="what-the-probes-settled">What the probes settled</h2>
+<div class="tablewrap"><table><thead><tr><th>Question</th><th>Answer</th><th>Source</th></tr></thead><tbody><tr><td>Android-targeting compiler</td><td>clang 21.1.8, <code>aarch64-unknown-linux-android24</code></td><td><code>10</code></td></tr><tr><td>NativeActivity headers</td><td>all present, all compile</td><td><code>20</code>, <code>50</code></td></tr><tr><td>Khronos headers</td><td>in the NDK, compile with <code>-I</code></td><td><code>60</code></td></tr><tr><td>NDK location</td><td><code>$PREFIX/opt/android-sdk/ndk/29.0.14206865</code></td><td><code>60</code>, <code>80</code></td></tr><tr><td><code>android_native_app_glue</code></td><td>in the NDK's <code>sources/</code>, compiles</td><td><code>80</code></td></tr><tr><td><code>android.jar</code></td><td>android-34 and android-36 present</td><td><code>30</code></td></tr><tr><td>APK chain</td><td>aapt2 → zip → apksigner, builds and verifies</td><td><code>70</code></td></tr><tr><td>Naive <code>-lEGL</code></td><td><b>binds libglvnd, wrong</b> — needs explicit <code>-L</code></td><td><code>80</code></td></tr><tr><td>C++ runtime</td><td><code>NEEDED libc++_shared.so</code></td><td><code>80</code>, <code>90</code></td></tr><tr><td><code>zipalign</code></td><td>absent — sidestepped, see below</td><td><code>30</code></td></tr></tbody></table></div>
+<p>Nothing needs installing. The one hazard found is the libglvnd <code>libEGL.so</code> in <code>$PREFIX/lib</code>, which a plain <code>-lEGL</code> binds in preference to the NDK stub. That would fail at runtime inside an APK, which is the worst place to discover it, so the build fragment passes <code>-L</code> explicitly and the <code>.so</code> target verifies <code>NEEDED</code> after linking.</p>
+<hr>
+<h2 id="architecture">Architecture</h2>
+<pre><code class="lang-text">AndroidManifest.xml  →  android.app.NativeActivity      framework class, no Java
+                             ↓
+                     android_native_app_glue            compiled from the NDK
+                             ↓
+                     sq_android/entry.cpp               seeded — glue → App adapter
+                             ↓
+                     sq_app/src/app.cpp                 yours, portable
+                             ↓
+                     sq::gl                             kit.opengl: EGL + GLES 3.0</code></pre>
+<p><b>No Java, no Kotlin, no <code>classes.dex</code>, no Gradle.</b> <code>d8</code> is installed and unused. Getting the SDK and NDK was painful once; nothing here asks for more.</p>
+<p><b>Rejected: GameActivity.</b> Needs AndroidX, which needs Gradle dependency resolution, which needs the network. Disqualifying under §1.13 regardless of its better input handling.</p>
+<p><b>Rejected: a thin Java <code>Activity</code> + JNI.</b> Works, but puts a <code>.java</code> and a <code>classes.dex</code> in the critical path, so a JDK and <code>d8</code> become required to build anything at all. NativeActivity keeps the native path buildable with clang alone.</p>
+<hr>
+<h2 id="workspace-layout">Workspace layout</h2>
+<pre><code class="lang-text">ProjectDir/
+  sq_app/         your portable C++              seeded, working directory
+    include/
+    src/app.cpp                                  the App class — no Android in it
+  sq_android/     the platform workspace         seeded — the escape hatch
+    AndroidManifest.xml
+    entry.cpp                                    glue → App adapter
+    res/
+      values/strings.xml
+      values/colors.xml
+      drawable/ic_launcher_foreground.xml        vector, not PNG
+      mipmap-anydpi-v26/ic_launcher.xml          adaptive icon
+      mipmap-hdpi/ic_launcher.png                one legacy fallback
+  sq_kit/         kit headers                    generated
+  mk/             build fragments                generated
+  Makefile        yours                          seeded</code></pre>
+<p><code>sq_android/</code> is entirely <b>seeded</b>: you may edit the manifest, the resources and the glue adapter, and the generator will never overwrite them. That is the expert escape hatch. §2.7.3's promise — you never need to edit outside <code>sq_app/</code> — stays true for the normal case, because the defaults work.</p>
+<p><code>sq_app/app.cpp</code> includes no Android header. The platform layer calls into it. That is what makes the same <code>App</code> compile under <code>template.termux.cpp</code>.</p>
+<hr>
+<h2 id="making-kitsfml-possible-later">Making <code>kit.sfml</code> possible later</h2>
+<p>The template requires <b>no</b> rendering kit. It declares:</p>
+<pre><code class="lang-json">&quot;integration_areas&quot;: [&quot;render.backend&quot;, &quot;app.include&quot;,
+                      &quot;build.make.fragments&quot;, &quot;android.manifest.features&quot;],
+&quot;integration_arity&quot;: { &quot;render.backend&quot;: &quot;single&quot;,
+                       &quot;app.include&quot;: &quot;multi&quot;,
+                       &quot;build.make.fragments&quot;: &quot;multi&quot;,
+                       &quot;android.manifest.features&quot;: &quot;multi&quot; }</code></pre>
+<p><code>sq_android/entry.cpp</code> uses <code>__has_include(&lt;squared/kit/gl.hpp&gt;)</code>, exactly as <code>app.cpp</code> already does for <code>kit.lua</code>. So <code>kit.opengl</code> and a future <code>kit.sfml</code> are interchangeable, and the engine's existing conflict detection refuses both at once because <code>render.backend</code> is <code>single</code>.</p>
+<p>Without a rendering kit the project still builds and runs: a black window and a log line saying no backend was selected. That is deliberate — a template that cannot build without a specific kit has hardcoded that kit.</p>
+<p><b>Known gap (Q-29).</b> The engine can express "requires kit X" but not "requires at least one kit providing X". <code>__has_include</code> covers it in the generated source; whether resolution should also express it is open, and not a blocker.</p>
+<hr>
+<h2 id="ndk-detection-belongs-to-the-template-not-the-kit">NDK detection belongs to the template, not the kit</h2>
+<p><b>Correction to an earlier draft.</b> I had <code>kit.opengl</code> locate the NDK and compile <code>android_native_app_glue.c</code>. That is wrong: without a rendering kit there would then be no glue, and the template promises to build without one.</p>
+<p>NativeActivity is the <i>template's</i> architecture. So <code>mk/squared_generated.mk</code> locates the NDK and compiles the glue, exporting <code>SQ_NDK</code>, <code>SQ_NDK_INC</code>, <code>SQ_NDK_LIB</code> and <code>SQ_GLUE_OBJ</code>. <code>kit.opengl</code> consumes those and adds only <code>-lEGL -lGLESv3</code> and its own header.</p>
+<p>That also makes <code>kit.sfml</code> cheaper later — it inherits a working NativeActivity build and adds a renderer, rather than re-solving NDK detection.</p>
+<h2 id="sdk-levels-are-build-settings-not-generation-parameters">SDK levels are build settings, not generation parameters</h2>
+<p><code>minSdkVersion</code>, <code>targetSdkVersion</code> and the ABI are <b>not</b> template parameters. Baking them at generation time would mean regenerating a project to retarget it.</p>
+<p>They live in <code>mk/squared_generated.mk</code> as overridable variables, and reach the APK through <code>aapt2 link --min-sdk-version</code> / <code>--target-sdk-version</code> rather than through the manifest. The manifest therefore carries no <code>&lt;uses-sdk&gt;</code> at all, and <code>make apk SQ_MIN_SDK=21</code> works without touching a generated file.</p>
+<pre><code class="lang-make">SQ_MIN_SDK    ?= 24     # clang&#x27;s default target is android24
+SQ_TARGET_SDK ?= 34
+SQ_ABI        ?= $(shell getprop ro.product.cpu.abi 2&gt;/dev/null || echo arm64-v8a)</code></pre>
+<h2 id="one-abi-honestly">One ABI, honestly</h2>
+<p>Termux's clang targets <code>aarch64</code> only; <code>ndk-multilib</code> is available but not installed, and building four ABIs on a phone is not the use case.</p>
+<p>The template builds for the <b>host ABI</b> and says so. Multi-ABI is a documented <code>make</code> invocation for someone on a desktop NDK, not a default that quietly produces an APK which runs on one device in three.</p>
+<h2 id="kitopengl"><code>kit.opengl</code></h2>
+<p>External dependency: the <b>NDK</b>, <code>acquisition: &quot;system&quot;</code> — but located by the template's fragment, as above. The kit adds EGL and GLES on top.</p>
+<h3 id="mkkit_openglmk"><code>mk/kit_opengl.mk</code></h3>
+<p>Detection, in the <code>kit_lua.mk</code> style — probe, report honestly, never fail cryptically:</p>
+<pre><code class="lang-make"># SQ_NDK, SQ_NDK_INC and SQ_NDK_LIB come from mk/squared_generated.mk, which
+# the template owns. The kit only adds what a renderer needs.
+SQ_KIT_CPPFLAGS += -I$(SQ_NDK_INC) -Isq_kit/include
+SQ_KIT_LDFLAGS  += -L$(SQ_NDK_LIB)
+SQ_KIT_LDLIBS   += -lEGL -lGLESv3
+SQ_KITS_PRESENT += kit.opengl</code></pre>
+<p><code>-I$(SQ_NDK_INC)</code> and — the part that matters — <b><code>-L$(SQ_NDK_LIB)</code> before <code>-lEGL -lGLESv3</code></b>, so the Android stubs win over libglvnd. The <code>.so</code> rule checks <code>readelf -d</code> output afterwards and fails loudly if <code>libEGL.so</code> resolved to <code>$PREFIX/lib</code>. A silent wrong bind is exactly the failure this kit exists to prevent.</p>
+<p><code>make gl-status</code> prints the resolved paths and whether each library bound correctly.</p>
+<h3 id="surface--ltsquaredkitglhppgt">Surface — <code>&lt;squared/kit/gl.hpp&gt;</code></h3>
+<pre><code class="lang-cpp">namespace sq::gl {
+  class Context;      // EGL display/config/surface/context; make_current, swap
+  class Surface;      // ANativeWindow: width, height, density, rotation
+  class Shader;       // compile, with the log as a string rather than a crash
+  class Program;      // link, cached uniform locations
+  class Buffer;       // VBO / EBO
+  class VertexArray;
+  class Texture2D;    // from raw bytes
+  void clear(Color);
+  void viewport(int, int);
+  const char* error_string(GLenum);
+}</code></pre>
+<p>GLES <b>3.0</b> floor (<code>#version 300 es</code>, GLSL ES 3.00). API 18+, covers effectively every live device. 3.1 would buy compute shaders at the cost of narrowing the field, which is the wrong trade for a "basics" kit.</p>
+<p>Deliberately <b>excluded</b>: PNG and asset decoding (an asset concern; a decoder would make a basics kit non-trivial to audit), math types (framework concern), and frame-loop ownership (<code>sq_android/entry.cpp</code> owns it, so you can replace it).</p>
+<hr>
+<h2 id="build-and-packaging">Build and packaging</h2>
+<p>Two tiers, each probing for what it needs:</p>
+<div class="tablewrap"><table><thead><tr><th>Target</th><th>Requires</th><th>Produces</th></tr></thead><tbody><tr><td><code>make</code></td><td>clang + NDK</td><td><code>build/lib/arm64-v8a/lib&lt;name&gt;.so</code></td></tr><tr><td><code>make apk</code></td><td>+ aapt2, apksigner, keytool, android.jar</td><td><code>build/&lt;name&gt;.apk</code></td></tr><tr><td><code>make install</code></td><td>+ termux-open</td><td>hands it to the package installer</td></tr><tr><td><code>make gl-status</code></td><td>—</td><td>resolved NDK paths and library bindings</td></tr></tbody></table></div>
+<p>Packaging, verified end to end by <code>70-apk-smoke.sh</code>:</p>
+<pre><code class="lang-text">aapt2 link -I android.jar --manifest ... -o base.apk
+zip base.apk lib/arm64-v8a/lib&lt;name&gt;.so
+zip base.apk lib/arm64-v8a/libc++_shared.so     # unless statically linked
+apksigner sign --ks ~/.android/debug.keystore</code></pre>
+<p><b><code>android:extractNativeLibs=&quot;true&quot;</code></b>, on purpose. The alternative, <code>&quot;false&quot;</code>, requires the <code>.so</code> to be page-aligned inside the APK — 16 KiB on Android 15+ — and <code>zipalign</code> is not installed. With <code>&quot;true&quot;</code> the library is stored compressed and the installer extracts it, so alignment never arises. Marginally larger on disk, works everywhere, nothing to improvise.</p>
+<p><b><code>libc++_shared.so</code></b> ships in the APK beside the app's own library, copied from <code>$SQ_NDK_LIB</code>. <code>90-libcxx.sh</code> checks whether <code>-static-libstdc++</code> removes the dependency; if it does, the APK carries one file instead of two and the fragment prefers it.</p>
+<p>The debug keystore is generated on first <code>make apk</code> if absent — you already have one.</p>
+<hr>
+<h2 id="icons">Icons</h2>
+<p>Adaptive icons as <b>XML</b>, not PNG:</p>
+<pre><code class="lang-text">res/drawable/ic_launcher_foreground.xml     vector drawable
+res/values/colors.xml                       background colour
+res/mipmap-anydpi-v26/ic_launcher.xml       adaptive icon (API 26+)
+res/mipmap-hdpi/ic_launcher.png             one legacy fallback</code></pre>
+<p>The default is therefore text — substitutable, reviewable in a diff, and parameterised by project name. One small PNG is the entire binary payload.</p>
+<p><b>Nothing depends on an asset cartridge existing.</b> A build must never fail because a default asset resource was missing or unmaintained. When asset materialization lands (D-032), <code>asset.android.icons</code> becomes an <i>optional</i> override, not a prerequisite.</p>
+<hr>
+<h2 id="delivery">Delivery</h2>
+<p>Split, given that the APK install is still unconfirmed:</p>
+<p><b>Phase 1</b> — <code>template.android.cpp</code> plus a minimal <code>kit.opengl</code> that brings up EGL, clears the screen green, and handles the activity lifecycle. Proves the whole chain on-device: generate → build → package → install → run.</p>
+<p><b>Phase 2</b> — the shader, buffer, texture and program surface, once phase 1 is confirmed.</p>
+<p>Phase 1 is the risky half and it is small. Phase 2 is bulk with little uncertainty in it.</p>
+<hr>
+<h2 id="untested-engine-paths-this-template-will-be-the-first-to-exercise">Untested engine paths this template will be the first to exercise</h2>
+<p>Not defects, but paths with no coverage until now. Each is exercised by the template itself, so the tests belong with it rather than ahead of it:</p>
+<ul><li><b>a binary payload in a template</b> — the PNG icon fallback. <code>looks_textual</code> is unit-tested; no end-to-end test copies a binary file through a plan.</li><li><b><code>single</code>-arity integration conflict</b> — <code>render.backend</code> is the first area where two kits could collide. <code>cross_validate</code> implements the check; nothing has ever tripped it.</li><li><b>the <code>java_package</code> parameter type</b> — implemented in <code>validation_service.cpp</code> for exactly this template, never exercised.</li><li><b>substitution inside a filename</b> — implemented, unused by <code>template.termux.cpp</code>.</li></ul>
+<p>Phase 1 adds a test for each, against the real Android template rather than a fixture — matching how <code>test_generate.cpp</code> already works.</p>
+<h2 id="open">Open</h2>
+<p><b>Does <code>~/squared-probe.apk</code> install and run?</b> The only finding left that would change the <i>approach</i> rather than the details.</p>
+<pre><code class="lang-sh">termux-open ~/squared-probe.apk
+logcat -d -s sqprobe</code></pre>
+<p>Black screen is success. Expect <code>onCreate</code>, <code>onStart</code>, <code>onResume</code> and a window pointer. If the install is refused, NativeActivity-without-<code>classes.dex</code> is not viable on Android 16 and the plan changes at the top rather than the edges.</p>
+<p><b>Does the resource path work?</b> <code>70-apk-smoke.sh</code> built an APK with <b>no <code>res/</code> directory</b> — it went straight to <code>aapt2 link --manifest</code>. The real template compiles resources first and references <code>@string/app_name</code> and <code>@mipmap/ic_launcher</code> from the manifest. That two-stage path is standard and well documented; so was linking <code>-lEGL</code>, which bound the wrong library. <code>95-apk-resources.sh</code> builds the real thing, adaptive icon and all.</p>
+<p><b>Does <code>-static-libstdc++</code> drop the <code>libc++_shared.so</code> dependency?</b> <code>90-libcxx.sh</code> answers it. Either outcome is fine; it decides one line.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

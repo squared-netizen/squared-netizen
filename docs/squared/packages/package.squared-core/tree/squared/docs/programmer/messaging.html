@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>messaging · squared</title>
+<meta name="description" content="squared: messaging">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/messaging.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/messaging.md">on GitHub</a></p><h1 id="messaging">messaging</h1>
+<p>The Telegraph's parts: names and addresses, keys, the 32-byte telegram and its one line of text, the ring that carries telegrams from one thread to another, the latest-value cache, both ends of a virtualized list, and the Telegraph that joins them, with the runner that gives the model its own thread. This page grows with the Telegraph.</p>
+<p>Every type below lives in its own header. Include exactly the ones a translation unit names; <code>squared/messaging/module.cppm</code> pulls in all of them and exists for convenience, not for use inside headers of your own.</p>
+<p>Developer counterpart: <a href="../developer/messaging.html">../developer/messaging.md</a></p>
+<blockquote><p>[!note] The old dispatcher is gone (2026-10-20) <code>MessageDispatcher</code>, <code>EndpointId</code>, <code>MessageId</code>, the JSON-payload <code>Telegram</code> and the providers were removed: nothing used them, and the app model replaces them. Scheduled delivery became the model's timers (<code>sq::time::DeadlineQueue</code>).</p></blockquote>
+<h2 id="names-and-addresses">Names and addresses</h2>
+<p>A telegram goes to an <b>address</b>: a <b>name</b>, which is the schema (<code>player.hp</code>, <code>item.name</code>, <code>inventory</code>), and a <b>uid</b>, which says which object (the model's own id for an item, a buffer, a row). Names are written in the code; uids come from the data.</p>
+<pre><code class="lang-cpp">import sq.messaging;
+
+using sq::messaging::Address;
+Address hp{ &quot;player.hp&quot; };              // no uid
+Address coat{ &quot;item.name&quot;, 17 };        // item[17].name</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Is</th></tr></thead><tbody><tr><td><code>Name</code></td><td><code>squared/messaging/name.cppm</code></td><td>8 bytes: the 64-bit FNV-1a hash of the name's text</td></tr><tr><td><code>Address</code></td><td><code>squared/messaging/address.cppm</code></td><td>a <code>Name</code> and a 32-bit <code>uid</code> (0: none); 16 bytes</td></tr><tr><td><code>NameTable</code></td><td><code>squared/messaging/name_table.cppm</code></td><td>the registered names' text, for writing telegrams as text</td></tr></tbody></table></div>
+<p><b>A name literal costs nothing at run time.</b> <code>Name n = &quot;player.hp&quot;;</code> is hashed by the compiler, and checked there: a name is dot-separated segments of <code>a</code>-<code>z</code>, <code>0</code>-<code>9</code> and <code>_</code>, at most 255 bytes, so <code>Name n = &quot;Player HP&quot;;</code> does not compile. A name built at run time (from a mod's file, say) is <code>Name::of(text)</code>: hashed once, and checked when it is registered.</p>
+<p><b>Data never goes in a name.</b> Which item is the uid, how many is the value. Names are a few hundred, or a few thousand with mods; that is what keeps the name table small and the ids from colliding.</p>
+<h3 id="the-text-form">The text form</h3>
+<div class="tablewrap"><table><thead><tr><th>Address</th><th>Written</th></tr></thead><tbody><tr><td><code>{ &quot;player.hp&quot; }</code></td><td><code>player.hp</code></td></tr><tr><td><code>{ &quot;item.name&quot;, 17 }</code></td><td><code>item[17].name</code>: the uid after the first segment</td></tr><tr><td><code>{ &quot;inventory&quot;, 20 }</code></td><td><code>inventory[20]</code></td></tr><tr><td>a name not registered, uid 3</td><td><code>#</code> and the id's 16 hex digits, then <code>[3]</code></td></tr></tbody></table></div>
+<p><code>parse_address(text)</code> reads that back with no table (the name is hashed):</p>
+<pre><code class="lang-cpp">if( auto address = sq::messaging::parse_address( &quot;item[17].name&quot; ) ) {
+    // address-&gt;name == Name(&quot;item.name&quot;), address-&gt;uid == 17
+}</code></pre>
+<p>It returns nothing for text that is not an address: an invalid name, a uid past 4,294,967,295, brackets anywhere but after the first segment. <code>[0]</code> reads as no uid.</p>
+<h3 id="the-name-table">The name table</h3>
+<pre><code class="lang-cpp">std::array&lt;std::byte, 8192&gt; storage;           // the Telegraph will own this
+sq::messaging::NameTable names{ storage };
+names.add( &quot;player.hp&quot; );                      // added
+std::array&lt;char, 64&gt; line;
+std::size_t n = names.format( { &quot;item.name&quot;, 17 }, line );  // &quot;item[17].name&quot;</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>add(text)</code></td><td>Register a name. Returns <code>added</code>, <code>known</code> (already there, same text), <code>invalid</code> (not a name), <code>collision</code> (another name has the same id: rename one) or <code>full</code></td></tr><tr><td><code>text(name)</code></td><td>The registered text, or empty</td></tr><tr><td><code>format(address, out)</code></td><td>Write the text form into <code>out</code>; the length, or 0 when <code>out</code> is too small</td></tr><tr><td><code>size()</code>, <code>used()</code>, <code>capacity()</code></td><td>Names registered; bytes used and available</td></tr></tbody></table></div>
+<p>16 bytes per name plus its text: 8 KB holds about 250 names. Nothing allocates; the storage is yours (the Telegraph's, later) and must outlive the table. Register names before the threads start.</p>
+<h2 id="keys">Keys</h2>
+<p><b>Every address in an app is a key:</b> a name with the type of its value, the verbs it carries, and whether it takes a uid.</p>
+<pre><code class="lang-cpp">import sq.messaging;
+
+namespace names {
+using namespace sq::messaging;
+inline constexpr Key&lt;std::int64_t, state&gt;                  counter_ticks{ &quot;counter.ticks&quot; };
+inline constexpr Key&lt;bool, state | set&gt;                    settings_sound{ &quot;settings.sound&quot; };
+inline constexpr Key&lt;std::string_view, do_&gt;                file_open{ &quot;file.open&quot; };
+inline constexpr Key&lt;void, event&gt;                          game_over{ &quot;game.over&quot; };
+inline constexpr Key&lt;std::string_view, state, with_uid&gt;    item_name{ &quot;item.name&quot; };
+}</code></pre>
+<p>Write them by hand in a header, or let <code>names.json</code> generate them (Sprint 9e): the same type either way. A dot in the name becomes an underscore in the identifier.</p>
+<div class="tablewrap"><table><thead><tr><th>Value type</th><th>Spelled</th></tr></thead><tbody><tr><td>none</td><td><code>void</code></td></tr><tr><td>bool</td><td><code>bool</code></td></tr><tr><td>integer</td><td><code>std::int64_t</code></td></tr><tr><td>number</td><td><code>double</code></td></tr><tr><td>two to four floats</td><td><code>std::array&lt;float, 2&gt;</code> to <code>std::array&lt;float, 4&gt;</code></td></tr><tr><td>text</td><td><code>std::string_view</code></td></tr><tr><td>a list of uids</td><td><code>std::span&lt;const std::uint32_t&gt;</code></td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Verbs</th><th>Direction</th></tr></thead><tbody><tr><td><code>state</code></td><td>model to UI: a value is now this</td></tr><tr><td><code>event</code></td><td>model to UI: something happened</td></tr><tr><td><code>set</code></td><td>UI to model: the user changed a value</td></tr><tr><td><code>do_</code></td><td>UI to model: an intent (<code>do</code> in text)</td></tr></tbody></table></div>
+<p>Combine with <code>|</code>: <code>state | set</code> is a value both sides change, like a check box's.</p>
+<p><b>The compiler checks every send against the key.</b> The Telegraph's calls are constrained by <code>sendable&lt;Key, Verb, Value&gt;</code>, so these do not compile:</p>
+<div class="tablewrap"><table><thead><tr><th>Mistake</th><th>Example</th></tr></thead><tbody><tr><td>the wrong type</td><td>text to <code>counter_ticks</code></td></tr><tr><td>a bool for an integer</td><td><code>true</code> to <code>counter_ticks</code></td></tr><tr><td>a verb the key does not carry</td><td><code>set</code> on <code>counter_ticks</code>, <code>state</code> on <code>file_open</code></td></tr><tr><td>a value for an address with none</td><td>anything to <code>game_over</code></td></tr></tbody></table></div>
+<p>A key is 16 bytes: the name (8) and a pointer to its text (8), for the name table. Keys are constants; a telegram carries only the 8-byte name.</p>
+<h2 id="the-telegram">The telegram</h2>
+<p><code>sq::messaging::Telegram</code> (<code>squared/messaging/telegram.cppm</code>) is one message, 32 bytes: the name, the uid, a correlation (which pairs a <code>do</code> with the <code>event</code> that answers it, 0 for none), the verb and value type, and 16 bytes of value. Apps send through the Telegraph with keys; this is what travels underneath, and what a replay file or a test makes by hand.</p>
+<pre><code class="lang-cpp">using namespace sq::messaging;
+const Telegram ticks = Telegram::integer( Verb::state, { &quot;counter.ticks&quot; }, 42 );
+const Telegram open  = Telegram::data( Verb::do_, { &quot;file.open&quot; }, ValueType::text, where )
+                           .with_correlation( 12 );</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Factory</th><th>Value</th></tr></thead><tbody><tr><td><code>empty(verb, to)</code></td><td>none</td></tr><tr><td><code>boolean(verb, to, b)</code></td><td>a bool</td></tr><tr><td><code>integer(verb, to, i)</code></td><td>a 64-bit integer</td></tr><tr><td><code>number(verb, to, d)</code></td><td>a double; not a NaN (asserted: a NaN has no text form)</td></tr><tr><td><code>floats(verb, to, span)</code></td><td>two to four floats; no NaN</td></tr><tr><td><code>data(verb, to, type, where)</code></td><td>text or a uid list, by where it is in the data area (<code>DataRef</code>: offset and length in bytes, 4 per uid)</td></tr></tbody></table></div>
+<p>Read it with <code>verb()</code>, <code>type()</code>, <code>address()</code>, <code>correlation()</code>, and <code>as_boolean()</code>, <code>as_integer()</code>, <code>as_number()</code>, <code>as_floats()</code>, <code>as_data()</code> for its type. <code>with_correlation(c)</code> and <code>with_uid(uid)</code> make the same telegram answering <code>c</code>, or to another uid of its address (a list row's item). <code>valid()</code> says whether 32 bytes that came from elsewhere (<code>TelegramBytes::from</code>) are a telegram; the factories only make valid ones, with every byte a value does not use zero, so equal telegrams are equal byte for byte.</p>
+<h2 id="telegrams-as-text">Telegrams as text</h2>
+<p>Every telegram has one canonical line, the same on every device:</p>
+<pre><code class="lang-text">set settings.sound false
+do file.open &quot;notes.txt&quot; @12
+state item[17].name &quot;fur coat&quot;
+state player.pos (1.5 2)
+state counter.ticks 2.0
+state inventory [17 4 22]
+event game.over @12</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Part</th><th>Written</th></tr></thead><tbody><tr><td>the verb</td><td><code>set</code>, <code>do</code>, <code>state</code>, <code>event</code></td></tr><tr><td>the address</td><td>as in <a href="#the-text-form">the text form</a> of an address: <code>item[17].name</code></td></tr><tr><td>a bool</td><td><code>true</code>, <code>false</code></td></tr><tr><td>an integer</td><td>decimal</td></tr><tr><td>a number</td><td>the shortest form that reads back to the same bits, always with a <code>.</code> or an exponent so it is not an integer: <code>2.0</code>, <code>0.1</code>, <code>1e+21</code>, <code>-0.0</code>, <code>inf</code></td></tr><tr><td>floats</td><td><code>(1.5 2 0 1)</code></td></tr><tr><td>text</td><td>in double quotes; <code>\\</code>, <code>\&quot;</code>, <code>\n</code>, <code>\t</code>, and <code>\xNN</code> for any other byte below 0x20 or 0x7F; other bytes as they are, so UTF-8 reads as itself</td></tr><tr><td>uids</td><td><code>[17 4 22]</code>; none: <code>[]</code></td></tr><tr><td>a correlation</td><td><code> @12</code> at the end, when not 0</td></tr></tbody></table></div>
+<pre><code class="lang-cpp">std::array&lt;std::byte, 4096&gt; storage;
+sq::messaging::TelegramData data{ storage };        // where text and uid lists go
+auto telegram = sq::messaging::read_telegram( &quot;do file.open \&quot;notes.txt\&quot; @12&quot;, data );
+
+std::array&lt;char, 512&gt; line;
+std::size_t n = sq::messaging::write_telegram( *telegram, data.bytes(), names, line );</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th><th>Fails with</th></tr></thead><tbody><tr><td><code>write_telegram(t, data, names, out)</code></td><td>the line, into <code>out</code>; the length</td><td>0: <code>out</code> too small, <code>t</code> not valid, or its data outside <code>data</code></td></tr><tr><td><code>write_value(t, data, out)</code></td><td>its value alone, as the line writes it (<code>2.0</code>, <code>&quot;ann&quot;</code>, <code>[17 4]</code>): what a bound label shows</td><td>0: as above, or <code>t</code> has no value</td></tr><tr><td><code>read_telegram(line, data)</code></td><td>the telegram; text and uids appended to <code>data</code></td><td>nothing: not a telegram, or <code>data</code> full; nothing is left in <code>data</code></td></tr></tbody></table></div>
+<p><code>read_telegram</code> needs no name table: names are hashed. It reads more than the canonical form (more spaces, <code>[0]</code>, <code>1.50</code>, <code>007</code>), and writing what it read gives the canonical line. It refuses a NaN, an integer out of range, a correlation past 65,535, two to four floats only, and anything after the value.</p>
+<p><code>TelegramData</code> is a data area over storage you give it, filled from the front: <code>append(bytes)</code>, <code>at(where)</code>, <code>bytes()</code>, <code>clear()</code>. Nothing in this module allocates.</p>
+<h2 id="the-ring">The ring</h2>
+<p><code>sq::messaging::TelegramRing</code> (<code>squared/messaging/telegram_ring.cppm</code>) carries telegrams from one thread to one other, in order, with no lock and no allocation. The Telegraph runs one each way; an app sends through the Telegraph, not through a ring. A tool or a test that moves telegrams between two threads of its own can use one directly.</p>
+<pre><code class="lang-cpp">using namespace sq::messaging;
+std::array&lt;std::byte, 256 * 32&gt; slots;   // 256 telegrams
+std::array&lt;std::byte, 8192&gt; text;        // their text and uid lists
+TelegramRing ring{ slots, text };
+
+// the producer&#x27;s thread
+const std::string_view name = &quot;notes.txt&quot;;
+const Telegram open = Telegram::data( Verb::do_, { &quot;file.open&quot; }, ValueType::text, {} );
+if( ring.push( open, std::as_bytes( std::span( name ) ) ) == RingResult::full ) { /* later */ }
+
+// the consumer&#x27;s thread
+while( const auto got = ring.front() ) {
+    handle( got-&gt;telegram, got-&gt;data ); // data: the text, valid until pop()
+    ring.pop();
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Thread</th><th>Does</th><th>Fails with</th></tr></thead><tbody><tr><td><code>TelegramRing(slots, data)</code></td><td>either, once</td><td>a ring over your storage: 32 bytes a telegram, a power of two of them, at least 2; data a power of two, at least 16 bytes, or empty for a ring with no text</td><td>asserted: sizes not powers of two</td></tr><tr><td><code>push(telegram, data = {})</code></td><td>producer</td><td>copies the telegram in; for <code>text</code> and <code>uids</code>, copies <code>data</code> into the ring too, and the telegram that arrives says where</td><td><code>full</code>: no room now, nothing written; <code>too_large</code>: the value is over a quarter of the data ring and can never be sent</td></tr><tr><td><code>front()</code></td><td>consumer</td><td>the oldest telegram and its data; nothing when empty</td><td>&amp;mdash;</td></tr><tr><td><code>pop()</code></td><td>consumer</td><td>done with the front telegram; its data's room is free again</td><td>asserted: the ring is empty</td></tr><tr><td><code>stats()</code></td><td>either</td><td>the sizes, and the most telegrams and data bytes held at once</td><td>&amp;mdash;</td></tr></tbody></table></div>
+<p>Exactly one thread pushes and exactly one reads. Neither ever waits: a full ring says so, an empty one has no <code>front()</code>. A uid list is 4 bytes a uid.</p>
+<h2 id="the-latest-value-cache">The latest-value cache</h2>
+<p><code>sq::messaging::ValueCache</code> (<code>squared/messaging/value_cache.cppm</code>) keeps the last value of each address, so a screen built later shows current values at once. The Telegraph keeps one on the UI side and fills it from the model's <code>state</code> telegrams; an app reads it through its screens, not directly. A tool or a test can use one by itself.</p>
+<pre><code class="lang-cpp">using namespace sq::messaging;
+std::array&lt;std::byte, 512 * 32&gt; entries;                      // 512 addresses
+std::array&lt;std::byte, ValueCache::index_bytes( 512 )&gt; index;  // 2 KB
+std::array&lt;std::byte, 8192&gt; text;                             // text over 16 bytes
+ValueCache cache{ entries, index, text };
+
+const Address name{ &quot;item.name&quot;, 17 };
+if( !cache.bind( name ) ) { /* every entry bound: a larger cache */ }   // a label shows it
+const auto fur_coat = std::as_bytes( std::span( std::string_view( &quot;fur coat&quot; ) ) );
+const Telegram state = Telegram::data( Verb::state, name, ValueType::text, {} );
+if( cache.store( state, fur_coat ) != CacheResult::stored ) { /* counted in stats() */ }
+if( const auto got = cache.find( name ) ) {
+    show( got-&gt;data );                                // &quot;fur coat&quot;, this frame only
+}
+cache.unbind( name );                                 // the label is gone: may be evicted</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th><th>Fails with</th></tr></thead><tbody><tr><td><code>ValueCache(entries, index, text)</code></td><td>a cache over your storage: 32 bytes an entry, a power of two of them (2 to 32,768); <code>index_bytes(n)</code> of index; text may be empty</td><td>asserted: wrong sizes</td></tr><tr><td><code>store(telegram, data = {})</code></td><td>makes the telegram's value the latest for its address; <code>text</code> and <code>uids</code> take their bytes from <code>data</code></td><td><code>dropped</code>: no room (every entry bound, or the text area full of bound text), counted, and the address keeps its old value; <code>too_large</code>: over a quarter of the text area</td></tr><tr><td><code>find(address)</code></td><td>the latest value: the telegram (no correlation; for text and uids its <code>DataRef</code> is <code>{0, data.size()}</code>) and its bytes</td><td>nothing: no value cached</td></tr><tr><td><code>bind(address)</code></td><td>an actor shows it: its entry is never evicted</td><td>false: every entry bound, or 255 binds already</td></tr><tr><td><code>unbind(address)</code></td><td>one actor fewer shows it</td><td>asserted: not bound</td></tr><tr><td><code>stats()</code></td><td>entries used and bound, text used and its highest, evictions, drops</td><td>&amp;mdash;</td></tr></tbody></table></div>
+<ul><li><b>What gets evicted:</b> only addresses nothing is bound to, roughly oldest first, when room is needed.</li><li><b>Text from <code>find</code> lasts until the next <code>store</code> or <code>bind</code></b> (the cache may move it to make room). Use it within the frame; copy it to keep it.</li><li><b>Text up to 16 bytes</b> lives in the entry and costs no text room.</li><li>One thread only. Nothing allocates.</li></ul>
+<h2 id="the-telegraph">The Telegraph</h2>
+<p>What a model sees: <code>sq::messaging::Telegraph</code> (<code>squared/messaging/telegraph.cppm</code>), its end of the line to the UI. It sends <code>state</code> and <code>event</code> by key, declares lists, and runs the model's side of a turn. The UI's end, <code>TelegraphUi</code>, is the Stage's; both live in one <code>TelegraphLine</code>, which the App owns (<a href="stage.html">stage.md</a>: <code>app.run&lt;Model&gt;()</code>), and a <code>ModelRunner</code> runs the model, on its own thread or the UI's.</p>
+<pre><code class="lang-cpp">namespace names {
+inline constexpr Key&lt;bool, state | set&gt; sound{ &quot;settings.sound&quot; };
+inline constexpr Key&lt;std::int64_t, state&gt; ticks{ &quot;counter.ticks&quot; };
+inline constexpr Key&lt;void, do_&gt; reset{ &quot;counter.reset&quot; };
+}
+
+struct Counter {
+    std::int64_t ticks = 0;
+    bool sound = true;
+    void start( Telegraph &amp;t ) { t.state( names::ticks, ticks ); t.state( names::sound, sound ); }
+    void receive( Telegraph &amp;t, const Received &amp;m ) {
+        if( m.telegram.address().name == names::reset.name() ) t.state( names::ticks, ticks = 0 );
+        if( m.telegram.address().name == names::sound.name() )
+            t.state( names::sound, sound = m.telegram.as_boolean() );
+    }
+    void low_memory( Telegraph &amp; ) {}            // optional, like background and foreground
+};
+
+auto line = std::make_unique&lt;TelegraphLine&gt;();  // about 86 KB, once
+ModelRunner&lt;Counter&gt; runner( *line );            // Counter on its own thread, named &quot;model&quot;
+
+TelegraphUi &amp;ui = line-&gt;ui();                    // the Stage&#x27;s end
+ui.set( names::sound, false );                   // wakes the model
+ui.do_( names::reset );
+ui.drain();                                      // each frame: into the cache
+std::optional&lt;bool&gt; sound = ui.value( names::sound );  // false, once the model has answered</code></pre>
+<p>(The App, Sprint 7, does all but the struct for you; a model writes only its struct.)</p>
+<p><b>The model's end, <code>Telegraph</code>:</b></p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>state(key, value)</code>, <code>state(key, uid, value)</code></td><td><code>state</code> an address; when the ring is full, held back and coalesced (<code>pending</code>): only the latest value per address goes, when room frees</td></tr><tr><td><code>event(key)</code>, <code>event(key, value)</code>, <code>event(key, uid, value)</code></td><td><code>event</code>; never held back, and never ahead of states sent before it: <code>full</code> while any wait</td></tr><tr><td><code>answer(request, key[, value])</code></td><td>an <code>event</code> answering a <code>do</code>, with its correlation</td></tr><tr><td><code>list(rows, source)</code></td><td>a virtualized list (see <a href="#lists">Lists</a>); its count is sent at once</td></tr><tr><td><code>changed(rows)</code>, <code>changed(rows, uid)</code></td><td>the list changed, or one item: what changed on screen is sent</td></tr><tr><td><code>tick_every(ms)</code></td><td>ask for <code>tick(t, seconds)</code> every <code>ms</code> (0, the default: none); <code>seconds</code> is the time since the last, at most 0.25</td></tr><tr><td><code>start(model)</code></td><td>calls <code>model.start(t)</code>, once</td></tr><tr><td><code>deliver(model)</code></td><td>one turn: lifecycle hooks, held-back states, then each telegram from the UI to <code>model.receive(t, telegram)</code> (a list's <code>view</code> goes to its list)</td></tr><tr><td><code>pending()</code>, <code>quitting()</code></td><td>states waiting; whether quit was asked for</td></tr></tbody></table></div>
+<p>A model is any type with <code>receive(Telegraph&amp;, const Received&amp;)</code> (the <code>TelegraphModel</code> concept). Optional: <code>start(Telegraph&amp;)</code>, <code>tick(Telegraph&amp;, double seconds)</code>, <code>low_memory(Telegraph&amp;)</code>, <code>background(Telegraph&amp;)</code>, <code>foreground(Telegraph&amp;, std::uint64_t elapsed_ms)</code>, and for timers the pair <code>wake_at()</code> and <code>due(Telegraph&amp;, sq::time::TimePoint now)</code> (see <a href="#the-models-thread">The model's thread</a>). On a turn they come in a fixed order: low memory first; background and foreground in the order that ends where the app is now; quit last, after <code>background</code> (quit saves).</p>
+<p><b>Sending mistakes do not compile:</b> a verb the key does not carry, a value of the wrong type, a uid where the key takes none or none where it does.</p>
+<p><b><code>SendResult</code>:</b> <code>sent</code>; <code>pending</code> (a state held back); <code>full</code> (no room: a <code>set</code> or <code>do</code> from the UI at once; from the model, an <code>event</code>, or a state when the pending table is full too, after its thread waited up to <code>TELEGRAPH_WAIT_MS</code> for the UI to drain); <code>too_large</code> (over a quarter of the data ring, never sendable).</p>
+<p><b>The UI's end, <code>TelegraphUi</code>:</b> <code>set</code>, <code>do_</code> (returns the correlation), <code>view</code> (a list widget's rows), <code>drain</code> (states into the cache, then to a handler's <code>state</code> if it has one; events to its <code>event</code>), <code>find</code> and <code>value</code> (typed; text valid until the next <code>drain</code>), <code>bind</code>/<code>unbind</code>, and <code>background</code>, <code>foreground(elapsed_ms)</code>, <code>low_memory</code>, <code>quit</code> for the model's next turn. It never waits. Each send wakes a sleeping model.</p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>wake_fd()</code></td><td>a descriptor that turns readable when the model sends while the UI sleeps: poll it with the others (the looper, an event loop); -1 if it could not be made</td></tr><tr><td><code>ready_to_sleep()</code></td><td>before sleeping on it: <code>false</code> when the model has sent already (drain instead)</td></tr><tr><td><code>woke()</code></td><td>after the sleep, woken or timed out</td></tr><tr><td><code>wait_stats()</code></td><td><code>waits</code> (times the model waited for room) and <code>full</code> (sends it had refused)</td></tr><tr><td><code>model_stats()</code></td><td>the model's side as the UI may read it: <code>held</code> (states held back now), <code>highest_held</code>, <code>lists</code> declared</td></tr><tr><td><code>cached_from(from)</code></td><td>a walk over every value the cache holds: from 0, then from the last found's <code>entry</code> plus 1; each has its <code>address</code> and, unless only bound so far, its <code>value</code> (the Console's <code>telegraph state</code>)</td></tr><tr><td><code>set_names(table)</code>, <code>names()</code></td><td>a name table for the text form (the dev tools' own): each key the UI uses (<code>set</code>, <code>do_</code>, <code>view</code>, <code>value</code>) is added the first time. nullptr, the default, keeps none</td></tr><tr><td><code>register_names(keys...)</code></td><td>add these keys' names too: the ones only the model sends. Nothing without a table</td></tr><tr><td><code>set_tap(tap, context)</code></td><td><code>tap(context, direction, telegram, data)</code> for every telegram the UI sends (<code>to_model</code>) and drains (<code>to_ui</code>), on the UI thread; its text or uid list in <code>data</code>, from 0. nullptr, the default: none</td></tr><tr><td><code>send(telegram, data)</code></td><td>a telegram read from text, sent as it is (a replay): no key checks it</td></tr><tr><td><code>view(rows, text, span)</code>, <code>reset_view(rows, text)</code></td><td>a list's <code>view</code> and its reset, by the list's name and dotted text (what a layout's list node has; the Stage's): <code>text</code> names it in the dev tools' table, and may be empty</td></tr></tbody></table></div>
+<p>The Stage sleeps like this, when nothing is animating:</p>
+<pre><code class="lang-cpp">if( ui.ready_to_sleep() ) {
+    pollfd fds[] = { { ui.wake_fd(), POLLIN, 0 }, /* input, ... */ };
+    poll( fds, 2, -1 );
+    ui.woke();
+}
+ui.drain( screens );</code></pre>
+<p><b>A handler's <code>state</code></b> is told of each state after the cache has it, so <code>find</code> already answers with the new value; the Stage shows bound widgets this way. Both members are optional, and <code>drain()</code> with no handler only caches:</p>
+<pre><code class="lang-cpp">struct Showing {
+    void state( const sq::messaging::Received &amp;received ) noexcept; // a value changed
+    void event( const sq::messaging::Received &amp;received ) noexcept; // an event came
+};</code></pre>
+<p>A <code>Received</code> text's bytes are its <code>data</code>, all of it, from 0; the telegram's own <code>DataRef</code> is where it was in the ring, not in <code>data</code>.</p>
+<p><b>Capacities</b> are compile-time knobs, set as make variables in a project (<code>make TELEGRAPH_RING=512</code>; the framework and the app are built with the same ones) or <code>-DSQUARED_TELEGRAPH_RING=512</code> by hand: <code>TELEGRAPH_RING</code> 256 telegrams each way, <code>TELEGRAPH_DATA</code> 8 KB of text each way, <code>TELEGRAPH_PENDING</code> 256 held states, <code>TELEGRAPH_CACHE</code> 512 values with <code>TELEGRAPH_CACHE_TEXT</code> 8 KB, <code>TELEGRAPH_LISTS</code> 16 of <code>TELEGRAPH_LIST_VIEW</code> 128 rows, <code>TELEGRAPH_WAIT_MS</code> 100 ms of waiting for room (0: never wait), <code>TELEGRAPH_NAMES</code> 8 KB of names for the dev tools (Console builds only: the table is theirs, not the line's), <code>TELEGRAPH_SNAPSHOTS</code> 4 snapshots (their buffers are not sized by a knob: they grow as the model needs), <code>TELEGRAPH_WATCHES</code> 4 watched descriptors. <code>RING</code>, <code>DATA</code>, <code>PENDING</code> and <code>CACHE</code> are powers of two; checked when the framework compiles. <code>make status</code> shows the ones set.</p>
+<h2 id="the-models-thread">The model's thread</h2>
+<p><code>sq::messaging::ModelRunner&lt;M&gt;</code> (<code>squared/messaging/model_runner.cppm</code>) runs a model at the model's end of a line.</p>
+<pre><code class="lang-cpp">ModelRunner&lt;Shop&gt; runner( *line, std::ref( database ) );   // its own thread
+ModelRunner&lt;Shop&gt; runner( *line, on_ui_thread );           // or the UI&#x27;s: runner.turn() each frame</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>ModelRunner&lt;M&gt;(line, args...)</code></td><td>makes <code>M</code> from <code>args</code> on a new thread named <code>model</code> (the arguments are copied, as <code>std::thread</code> copies them: <code>std::ref</code> for a reference), calls <code>start</code>, then runs turns: <code>deliver</code>, then <code>tick</code> if due, then <code>due</code> if its time has come, then sleeps until the UI sends, a lifecycle signal, room for a held state, the next tick, or <code>wake_at()</code></td></tr><tr><td><code>ModelRunner&lt;M&gt;(line, on_ui_thread, args...)</code></td><td>makes <code>M</code> now, on the calling thread; nothing runs until <code>turn()</code></td></tr><tr><td><code>turn()</code></td><td>inline only: one turn, on the UI thread (ticks and timers that are due run in it); the telegrams handled, 0 once the model has quit</td></tr><tr><td><code>threaded()</code></td><td>whether the model has its own thread</td></tr><tr><td><code>~ModelRunner()</code></td><td>asks the model to quit (it saves: <code>background</code> if the app was visible), wakes it, and waits for it to end; <code>M</code> is destroyed on the thread it lived on</td></tr></tbody></table></div>
+<p>Preconditions: one runner to a line, and the line outlives the runner. A line serves one model: after its runner is gone it keeps that model's quit and values, so a second model needs a new line (the App makes one after a quit). The model's thread never touches the UI's end, nor the UI the model; on its own thread the model is not reachable from the UI at all. Failure modes: none returned; a thread the system cannot make ends the program at start.</p>
+<p><b>Waiting for room.</b> On its own thread, a model whose <code>event</code> finds the ring full, or whose <code>state</code> finds the pending table full too, waits up to <code>TELEGRAPH_WAIT_MS</code> (100 ms) for the UI to drain, then gets <code>full</code>. Inline, the UI cannot drain meanwhile, so <code>full</code> comes at once. A quit ends a wait at once. Both are counted in <code>wait_stats()</code>, which the <code>telegraph</code> Console command (6.7) will show.</p>
+<p><b>Ticks</b> run on the model's thread at the interval <code>tick_every</code> asked for, measured by a <code>sq::time::Timepiece</code> (see <a href="time.html">time.md</a>): <code>seconds</code> is the time since the last tick, at most 0.25, and the first tick measures from when <code>tick_every</code> was called. A model that fell behind starts the cadence again rather than catching up in a burst.</p>
+<p><b>Timers.</b> A model with timers says when it next needs a turn, and is called when that time comes; it sleeps in between, ticking or not. Most keep a <code>sq::time::DeadlineQueue</code>:</p>
+<pre><code class="lang-cpp">std::optional&lt;sq::time::TimePoint&gt; wake_at() const { return timers.next_due(); }
+void due( Telegraph &amp;t, sq::time::TimePoint now ) {
+    timers.poll_due( now, 16, [&amp;]( Timer timer ) { fire( t, timer ); } );
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Hook</th><th>Called</th></tr></thead><tbody><tr><td><code>wake_at()</code></td><td>after each turn's <code>deliver</code> and <code>tick</code>: the time the model next needs a turn, or nothing. The thread sleeps no later than that</td></tr><tr><td><code>due(t, now)</code></td><td>when that time has come, with the turn's one reading of the clock; then <code>wake_at()</code> is asked again</td></tr></tbody></table></div>
+<p>A model with <code>wake_at()</code> and no <code>due</code> does not compile. The clock is read once a turn, after <code>deliver</code>, for both the tick and the timers.</p>
+<p><b>Watched descriptors</b> (12.3d). A model that reads a pty, a socket or a pipe watches its descriptor, and is called when it has something to read or has closed; it sleeps in between, with no tick and no polling. sqterm's model reads its shell this way:</p>
+<pre><code class="lang-cpp">void start( Telegraph &amp;t ) { t.watch( pty.fd() ); }
+void readable( Telegraph &amp;t, int fd ) {
+    while( pty.read( buffer ) &gt; 0 ) { /* ... */ }   // until it would block
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call or hook</th><th>Does</th></tr></thead><tbody><tr><td><code>t.watch( fd )</code></td><td>wake the model when <code>fd</code> is readable, closed or in error. True when watched (or already); false for a model with no <code>readable</code>, a negative <code>fd</code>, or <code>TELEGRAPH_WATCHES</code> (4) watched already</td></tr><tr><td><code>t.unwatch( fd )</code></td><td>stop; nothing for one not watched. Before closing the descriptor</td></tr><tr><td><code>t.watching()</code></td><td>how many are watched</td></tr><tr><td><code>readable( t, fd )</code></td><td>in the next turn, after <code>receive</code>: <code>fd</code> has something to read, or has closed (a read gives 0 or <code>EIO</code>), or failed</td></tr></tbody></table></div>
+<p>The model owns the descriptor: the Telegraph only polls it, beside its own wake. A descriptor that closed stays ready, so <code>readable</code> unwatches it (or the model is called every turn). On its own thread, a model the UI keeps busy still hears from its descriptors: each turn looks at them. Inline, <code>turn()</code> looks at them once each frame. The runner forgets every watch when it ends.</p>
+<h2 id="lists">Lists</h2>
+<p>A list of any length costs the UI only the rows on screen. The model holds the items; the list widget asks for the rows it shows, and the model sends those rows and their items' fields, nothing else. For a list named <code>inventory</code>:</p>
+<div class="tablewrap"><table><thead><tr><th>Telegram</th><th>Means</th></tr></thead><tbody><tr><td><code>state inventory.count 300</code></td><td>how many rows</td></tr><tr><td><code>do inventory.view 20 52</code></td><td>the widget shows rows 20 to 52, a screen above and below included</td></tr><tr><td><code>do inventory.view 1 0</code></td><td>a new widget, which knows nothing (last before first): the model forgets what it sent and sends the count, so the next view is answered in full</td></tr><tr><td><code>state inventory[20] 17</code></td><td>row 20 is the item with uid 17 (row 0 is written <code>inventory</code>)</td></tr><tr><td><code>state item[17].name &quot;fur coat&quot;</code></td><td>that item's fields, by its uid</td></tr></tbody></table></div>
+<p><b>What a model provides</b> for a list (the <code>ListRows</code> concept): any object with three members. Uids are not 0.</p>
+<pre><code class="lang-cpp">struct Inventory {
+    std::vector&lt;Item&gt; items;
+    std::uint32_t count() const { return std::uint32_t( items.size() ); }
+    std::uint32_t uid_at( std::uint32_t row ) const { return items[row].uid; }
+    void publish( Out &amp;t, std::uint32_t uid ) { /* t.state( names::item_name, uid, ... ) */ }
+};</code></pre>
+<p>A type missing one of them does not compile. The Telegraph takes it as <code>t.list( names::inventory, inventory )</code>, and changes as <code>t.changed( names::inventory )</code> (a sort, an insert, a removal) or <code>t.changed( names::inventory, uid )</code> (one item's fields). The widget asks with <code>ui.view( names::inventory, window )</code>, the <code>view</code> travelling as two floats: <code>do inventory.view (20 52)</code>, exact up to 16.7 million rows. Only what is on screen is ever sent: after a sort, the rows whose item changed, and the fields of items new to the screen; nothing for the rest of the list.</p>
+<p><code>sq::messaging::ModelList</code> (<code>squared/messaging/model_list.cppm</code>) is the model's end, <code>sq::messaging::ListWindow</code> (<code>squared/messaging/list_window.cppm</code>) the widget's. The Telegraph and the list widget use them; an app does not.</p>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>list_source&lt;Out&gt;(source)</code></td><td>a <code>ListSource</code>: the three members as plain functions</td></tr><tr><td><code>ModelList(name, source, window, scratch)</code></td><td>the model's end: <code>window</code> holds the uids sent for the rows in view (4 bytes a row, <code>TELEGRAPH_LIST_VIEW</code>); <code>scratch</code> as large, shared by every list on the thread</td></tr><tr><td><code>start(out)</code></td><td>sends the count</td></tr><tr><td><code>view(first, last, out)</code></td><td>answers a <code>view</code>: the rows whose item is not the one sent, the fields of items new to it; cut to the count and the window's size. <code>last</code> before <code>first</code>: a reset, answered with the count</td></tr><tr><td><code>changed(out)</code></td><td>the count if it changed, then the view read again</td></tr><tr><td><code>changed(uid, out)</code></td><td>the item's fields again, if it is on screen</td></tr><tr><td><code>ListWindow(most_rows)</code></td><td>the widget's end</td></tr><tr><td><code>set_count(n)</code></td><td>from <code>state inventory.count</code></td></tr><tr><td><code>visible(first, rows)</code></td><td>each frame: the rows to ask for, when they should be asked for (the screen and one more each side, asked again when the screen comes within half a screen of an edge, or the count changes)</td></tr><tr><td><code>window()</code></td><td>the rows last asked for: the ones to keep bound in the cache</td></tr></tbody></table></div>
+<p>Nothing allocates. The model's thread for <code>ModelList</code>, the UI thread for <code>ListWindow</code>.</p>
+<h2 id="snapshots">Snapshots</h2>
+<p>The third channel (12.3c): bulk state the model publishes whole, and the UI reads the newest of: a terminal's screen, a canvas's pixels. Not a telegram: it never goes through a ring, it is never coalesced or held back, and the UI never sees a half-written one. Each is named by a <code>SnapshotKey</code>.</p>
+<pre><code class="lang-cpp">inline constexpr sq::SnapshotKey screen{ &quot;term.screen&quot; };
+
+// The model&#x27;s thread:
+const std::span&lt;std::byte&gt; room = t.snapshot( screen, bytes_needed );
+write_into( room );
+t.publish( screen, bytes_written );
+
+// The UI thread, each frame:
+if( const auto shot = ui.snapshot( screen ) ) {
+    draw( shot-&gt;bytes );              // the newest; stays put until the next call
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Side</th><th>Does</th></tr></thead><tbody><tr><td><code>snapshot(key, bytes)</code></td><td>model</td><td>room for <code>key</code>, at least <code>bytes</code>, to fill; it grows (allocating, on the model's thread) only past every size asked for before; empty when <code>TELEGRAPH_SNAPSHOTS</code> keys exist already</td></tr><tr><td><code>publish(key, bytes)</code></td><td>model</td><td>the first <code>bytes</code> of that room are the newest; wakes the UI if it sleeps; false for a key never given room</td></tr><tr><td><code>snapshot(key)</code></td><td>UI</td><td>the newest published, as <code>SnapshotView</code>: <code>bytes</code>, and <code>sequence</code> (1 for the first publish, counting each); the bytes stay as they are until the next call for <code>key</code>; nothing before the first publish</td></tr></tbody></table></div>
+<p>A snapshot is bytes: the model and the actor that draws it agree on what they mean (<code>term::ScreenPublisher</code> writes a terminal's screen, <code>term::ScreenView</code> reads it). The UI may skip publishes, so each must stand alone; the newest always arrives. Neither side ever waits. Three buffers a key, each as large as the largest snapshot written into it.</p>
+<h2 id="dependencies">Dependencies</h2>
+<p>The standard library; <code>time</code> (the runner's <code>Timepiece</code> and clock); and POSIX as Linux and Android both have it: <code>eventfd</code> and <code>poll</code> for the wakes, <code>pthread_setname_np</code> for the thread's name. An app that uses <code>ModelRunner</code> links with <code>-pthread</code> (the project's make file does).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

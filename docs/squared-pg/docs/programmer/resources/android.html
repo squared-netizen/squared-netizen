@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android projects · squared-pg</title>
+<meta name="description" content="squared-pg: Android projects">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/resources/android.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/resources/android.md">on GitHub</a></p><h1 id="android-projects">Android projects</h1>
+<p><code>template.android.cpp</code> produces a plain NDK workspace: C++20, NativeActivity, <b>no Java, no Gradle, no <code>classes.dex</code></b>. It builds a signed, installable APK with a compiler and <code>make</code>, on a phone.</p>
+<pre><code class="lang-sh">sqpg new myapp --template template.android.cpp --kit kit.opengl \
+    --platform android --param package_name=com.example.myapp
+
+cd myapp
+make            # lib myapp.so
+make apk        # packaged and signed
+make install    # handed to the package installer
+make logcat</code></pre>
+<h2 id="parameters">Parameters</h2>
+<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Required</th><th>Meaning</th></tr></thead><tbody><tr><td><code>package_name</code></td><td><b>yes</b></td><td>Android application id, e.g. <code>com.example.myapp</code></td></tr><tr><td><code>app_label</code></td><td>no</td><td>launcher label; defaults to the project name</td></tr><tr><td><code>description</code></td><td>no</td><td>one line for the README</td></tr></tbody></table></div>
+<p><code>project_name</code> comes from the <code>new</code> command and becomes the library name, the C++ namespace and the log tag.</p>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">sq_app/        your code — portable C++, no Android headers
+sq_android/    the platform layer — manifest, resources, entry point
+sq_kit/        kit headers (generator-owned)
+mk/            build fragments (generator-owned)
+Makefile       yours</code></pre>
+<p><code>sq_app/</code> is the working directory: nothing generator-owned is written there, ever. <code>sq_android/</code> is <b>seeded</b> — the generator writes it once and never again, so the manifest, the resources and the entry point are all yours. That is the expert escape hatch, and you should not normally need it.</p>
+<h2 id="keeping-android-out-of-sq_app">Keeping Android out of <code>sq_app/</code></h2>
+<p><code>sq_app/</code> includes no <code>&lt;android/...&gt;</code>, no EGL, no GLES. The platform layer calls into your <code>App</code> through <code>app.hpp</code>, so the same class compiles under another template with a different platform layer.</p>
+<p>It is easy to lose one include at a time. Worth checking as you add code.</p>
+<h2 id="rendering-is-optional-and-swappable">Rendering is optional and swappable</h2>
+<p>The template requires <b>no</b> rendering kit. <code>sq_android/entry.cpp</code> and <code>sq_app/src/app.cpp</code> both guard their include with <code>__has_include</code>, so the project builds and runs with none — a black window and a log line saying so.</p>
+<p>That is what makes <code>kit.opengl</code> and a future <code>kit.sfml</code> alternatives rather than one being baked in. They both claim the <code>render.backend</code> integration area, which has arity <code>single</code>, so selecting two is refused before anything is written.</p>
+<h3 id="kitopengl"><code>kit.opengl</code></h3>
+<p><code>&lt;squared/kit/gl.hpp&gt;</code> gives you <code>sq::gl</code>:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>Context</code></td><td>EGL display, config, surface and context, bound to one window</td></tr><tr><td><code>Color</code>, <code>clear</code>, <code>viewport</code></td><td>immediate operations</td></tr><tr><td><code>Result</code></td><td>failures as values — a lost surface is ordinary, not exceptional</td></tr><tr><td><code>error_string</code>, <code>check_errors</code></td><td>GL errors are sticky; something has to ask</td></tr></tbody></table></div>
+<p>GLES <b>3.0</b>, GLSL ES 3.00 (<code>#version 300 es</code>). Fragment shaders need explicit precision qualifiers — the first thing that catches people coming from desktop GLSL.</p>
+<p><code>Context::present()</code> returns false when the surface is lost, which happens every time the app is backgrounded. Stop drawing and wait for a new window; ignoring it spins, rendering into nothing.</p>
+<p>Shaders, buffers and textures are not in this release.</p>
+<h2 id="sdk-levels-are-build-settings">SDK levels are build settings</h2>
+<p><code>AndroidManifest.xml</code> carries no <code>&lt;uses-sdk&gt;</code>. The levels reach <code>aapt2</code> from the build, so retargeting never means editing a file:</p>
+<pre><code class="lang-sh">make apk SQ_MIN_SDK=21 SQ_TARGET_SDK=35</code></pre>
+<h2 id="what-the-host-needs">What the host needs</h2>
+<pre><code class="lang-sh">make android-status</code></pre>
+<div class="tablewrap"><table><thead><tr><th>For</th><th>Needs</th></tr></thead><tbody><tr><td><code>make</code></td><td>clang targeting Android, the NDK sysroot, native-app-glue</td></tr><tr><td><code>make apk</code></td><td>+ <code>aapt2</code>, <code>apksigner</code>, <code>keytool</code>, an <code>android.jar</code></td></tr><tr><td><code>make install</code></td><td>+ <code>termux-open</code> or <code>adb</code></td></tr></tbody></table></div>
+<p>On Termux: <code>pkg install clang make ndk-sysroot aapt2 apksigner openjdk-17</code>. The debug keystore is generated on first <code>make apk</code>.</p>
+<h2 id="three-things-that-will-bite-you">Three things that will bite you</h2>
+<p><b>The NDK's include directory must not go on <code>-I</code>.</b> Termux's clang already ships every <code>android/*</code> header; the NDK is needed only for the Khronos headers Termux lacks. Putting its sysroot on <code>-I</code> places a second complete set of C headers ahead of libc++, and <code>&lt;cctype&gt;</code> then finds the NDK's <code>ctype.h</code> instead of libc++'s wrapper:</p>
+<pre><code>&lt;cctype&gt; tried including &lt;ctype.h&gt; but didn&#x27;t find libc++&#x27;s &lt;ctype.h&gt;</code></pre>
+<p><code>kit.opengl</code> uses <code>-idirafter</code>, which appends to the very end of the search path, so the NDK supplies only what nothing else provides.</p>
+<p><b><code>$PREFIX/lib/libEGL.so</code> is not Android's EGL.</b> It belongs to <code>libglvnd</code> and is for X11. A plain <code>-lEGL</code> binds it in preference to the NDK stub; the link succeeds and the APK dies at runtime. <code>kit.opengl</code> names the NDK's <code>libEGL.so</code> and <code>libGLESv3.so</code> by absolute path rather than as <code>-l</code> names — a search order cannot go wrong when there is no search. <code>-L</code> would have worked too, but it also puts the NDK's <code>libc</code> and <code>libm</code> stubs ahead of Termux's for every implicit <code>-l</code> the driver adds.</p>
+<p><b><code>libc++_shared.so</code> must be in the APK.</b> Termux's clang links the shared C++ runtime unconditionally — <code>-static-libstdc++</code> fails outright — and Android does not supply it. <code>make apk</code> bundles it, stripped, from the NDK. Without it the APK installs and then dies on launch before any of your code runs.</p>
+<h2 id="one-abi">One ABI</h2>
+<p>The template builds for the host ABI. Termux's clang targets aarch64 only, and building four ABIs on a phone is not the use case. <code>make android-help</code> explains how a desktop NDK does more.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

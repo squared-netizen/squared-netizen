@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>template.term.edu.cpp - implementation notes · squared-pg</title>
+<meta name="description" content="squared-pg: template.term.edu.cpp - implementation notes">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/templates/template.term.edu.cpp.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/templates/template.term.edu.cpp.md">on GitHub</a></p><h1 id="templatetermeducpp---implementation-notes">template.term.edu.cpp - implementation notes</h1>
+<p>Consumer-facing counterpart: <a href="../../programmer/templates/template.term.edu.cpp.html">../../programmer/templates/template.term.edu.cpp.md</a> Related: <a href="../kits/kit.edu_cpp.html">kit.edu_cpp</a></p>
+<h2 id="purpose">Purpose</h2>
+<p>A smaller sibling of <code>template.terminal.cpp</code>. Every deviation below exists to shorten what a first-time programmer has to read or understand. Lessons are not part of it: they are a separate, optional kit, so the base workspace stays as small as possible.</p>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">resources/templates/template.term.edu.cpp/
+  SQ-INF/manifest.json   squared-cartridge format 2, kind &quot;template&quot;
+  tree/                  seeded content, run through the `substitute` processor</code></pre>
+<p>Placeholders used: <code>{{project_name}}</code> (Makefile, README), <code>{{description}}</code>, <code>{{generator_version}}</code>, <code>{{template_id}}</code>, <code>{{template_version}}</code> and <code>{{kit_list}}</code> (README only). The README prints <code>{{kit_list}}</code> so a learner can see whether lessons were installed without the template needing conditional content. The Makefile's own <code>$(...)</code>, <code>$@</code> and <code>$&lt;</code> contain no <code>{{</code>, so the processor leaves them alone.</p>
+<h2 id="design-patterns">Design patterns</h2>
+<p>None applied, deliberately. The deliverable is a procedural teaching program; a pattern in the generated code would be one more thing to explain. The <code>App</code> class (pimpl) in <code>template.terminal.cpp</code> was left out for the same reason.</p>
+<p>The generator-side ownership model (seeded vs generated) is inherited from <code>template.terminal.cpp</code>; it is documented with the generator, not here.</p>
+<h2 id="deviations-from-templateterminalcpp">Deviations from template.terminal.cpp</h2>
+<div class="tablewrap"><table><thead><tr><th>Dropped</th><th>Why</th></tr></thead><tbody><tr><td>Required <code>kit.terminal</code></td><td>A teaching template should need nothing but the standard library. The first version required it and <code>sqpg new</code> rejected that, because the kit then listed only <code>template.terminal.cpp</code>. Now the kit is <i>optional</i> here: <code>kit.terminal</code> 0.2.0 lists this template in <code>compatible_templates</code>.</td></tr><tr><td><code>mk/squared_generated.mk</code></td><td>Nothing in the Makefile needs project-wide generated settings; a never-included file would only confuse.</td></tr><tr><td><code>sq_app/include/app.hpp</code>, <code>App</code> class</td><td>Pimpl and <code>argc/argv</code> plumbing hide the first program. <code>main.cpp</code> is a plain <code>main</code>.</td></tr><tr><td><code>run.sh</code></td><td>One way to run: <code>make run</code>.</td></tr><tr><td><code>.clang-format</code></td><td>Formatting is not a lesson.</td></tr><tr><td><code>test</code> target and <code>sq_app/test/</code></td><td>Out of scope for beginners.</td></tr><tr><td><code>debug</code> target, sanitizers</td><td>Compiler-support dependent, noisy on Termux. <code>-g</code> is always on.</td></tr><tr><td><code>lua-status</code>, <code>kit.lua</code></td><td>Not a teaching goal.</td></tr><tr><td>Recursive source glob (<code>find</code>)</td><td><code>$(wildcard sq_app/src/*.cpp)</code> is readable and make-native. Flat only.</td></tr></tbody></table></div>
+<h2 id="makefile">Makefile</h2>
+<p>The Makefile is roughly two thirds comments, on purpose: it is a teaching document that also builds. Comments explain make's rule model, each variable, each flag, and each automatic variable at the point it is used.</p>
+<ul><li>Source discovery uses make's built-in <code>$(wildcard)</code>, not <code>$(shell find)</code>: no subprocess, no sort, and it is in the standard make manual.</li><li>Header dependencies use <code>-MMD -MP</code> and <code>-include $(OBJ:.o=.d)</code>. Without them, editing a header leaves stale objects and produces baffling behaviour, which is the worst failure for a learner. Two lines, kept. Verified: editing an included header rebuilds the dependent file.</li><li>Comments avoid a trailing backslash (make would continue the comment onto the next line) and contain no <code>{{</code> other than <code>{{project_name}}</code>.</li><li>Kit hook: <code>-include $(wildcard mk/kit_*.mk)</code> near the end, and <code>CPPFLAGS</code> includes <code>$(SQ_KIT_CPPFLAGS)</code>. This is the same fragment mechanism as <code>template.terminal.cpp</code>, cut to those two lines, so a kit written for one works in the other. <code>CPPFLAGS</code> uses recursive <code>=</code> because the fragments are read after it is defined; changing it to <code>:=</code> silently drops every kit's include path. With no kit, <code>mk/</code> does not exist and the variable is empty. Verified with and without a kit. <code>SQ_KIT_LDLIBS</code> is deliberately not wired: a kit needing a library would have to be refused or the Makefile extended.</li><li>Build output is <code>build/{{project_name}}</code>, matching <code>template.terminal.cpp</code>.</li></ul>
+<p>Complexity: <code>wildcard</code> is O(files in one directory); make's dependency graph walk is linear in objects. Irrelevant at this scale; recorded for completeness.</p>
+<h2 id="standard-library-vs-custom">Standard library vs custom</h2>
+<p>No custom utility was introduced.</p>
+<h2 id="invariants-and-limits">Invariants and limits</h2>
+<ul><li>Exactly one <code>main</code> across <code>sq_app/src/*.cpp</code>.</li><li>Flat source tree. A learner who adds a subdirectory gets a link error (missing symbols), not a clear message. Known limitation.</li></ul>
+<h2 id="manifest">Manifest</h2>
+<p>Derived from <code>template.terminal.cpp</code>'s manifest. Differences:</p>
+<ul><li><code>kits.required</code> is empty; <code>kits.optional</code> names <code>kit.edu_cpp</code> and <code>kit.terminal</code> (reserved, read by nothing, kept for the reader).</li><li><code>integration_areas</code> is <code>app.include</code>, <code>app.entrypoint</code>, <code>build.make.fragments</code> and <code>edu.lessons</code> (all <code>multi</code> except the entrypoint). <code>edu.lessons</code> exists so <code>kit.edu_cpp</code> has a declared point to write to (spec 2.9.3: a kit must not write a point the template does not declare). <code>build.make.fragments</code> lets <code>kit.terminal</code> land its <code>mk/kit_terminal.mk</code>. <code>workspace.lua</code> is omitted.</li><li><code>executable</code> is empty (no <code>run.sh</code>).</li><li><code>ownership.generated</code> is empty: every file is seeded.</li><li><code>layers</code> lists <code>sq_app</code>, and <code>Makefile</code> plus <code>mk</code> for build.</li></ul>
+<h2 id="open-items-for-the-decision-log">Open items for the decision log</h2>
+<ul><li>Whether edu templates should omit <code>mk/squared_generated.mk</code> (affects <code>workspace.verify</code> and <code>sqpg doctor</code> expectations).</li><li>Whether flat source globbing is acceptable under the "build globs" rule in <code>template.terminal.cpp</code>'s <code>AGENTS.md</code>.</li><li>Whether a template should have to declare an integration area for a kit that only adds text files. Declared here to follow spec 2.9.3 literally; if the engine does not need it, remove <code>edu.lessons</code> from both manifests.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

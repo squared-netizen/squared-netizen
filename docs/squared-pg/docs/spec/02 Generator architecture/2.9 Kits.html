@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.9 Kits · squared-pg</title>
+<meta name="description" content="squared-pg: 2.9 Kits">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.9 Kits.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.9 Kits.md">on GitHub</a></p><hr>
+<p>section: "2.9" title: Kits status: review tags: [spec, architecture, resources, kits]</p>
+<hr>
+<h1 id="29-kits">2.9 Kits</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.8 Templates]] · Next: [[2.10 Assets and generator resources]]</p></blockquote>
+<blockquote><p>[!abstract] Scope Defines <b>what a kit is</b>. How a kit is applied is [[2.7 Project generation model]] §2.7.5. The manifest envelope and identity grammar are [[2.8 Templates]] §2.8.1–2.8.4.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines the kit resource: the bridge connecting Squared to an external framework, middleware system, or platform.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; what a kit represents — the bridge chain</li><li>&#9745; kit manifest block</li><li>&#9745; integration points and conflict semantics</li><li>&#9745; external framework declaration</li><li>&#9745; dependencies</li><li>&#9745; composition</li><li>&#9745; ownership class declaration</li><li>&#9745; validation</li><li>&#9745; migration rules</li><li>&#9745; reference kit set</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="291-what-a-kit-is">2.9.1 What a kit is</h3>
+<p>A kit is the bridge layer. It connects Squared to an external system, and that system to the platform:</p>
+<pre><code class="lang-text">Squared Application
+        v
+Squared Framework
+        v
+Kit  (bridge)
+        v
+External Framework   (SDL3, SFML, ncurses)
+        v
+Platform             (Android, Linux, terminal)</code></pre>
+<p>This is the chain described in the project vision: Squared talks to SDL3 through a bridge, and SDL3 to Android.</p>
+<p>A kit MAY provide adapters, framework bridges, platform integration, initialization and lifecycle code, event/input/rendering translation, build configuration fragments, dependency declarations, platform-specific sources, kit resources, and compatibility metadata.</p>
+<p>A kit MUST integrate through documented Squared public interfaces and MUST NOT modify Squared framework internals. A kit MUST NOT define the overall project structure — that is the template's role — and MUST NOT assume it owns the workspace.</p>
+<p>The external framework itself remains an external dependency, conceptually distinct from the kit that bridges it.</p>
+<h3 id="292-kit-manifest-block">2.9.2 Kit manifest block</h3>
+<p>A kit's declarations live under <code>consumers.squared_pg</code> (cartridge format §5.6). As with templates (§2.8.6), this section is the only normative definition of the schema and nothing validates it.</p>
+<pre><code class="lang-json">&quot;consumers&quot;: {
+  &quot;squared_pg&quot;: {
+    &quot;external&quot;: {
+      &quot;id&quot;: &quot;sfml&quot;,
+      &quot;version&quot;: &quot;&gt;=3.0.0&quot;,
+      &quot;acquisition&quot;: &quot;system&quot;
+    },
+
+    &quot;runtime&quot;: { &quot;model&quot;: &quot;polled&quot; },
+
+    &quot;platforms&quot;: [&quot;linux&quot;, &quot;android&quot;],
+    &quot;compatible_templates&quot;: [&quot;template.terminal.cpp&quot;],
+    &quot;integration_areas&quot;: [&quot;render.backend&quot;],
+    &quot;conflicts_with&quot;: [&quot;kit.sdl3&quot;],
+    &quot;provides&quot;: [&quot;graphics&quot;, &quot;input&quot;],
+
+    &quot;requires&quot;: {
+      &quot;engine&quot;:    &quot;&gt;=0.1.0 &lt;0.2.0&quot;,
+      &quot;framework&quot;: &quot;&gt;=1.0.0 &lt;2.0.0&quot;,
+      &quot;packages&quot;:  []
+    },
+
+    &quot;ownership&quot;: {
+      &quot;generated&quot;: [&quot;sq_kit/**&quot;],
+      &quot;default&quot;:   &quot;generated&quot;
+    }
+  }
+}</code></pre>
+<h4 id="members">Members</h4>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>Type</th><th>Absent</th><th>Read by</th></tr></thead><tbody><tr><td><code>external.id</code></td><td>string</td><td>the kit wraps nothing</td><td>diagnostics</td></tr><tr><td><code>external.version</code></td><td>range</td><td>unconstrained</td><td>resolution</td></tr><tr><td><code>external.acquisition</code></td><td>string</td><td>not acquired</td><td>resolution</td></tr><tr><td><code>platforms</code></td><td>array of string</td><td>admits every platform</td><td>resolution</td></tr><tr><td><code>compatible_templates</code></td><td>array of identity</td><td>admits every template</td><td>resolution</td></tr><tr><td><code>integration_areas</code></td><td>array of string</td><td>the kit fills no anchors</td><td>resolution</td></tr><tr><td><code>conflicts_with</code></td><td>array of identity</td><td>conflicts with nothing</td><td>validation</td></tr><tr><td><code>requires.engine</code></td><td>range</td><td>unconstrained</td><td>indexing</td></tr><tr><td><code>requires.framework</code></td><td>range</td><td>unconstrained</td><td>resolution</td></tr><tr><td><code>requires.packages</code></td><td>array of identity</td><td>none</td><td>validation</td></tr><tr><td><code>ownership</code></td><td>object</td><td>every path is <code>seeded</code></td><td>planning</td></tr><tr><td><code>runtime.model</code></td><td><code>none</code>/<code>polled</code>/<code>callback</code></td><td>—</td><td><i>not read</i></td></tr><tr><td><code>provides</code></td><td>array of string</td><td>—</td><td><i>not read</i></td></tr></tbody></table></div>
+<p>Malformed values fall back to the "absent" column, for the reasons given in §2.8.6.</p>
+<h4 id="field-names-corrected-against-the-implementation">Field names corrected against the implementation</h4>
+<p>Version 1.0 of this section named six members that no implementation has ever read:</p>
+<div class="tablewrap"><table><thead><tr><th>This section said</th><th>The engine reads</th></tr></thead><tbody><tr><td><code>supported_templates</code></td><td><code>compatible_templates</code></td></tr><tr><td><code>supported_platforms</code></td><td><code>platforms</code></td></tr><tr><td><code>supported_framework</code></td><td><code>requires.framework</code></td></tr><tr><td><code>requires_packages</code></td><td><code>requires.packages</code></td></tr><tr><td><code>writes_integration_points</code></td><td><code>integration_areas</code></td></tr><tr><td><code>files</code>, <code>migrations</code></td><td><i>nothing; both unimplemented</i></td></tr></tbody></table></div>
+<p>A kit written to the old text would have resolved as though it declared nothing: unconstrained platforms, every template compatible, no integration areas. It would not have failed — §2.8.6's fallback rule would have absorbed every one of those names as absent — which is exactly the failure mode a normative document is supposed to prevent, and why the divergence went unnoticed until this section was checked against the code.</p>
+<p><code>files</code> and <code>migrations</code> are removed rather than corrected. Per-file ownership is <code>ownership</code> (§2.7.10), and migrations belong to the regeneration path §2.7.11 defers.</p>
+<h4 id="runtimemodel"><code>runtime.model</code></h4>
+<p>Declares which side of the kit's main loop calls the other: <code>none</code> (the kit contributes no loop), <code>polled</code> (the application drives the kit), <code>callback</code> (the kit's runtime drives the application).</p>
+<p><b>Nothing reads it.</b> It was added during the cartridge format 2.0 bump against a <code>kit.sfml</code> that does not exist, and every shipped kit declares <code>none</code>. It is recorded here as reserved so an author who copies it knows it currently does nothing.</p>
+<h3 id="293-integration-points">2.9.3 Integration points</h3>
+<p>An <b>integration point</b> is a named anchor a template declares ([[2.8 Templates]] §2.8.6) that kits and packages may contribute to. Points are named, not positional, so contributions are comparable without inspecting file content.</p>
+<p>Rules:</p>
+<ul><li>A kit MUST declare every integration point it writes.</li><li>A kit MUST NOT write to a point the active template does not declare.</li><li>Two kits writing the same point MUST both declare it; whether that is a conflict is determined by the point's declared arity.</li></ul>
+<p>Point arity, declared by the template:</p>
+<div class="tablewrap"><table><thead><tr><th>Arity</th><th>Meaning</th></tr></thead><tbody><tr><td><code>single</code></td><td>exactly one contributor; a second is a conflict</td></tr><tr><td><code>multi</code></td><td>many contributors; contributions are emitted in resolution order</td></tr></tbody></table></div>
+<p>Conflicts MUST be detected during cross-validation, <b>before</b> any workspace mutation, and reported as a structured compatibility error. Lua then removes a kit, selects an alternative, amends the workflow, or terminates.</p>
+<p><code>conflicts_with</code> declares a known incompatibility independent of integration points, and MUST be honoured even if no point collides.</p>
+<h4 id="who-owns-an-integration-points-substrate">Who owns an integration point's substrate</h4>
+<p>An integration point has two parts: the <b>substrate</b> that makes the point exist at all, and the <b>filling</b> a kit contributes to it.</p>
+<p><b>The substrate belongs to whoever cannot be absent.</b> A template is always present; a kit is optional by construction. So anything the workspace needs in order to build <i>without</i> a given kit belongs to the template, even when it looks like that kit's concern.</p>
+<p>The concrete case: NDK detection and <code>native_app_glue</code> belong to <code>template.android.cpp</code>, not to <code>kit.opengl</code>. The template promises a workspace that builds and runs with no rendering kit at all — a NativeActivity that opens a window and does nothing is still a working Android application. If the glue arrived with the rendering kit, that promise would be false, and removing the kit would break the build in a way the template's own tests could not see.</p>
+<p>The rule generalises: if removing a kit would leave the workspace unable to build, the thing that broke was never the kit's to provide.</p>
+<h4 id="a-kit-contributes-to-a-host-toolchain-it-does-not-reorganise-one">A kit contributes to a host toolchain; it does not reorganise one</h4>
+<p>A kit adds to the build configuration of a workspace that already builds. It MUST NOT reorder, replace or take ownership of the host toolchain's existing search paths.</p>
+<p>Two corrections stand as evidence, both found by on-device build failure rather than by review:</p>
+<p><b>Additional sysroots are added with <code>-idirafter</code>, never <code>-I</code>.</b> <code>-I</code> <i>prepends</i>, so an NDK sysroot added that way displaces the host's own C headers and libc++ stops finding them. <code>-idirafter</code> appends, so the sysroot serves only the headers nothing else provides. The failure is not a missing header; it is the <i>wrong</i> header found first, which surfaces far from its cause.</p>
+<p><b>Libraries are named by path, not by <code>-l</code> with an added <code>-L</code>.</b> An added <code>-L</code> changes resolution for every <code>-l</code> in the link, including ones the kit knows nothing about. Naming the file directly affects exactly the library intended.</p>
+<p>The general rule: a kit's contribution must be <b>additive and order-insensitive</b>. If it only works when it comes first, it is reorganising the toolchain rather than adding to it.</p>
+<h3 id="294-external-framework-acquisition">2.9.4 External framework acquisition</h3>
+<p><code>external.acquisition</code> declares how the external framework reaches the generated project:</p>
+<div class="tablewrap"><table><thead><tr><th>Value</th><th>Meaning</th></tr></thead><tbody><tr><td><code>package</code></td><td>supplied by a named generator package (offline)</td></tr><tr><td><code>system</code></td><td>expected to be present on the build host</td></tr><tr><td><code>vendored</code></td><td>vendored into the generated project by the kit</td></tr></tbody></table></div>
+<p>A kit using <code>system</code> MUST declare the detection mechanism the generated build will use, so the generated project can find the dependency without the generator.</p>
+<p>Offline generation MUST be possible for every kit whose <code>acquisition</code> is <code>package</code> or <code>vendored</code>. A <code>system</code> kit MAY require host software at build time, but MUST NOT require network access at generation time.</p>
+<h3 id="295-dependencies">2.9.5 Dependencies</h3>
+<p>Kits MAY depend on packages, other kits, and platform components. All dependencies MUST be declared in the manifest and MUST NOT be discovered through filesystem convention.</p>
+<p>The engine MUST validate the complete kit dependency graph before application. The graph MUST be acyclic.</p>
+<h3 id="296-composition">2.9.6 Composition</h3>
+<p>Multiple kits MAY be applied where compatibility permits:</p>
+<pre><code class="lang-text">template.android.cpp
+    +-- kit.android
+    +-- kit.sdl3</code></pre>
+<p>Composition MUST be deterministic. Application order is the resolution order of the kit set, which is itself deterministic ([[2.8 Templates]] §2.8.2).</p>
+<h3 id="297-ownership-and-updates">2.9.7 Ownership and updates</h3>
+<p>Kit-contributed paths declare an ownership class exactly as template paths do ([[2.7 Project generation model]] §2.7.10). The generator MUST NOT overwrite a user-authored file merely because a kit originally provided a file at that path.</p>
+<p>Kit versions MUST be recorded in workspace metadata. A kit update MUST NOT silently alter an existing project; updates occur only through the explicit workflow in §2.7.11.</p>
+<p>Where a version change requires more than file replacement — moved paths, renamed targets, changed configuration — the kit MUST declare <code>migrations</code>. A required migration that is unavailable MUST fail the update rather than proceeding partially.</p>
+<h3 id="298-validation">2.9.8 Validation</h3>
+<p>Before application a kit MUST be validated for: envelope and type block correctness, template compatibility, framework version compatibility, package requirements, platform requirements, dependency availability, integration point declarations, conflict declarations, and required parameters.</p>
+<p>An invalid kit MUST NOT partially modify the workspace.</p>
+<h3 id="299-reference-kit-set">2.9.9 Reference kit set</h3>
+<pre><code class="lang-text">kit.sdl3       SDL3 graphics, input, windowing
+kit.sfml       SFML integration
+kit.ncurses    terminal UI integration
+kit.android    Android platform bridge</code></pre>
+<h2 id="open-questions">Open questions</h2>
+<ul><li><b>Q-22</b> — build emission. This section assumes kits contribute build fragments that a per-build-system emitter assembles. The alternative is each kit emitting its own build files directly. Confirm when <code>kit.android</code> is authored, since Gradle plus CMake is the case that will decide it.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.7 Project generation model]] · [[2.8 Templates]] · [[2.11 Packages]] · [[2.10 Assets and generator resources]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

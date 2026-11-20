@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gui · squared</title>
+<meta name="description" content="squared: gui">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/gui.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/gui.md">on GitHub</a></p><h1 id="gui">gui</h1>
+<p>The libGDX-flavoured widget set and skinning, on top of the scene graph they're built from: <code>Actor</code>, <code>Group</code>, <code>Widget</code> and input routing. <code>sq::Stage</code> holds the widgets of an app's screens and panes (<a href="stage.html">stage.md</a>); the host types under it are internal since 7.7 (<a href="#panes-and-the-host">Panes and the host</a>).</p>
+<p><code>import sq.gui;</code> gives every type here, and the <code>sq::graphics</code> and <code>sq::app</code> types the widgets' interfaces name. Each type is written in a file of its own, a partition of the module: the ones at the module root (<code>squared/gui/*.cppm</code>) are the everyday ones, those under <code>squared/gui/src/</code> the supporting types they are made of. See <a href="include-layout.html">include-layout.md</a>.</p>
+<p>Developer counterpart: <a href="../developer/gui.html">../developer/gui.md</a></p>
+<p>Screens and panes as data &amp;mdash; the node table, writing one from C++, layout files and <code>names.json</code> compiled by <code>sqgen</code>, and building widgets from it &amp;mdash; are on their own page: <a href="layouts.html">layouts.md</a>.</p>
+<h2 id="scene-graph">Scene graph</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Actor</code></td><td><code>squared/gui/actor.cppm</code></td><td>Base node with parent-relative bounds and frame traversal</td></tr><tr><td><code>Group</code></td><td><code>squared/gui/group.cppm</code></td><td>Actor that owns children in deterministic insertion order</td></tr><tr><td><code>ActorInterfaceId</code></td><td><code>squared/gui/src/actor_interface_id.cppm</code></td><td>Stable identifier for one layer's Actor-derived interface</td></tr></tbody></table></div>
+<p><b>What you subclass is <code>Widget</code></b>: a custom node (<code>app.stage.custom( &quot;minimap&quot;, make )</code>) is one. <code>Actor</code> (position, size, parent, input listeners) and <code>Group</code> (children) are its bases, kept apart because a widget's children are actors of any kind; an app does not make an <code>Actor</code> or a <code>Group</code> of its own (decided in 7.7).</p>
+<h2 id="input-routing">Input routing</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>InputEvent</code></td><td><code>squared/gui/src/input_event.cppm</code></td><td>Mutable event routed along the widget tree, root to target and back</td></tr><tr><td><code>InputType</code></td><td><code>squared/gui/src/input_type.cppm</code></td><td>Event kind carried by one InputEvent</td></tr><tr><td><code>InputPhase</code></td><td><code>squared/gui/src/input_phase.cppm</code></td><td>Dispatch phase of an event: capture, target, bubble</td></tr><tr><td><code>InputListener</code></td><td><code>squared/gui/src/input_listener.cppm</code></td><td>Callback invoked for each phase during input dispatch</td></tr><tr><td><code>InputListenerId</code></td><td><code>squared/gui/src/input_listener_id.cppm</code></td><td>Stable actor-local listener identifier; insertions increase it</td></tr></tbody></table></div>
+<p>Keys, modifiers and navigation are <code>sq::app</code> types, shared with the platform layer: <code>app::Key</code>, <code>app::KeyModifiers</code> and <code>app::Navigation</code> (<a href="app.html#keys-modifiers-and-navigation">app.md</a>). <code>InputEvent</code> carries them as they arrived, and <code>squared/gui/input.cppm</code> and <code>module.cppm</code> include them.</p>
+<h2 id="geometry">Geometry</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Size</code></td><td><code>squared/gui/src/size.cppm</code></td><td>Two-dimensional extent in logical units</td></tr><tr><td><code>Rectangle</code></td><td><code>squared/gui/src/rectangle.cppm</code></td><td>Axis-aligned rectangle in logical units</td></tr><tr><td><code>Insets</code></td><td><code>squared/gui/src/insets.cppm</code></td><td>Insets from the edges of a rectangle, in logical units</td></tr><tr><td><code>SizeHints</code></td><td><code>squared/gui/src/size_hints.cppm</code></td><td>Proposed minimum, preferred, and maximum sizes for one widget</td></tr></tbody></table></div>
+<h2 id="drawing-boundary">Drawing boundary</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Painter</code></td><td><code>squared/gui/src/painter.cppm</code></td><td>Portable drawing boundary, implemented over <code>sq::graphics</code> by <code>BatchPainter</code></td></tr><tr><td><code>Drawable</code></td><td><code>squared/gui/src/drawable.cppm</code></td><td>Skin image abstraction; it never exposes SDL or another backend type</td></tr><tr><td><code>DrawablePtr</code></td><td><code>squared/gui/src/drawable_ptr.cppm</code></td><td>Shared ownership of an immutable drawable</td></tr><tr><td><code>ColorDrawable</code></td><td><code>squared/gui/src/color_drawable.cppm</code></td><td>Drawable that paints a flat, optionally inset color</td></tr><tr><td><code>RegionDrawable</code></td><td><code>squared/gui/src/region_drawable.cppm</code></td><td>Drawable that samples one texture region</td></tr><tr><td><code>NinePatchSplits</code></td><td><code>squared/gui/src/nine_patch_splits.cppm</code></td><td>Scissor amounts used by nine-patch scaling</td></tr><tr><td><code>NinePatchDrawable</code></td><td><code>squared/gui/src/nine_patch_drawable.cppm</code></td><td>Scalable drawable that preserves corners and stretches edges and center</td></tr><tr><td><code>BatchPainter</code></td><td><code>squared/gui/batch_painter.cppm</code></td><td>The <code>Painter</code> that draws widgets through a <code>graphics::SpriteBatch</code></td></tr></tbody></table></div>
+<h2 id="fonts">Fonts</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>FontResource</code></td><td><code>squared/gui/src/font_resource.cppm</code></td><td>Immutable portable bitmap-font resource selected by GUI styles</td></tr><tr><td><code>FontPtr</code></td><td><code>squared/gui/src/font_ptr.cppm</code></td><td>Immutable shared ownership of one GUI font resource</td></tr></tbody></table></div>
+<h2 id="styles">Styles</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>PanelStyle</code></td><td><code>squared/gui/src/panel_style.cppm</code></td><td>Style data for a Panel widget</td></tr><tr><td><code>LabelStyle</code></td><td><code>squared/gui/src/label_style.cppm</code></td><td>Style data for a Label widget</td></tr><tr><td><code>ButtonStyle</code></td><td><code>squared/gui/src/button_style.cppm</code></td><td>Style data for a Button widget</td></tr><tr><td><code>TextFieldStyle</code></td><td><code>squared/gui/src/text_field_style.cppm</code></td><td>Style data for a TextField widget</td></tr><tr><td><code>CheckBoxStyle</code></td><td><code>squared/gui/src/check_box_style.cppm</code></td><td>Style data for a CheckBox widget</td></tr><tr><td><code>SliderStyle</code></td><td><code>squared/gui/src/slider_style.cppm</code></td><td>Style data for a Slider widget</td></tr><tr><td><code>ProgressBarStyle</code></td><td><code>squared/gui/src/progress_bar_style.cppm</code></td><td>Style data for a non-interactive ProgressBar widget</td></tr><tr><td><code>WindowStyle</code></td><td><code>squared/gui/src/window_style.cppm</code></td><td>Style data for a pane's frame: its background, insets and the dim behind a modal one (a skin's <code>Window$WindowStyle</code>)</td></tr><tr><td><code>Skin</code></td><td><code>squared/gui/skin.cppm</code></td><td>Named, reusable skin resources and widget styles</td></tr></tbody></table></div>
+<h2 id="input">Input</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>PointerAction</code></td><td><code>squared/gui/src/pointer_action.cppm</code></td><td>Pointer action delivered to widgets</td></tr><tr><td><code>PointerEvent</code></td><td><code>squared/gui/src/pointer_event.cppm</code></td><td>Portable pointer event payload in widget-local logical units</td></tr><tr><td><code>PinchPhase</code></td><td><code>squared/gui/src/pinch_event.cppm</code></td><td>Where a two-finger pinch is: <code>begin</code>, <code>change</code>, <code>end</code></td></tr><tr><td><code>PinchEvent</code></td><td><code>squared/gui/src/pinch_event.cppm</code></td><td>A pinch offered to a widget: its phase, its scale, its middle in widget-local units</td></tr></tbody></table></div>
+<p>A widget of your own takes keys by overriding <code>key_down</code>, with the <code>sq::app</code> types:</p>
+<pre><code class="lang-cpp">bool key_down(sq::app::Key key, sq::app::KeyModifiers held) override
+{
+    if (key != sq::app::Key::enter || held.any()) return false;
+    activate();
+    return true;
+}</code></pre>
+<p><b>What a key types with Ctrl, Alt or Meta held</b> goes to <code>key_text</code>, not <code>text_input</code> (12.3d): Ctrl-C arrives as <code>key_text( &quot;c&quot;, {.control = true} )</code>. A text field leaves it (the default returns false), as a desktop's does; a terminal turns it into a control character (<code>sq::term::key_text_bytes</code>). Shift alone is typing, and goes to <code>text_input</code>.</p>
+<pre><code class="lang-cpp">bool key_text(std::string_view text, sq::app::KeyModifiers held) override
+{
+    if (!held.control || text != &quot;s&quot;) return false;
+    save();
+    return true;
+}</code></pre>
+<h3 id="pinch">Pinch</h3>
+<p>A two-finger pinch zooms the whole UI in every squared app (<a href="stage.html#zoom-the-pinch">stage.md</a>). A widget that has a better use for it (a terminal's font, a map's view, an image) takes it by overriding <code>pinch</code>. As the second finger lands, the widget under the fingers' middle is offered <code>begin</code>, then its parents, until one returns true; that one gets the <code>change</code>s and the <code>end</code>, and the UI does not zoom. <code>scale</code> is the fingers' distance over what it was as they started to move (1 at <code>begin</code>, 2 with them twice as far apart; <code>end</code> carries the last). The first finger's press was cancelled before <code>begin</code> (<code>PointerAction::cancel</code>), and neither finger reaches <code>pointer_event</code> until both are up. The return value after <code>begin</code> is ignored.</p>
+<pre><code class="lang-cpp">bool pinch(const sq::gui::PinchEvent&amp; event) override
+{
+    if (event.phase == sq::gui::PinchPhase::begin) start_ = zoom_;
+    else zoom_ = std::clamp(start_ * event.scale, 0.5F, 4.0F);
+    return true;  // mine: the UI stays as it is
+}</code></pre>
+<p>A widget that leaves it (the default, false) changes nothing: the UI zooms over it as over anything else.</p>
+<h2 id="widget-base">Widget base</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Widget</code></td><td><code>squared/gui/widget.cppm</code></td><td>Base class for every GUI node. Widgets may own other widgets</td></tr><tr><td><code>TooltipConfig</code></td><td><code>squared/gui/src/tooltip_config.cppm</code></td><td>Timing and placement policy for transient Ui tooltips</td></tr></tbody></table></div>
+<h2 id="leaf-widgets">Leaf widgets</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Label</code></td><td><code>squared/gui/label.cppm</code></td><td>Read-only text widget</td></tr><tr><td><code>Image</code></td><td><code>squared/gui/image.cppm</code></td><td>Widget rendering one shared drawable</td></tr><tr><td><code>Separator</code></td><td><code>squared/gui/separator.cppm</code></td><td>Thin vertical or horizontal divider line</td></tr><tr><td><code>ProgressBar</code></td><td><code>squared/gui/progress_bar.cppm</code></td><td>Read-only determinate progress indicator</td></tr></tbody></table></div>
+<h2 id="containers">Containers</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Direction</code></td><td><code>squared/gui/src/direction.cppm</code></td><td>Main stacking axis of a linear layout</td></tr><tr><td><code>Alignment</code></td><td><code>squared/gui/src/alignment.cppm</code></td><td>Per-cell alignment relative to the cell box</td></tr><tr><td><code>Panel</code></td><td><code>squared/gui/panel.cppm</code></td><td>Container painting a single style background</td></tr><tr><td><code>Cell</code></td><td><code>squared/gui/cell.cppm</code></td><td>Per-child constraints returned by Table::add for fluent configuration</td></tr><tr><td><code>Table</code></td><td><code>squared/gui/table.cppm</code></td><td>Grid layout with libGDX-style rows and chainable cell constraints</td></tr><tr><td><code>LinearLayout</code></td><td><code>squared/gui/linear_layout.cppm</code></td><td>Container stacking children along one axis with optional growth</td></tr><tr><td><code>Stack</code></td><td><code>squared/gui/stack.cppm</code></td><td>Container overlaying children into the same box, later on top</td></tr><tr><td><code>MarginContainer</code></td><td><code>squared/gui/margin_container.cppm</code></td><td>Container adding fixed insets around one child</td></tr><tr><td><code>ScrollPane</code></td><td><code>squared/gui/scroll_pane.cppm</code></td><td>Container clipping and vertically scrolling a larger child</td></tr><tr><td><code>List</code></td><td><code>squared/gui/list.cppm</code></td><td>A list of any length holding widgets only for the rows it shows, reused as it scrolls</td></tr></tbody></table></div>
+<p><b><code>List</code></b> is what a layout's <code>list</code> node builds; the Stage binds it to a model's list (<a href="stage.html#bound-lists">stage.md</a>), and an app rarely touches it. Its rows are one node of a layout, copied, and built as a <code>Table</code> for each row on screen and one more; all are one height, the first row's. <code>set_count(n)</code> says how many rows there are; <code>set_on_row(shown, context)</code> is told each time a row's table starts showing another row (<code>row_at(slot)</code>, <code>slot_showing(row)</code>); <code>set_scroll_y(offset)</code> scrolls it, and a drag does, anywhere in it: once a finger has moved <code>drag_slop</code> (8 units) on a row's button, the button lets go and the list scrolls. <code>first_row()</code> and <code>rows_on_screen()</code> say what shows. At most <code>max_rows_built</code> (64) row tables; a list that would need more leaves the rest empty (<code>short_of_rows()</code>). <code>Button::pressed()</code> is public now, so a button a list took the finger from can be seen to have let go. <code>restore_scroll(offset)</code> scrolls to <code>offset</code> once the rows reach it: as far as they go until then (the count may not have come yet), and forgotten by any scroll since. What the Stage puts back when a screen comes back.</p>
+<p><b>A <code>Table</code> lays out without allocating</b>, once each depth of tables has been laid out at its largest: its working sizes are kept between layouts. <code>Table::release_kept()</code> frees them (on low memory; the next layout makes them again), and <code>Table::kept_count()</code> says how many sets there are, one a depth.</p>
+<p><code>ScrollPane</code>, <code>TextField</code> and <code>List</code> answer <code>actor_cast</code> (below) by their own type.</p>
+<h2 id="controls">Controls</h2>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Button</code></td><td><code>squared/gui/button.cppm</code></td><td>Clickable, focusable control with an optional label and icon</td></tr><tr><td><code>ToggleButton</code></td><td><code>squared/gui/toggle_button.cppm</code></td><td>Two-state button that reports changes through a callback</td></tr><tr><td><code>CheckBox</code></td><td><code>squared/gui/check_box.cppm</code></td><td>Toggle button rendering a checkbox glyph and label</td></tr><tr><td><code>RadioButton</code></td><td><code>squared/gui/radio_button.cppm</code></td><td>CheckBox-shaped choice intended for a one-of-many ButtonGroup</td></tr><tr><td><code>ButtonGroup</code></td><td><code>squared/gui/button_group.cppm</code></td><td>Non-owning coordinator for toggle buttons and radio-style choices</td></tr><tr><td><code>TextField</code></td><td><code>squared/gui/text_field.cppm</code></td><td>Single-line editable text input with cursor and composition support</td></tr><tr><td><code>Slider</code></td><td><code>squared/gui/slider.cppm</code></td><td>Draggable one-axis value selector with an optional gradient fill</td></tr></tbody></table></div>
+<p><b>When an edit is finished.</b> <code>TextField::set_on_commit( callback, context )</code> calls <code>callback( context, field )</code> on Enter (the keyboard's Done), and when the field loses the focus after its text changed; <code>field.text()</code> is the edit. A function pointer and a context, so it allocates nothing; nullptr for none. <code>focused()</code> says whether the field has the focus now, and <code>edited()</code> whether its text changed since the last commit: an edit not finished. <code>restore_edit( text )</code> puts one back, as <code>set_text</code> with <code>edited()</code> true: committed, as any edit, on Enter or on leaving the field.</p>
+<pre><code class="lang-cpp">void named( void *context, sq::gui::TextField &amp;field ) { /* field.text() */ }
+
+field.set_on_commit( &amp;named, &amp;player );</code></pre>
+<p><code>Label::set_text</code> and <code>TextField::set_text</code> take a <code>std::string_view</code> and copy it into the widget's own text, which keeps its storage: setting a text no longer than one the widget held allocates nothing.</p>
+<p><code>Slider::dragging()</code> is true while a pointer holds the knob: what the Stage uses to keep a model's value off a slider being moved (<a href="stage.html#bound-values">stage.md</a>).</p>
+<h2 id="panes-and-the-host">Panes and the host</h2>
+<p>An app's panes are the Stage's (<a href="stage.html#panes">stage.md</a>): a layout of kind <code>pane</code>, or a C++ screen opened as one. Since 7.7 the types under them are internal, in <code>squared/gui/src/detail/</code> (not part of the API, and not listed with the rest):</p>
+<div class="tablewrap"><table><thead><tr><th>Was</th><th>Now</th></tr></thead><tbody><tr><td><code>gui::Ui</code>, <code>squared/gui/ui.hpp</code>: the host of one widget tree</td><td>internal (<code>src/detail/ui.cppm</code>); the Stage holds one per window</td></tr><tr><td><code>gui::Stage</code>, <code>squared/gui/stage.hpp</code>: the tree's root</td><td>internal, <code>gui::ActorRoot</code> (<code>src/detail/actor_root.cppm</code>): one Stage, the app's</td></tr><tr><td><code>gui::Window</code>, <code>squared/gui/window.hpp</code></td><td>gone: a pane's frame is <code>gui::PaneFrame</code> (internal), the skin's <code>pane</code> window style around a table, with no title bar, dragging or resizing</td></tr><tr><td><code>gui::Dialog</code>, <code>squared/gui/dialog.hpp</code>, <code>Ui::show_dialog</code></td><td>gone: a question is a pane layout with buttons (<code>&quot;tap&quot;: &quot;close&quot;</code>, <code>&quot;tap&quot;: &quot;quit&quot;</code>, a telegram)</td></tr></tbody></table></div>
+<p>The demo, which runs its own screens on the <code>Ui</code> until it moves to <code>sq::App</code> (Sprint 9), includes the internal header by its path.</p>
+<p><b>The safe area.</b> The Stage keeps its screens and panes inside the part of the screen the user can see, from what the platform says (<code>Application::safe_area_changed()</code>): nothing for an app to do.</p>
+<p><b>Navigation waits for the tap.</b> A tap's <code>push</code>, <code>back</code> or <code>open</code> is applied after the tap has been delivered, since building the next screen frees the tapped button (<a href="stage.html#custom-nodes">stage.md</a>).</p>
+<h2 id="skin-loading">Skin loading</h2>
+<p><code>load_libgdx_skin</code> reads a libGDX <code>uiskin.json</code>. Style tables may be keyed by the full libGDX class name (as a stock skin has them) or by its last part: <code>com.badlogic.gdx.scenes.scene2d.ui.TextButton$TextButtonStyle</code> and <code>TextButton$TextButtonStyle</code> are the same table. Supported: <code>Color</code>, <code>BitmapFont</code>, <code>Skin$TintedDrawable</code>, <code>Button$ButtonStyle</code>, <code>TextButton$TextButtonStyle</code>, <code>TextField$TextFieldStyle</code>, <code>Label$LabelStyle</code>, <code>CheckBox$CheckBoxStyle</code>, <code>Slider$SliderStyle</code>, <code>ProgressBar$ProgressBarStyle</code> and <code>Window$WindowStyle</code>; any other class in the file is reported as a warning. Giving one class twice, once in each form, is an error.</p>
+<p>Lua: not bound.</p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>Header</th><th>Purpose</th></tr></thead><tbody><tr><td><code>SkinLoadSeverity</code></td><td><code>squared/gui/src/skin_load_severity.cppm</code></td><td>Severity of one skin-loading diagnostics entry</td></tr><tr><td><code>SkinLoadIssue</code></td><td><code>squared/gui/src/skin_load_issue.cppm</code></td><td>One path-tagged diagnostics entry produced by skin loading</td></tr><tr><td><code>SkinLoadLimits</code></td><td><code>squared/gui/src/skin_load_limits.cppm</code></td><td>Explicit resource limits applied to one transactional skin load</td></tr><tr><td><code>SkinLoadReport</code></td><td><code>squared/gui/src/skin_load_report.cppm</code></td><td>Counted result of one transactional skin load</td></tr><tr><td><code>SkinDrawableResolver</code></td><td><code>squared/gui/src/skin_drawable_resolver.cppm</code></td><td>Resolves one atlas/resource name without exposing storage or backend APIs</td></tr><tr><td><code>SkinFontResolver</code></td><td><code>squared/gui/src/skin_font_resolver.cppm</code></td><td>Resolve one declared bitmap-font resource without fixing an I/O API</td></tr></tbody></table></div>
+<h2 id="text-entry-widgets-and-the-soft-keyboard">Text-entry widgets and the soft keyboard</h2>
+<p>The Stage raises, moves and stops the platform text-input service based on <code>Widget::wants_text_input()</code>. It returns false by default and <code>TextField</code> returns true, so a custom text-entry widget opts in by overriding it:</p>
+<pre><code class="lang-cpp">class CodeEditor final : public sq::gui::Widget {
+public:
+    [[nodiscard]] bool focusable() const noexcept override { return true; }
+    [[nodiscard]] bool wants_text_input() const noexcept override
+    {
+        return true;
+    }
+};</code></pre>
+<p>Without the override the widget still takes keyboard focus and still receives <code>text_input()</code>, but the on-screen keyboard is not raised for it on Android.</p>
+<h2 id="downcasting-an-actor">Downcasting an Actor</h2>
+<p>squared builds with <code>-fno-rtti</code>, so <code>dynamic_cast</code> is not available. Use <code>actor_cast</code> instead:</p>
+<pre><code class="lang-cpp">for (std::size_t i = 0; i &lt; group.child_count(); ++i) {
+    if (auto* widget = sq::gui::actor_cast&lt;sq::gui::Widget&gt;(
+            group.child_at(i))) {
+        // this child is a Widget
+    }
+}</code></pre>
+<p>It accepts null, returns null when the actor does not publish the requested interface, and has a <code>const</code> overload. <code>Group</code> and <code>Widget</code> both work as the target type.</p>
+<p>To make your own <code>Actor</code> subclass reachable the same way, publish an identifier and override both <code>actor_interface</code> overloads, delegating to your direct base for identifiers you do not recognise:</p>
+<pre><code class="lang-cpp">class MyNode : public sq::gui::Group {
+public:
+    static constexpr sq::gui::ActorInterfaceId
+        actor_interface_id = 0x4D&#x27;59&#x27;4E&#x27;44U;
+
+    [[nodiscard]] void* actor_interface(
+        sq::gui::ActorInterfaceId id) noexcept override
+    {
+        return id == actor_interface_id ? this : Group::actor_interface(id);
+    }
+
+    [[nodiscard]] const void* actor_interface(
+        sq::gui::ActorInterfaceId id) const noexcept override
+    {
+        return id == actor_interface_id ? this : Group::actor_interface(id);
+    }
+};</code></pre>
+<h2 id="drawing-the-interface">Drawing the interface</h2>
+<p>Widgets draw through a <code>Painter</code>. <code>BatchPainter</code> is the one that puts them on screen:</p>
+<pre><code class="lang-cpp">import sq.gui;
+
+// Once, after the skin&#x27;s atlas and font are loaded:
+sq::gui::BatchPainter painter{batch, font.get()};   // font: the skin&#x27;s FontPtr
+const sq::graphics::AtlasRegion* white = atlas.find_region(&quot;white&quot;);
+if (!painter.set_fill_source(white != nullptr ? &amp;white-&gt;region() : nullptr)) {
+    // no fill source at all; solid fills are skipped
+}
+painter.set_viewport(640.0F, 480.0F, graphics.pixel_width(),
+                     graphics.pixel_height());
+
+// Every frame, between batch.begin(camera) and batch.end(): your own drawing
+// (the Stage lays out and paints its widgets through the same calls).
+painter.draw_text(&quot;score&quot;, 16.0F, 16.0F, font.get(), sq::graphics::Color::white());</code></pre>
+<p>Keep one painter for the life of the interface. It holds the scratch storage text is laid out in, so a new painter per frame would allocate again.</p>
+<p>Call <code>set_viewport()</code> again on resize. Only clipping needs it.</p>
+<p><b>Pass the skin's <code>white</code> region.</b> Solid fills are drawn from it, so they share an atlas page with every other widget graphic and the interface costs one draw call instead of one per fill. Both stock skins ship a <code>white</code> region for exactly this. Passing <code>nullptr</code> works and costs a draw call per fill.</p>
+<p>Clipping is handled for you: a scroll pane pushes a clip, and anything drawn inside it is scissored to that rectangle. Nested clips intersect.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

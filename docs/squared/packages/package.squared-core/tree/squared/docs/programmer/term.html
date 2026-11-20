@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>term · squared</title>
+<meta name="description" content="squared: term">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/term.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/term.md">on GitHub</a></p><h1 id="term">term</h1>
+<p>A terminal emulator's core, for sqterm (Sprint 12) and any app that shows a program's output: the bytes a program writes go in, a screen of cells comes out (<code>Terminal</code>); and a program running in a pseudo-terminal, to read those bytes from and write keys to (<code>Pty</code>). The two are apart: a <code>Terminal</code> owns no pty, draws nothing and reads no keys, so it runs on the model's thread, on the host, and in a test with no program at all.</p>
+<p>It reads ECMA-48 over UTF-8: control functions, control sequences, colours and attributes (SGR, with 256 colours and 24-bit colour), and operating system commands for the title. Of the DEC and xterm functions it takes the alternate screen, scroll regions, cursor keys and cursor visibility, and bracketed paste. Compatibility with other terminals comes last: what it does not implement it reads and ignores.</p>
+<p><code>import sq.term;</code> (it is not part of <code>import squared;</code>).</p>
+<p>Developer counterpart: <a href="../developer/term.html">../developer/term.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>File</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Terminal</code></td><td><code>squared/term/terminal.cppm</code></td><td>The terminal: feed it bytes, read its rows, cursor, modes, title and replies</td></tr><tr><td><code>TerminalConfig</code></td><td><code>squared/term/terminal_config.cppm</code></td><td>Columns, rows, and the scrollback's size in bytes (1 MB)</td></tr><tr><td><code>Cell</code></td><td><code>squared/term/cell.cppm</code></td><td>One character cell: the character, 24-bit foreground and background, attributes, flags; 12 bytes</td></tr><tr><td><code>Rgb</code></td><td><code>squared/term/rgb.cppm</code></td><td>A colour, three bytes</td></tr><tr><td><code>CellAttributes</code></td><td><code>squared/term/cell_attributes.cppm</code></td><td>Bold, faint, italic, underline, blink, inverse, conceal, crossed out</td></tr><tr><td><code>CellFlags</code></td><td><code>squared/term/cell_flags.cppm</code></td><td>Default foreground or background (the theme's, not the <code>Rgb</code>), the halves of a wide character</td></tr><tr><td><code>Cursor</code></td><td><code>squared/term/cursor.cppm</code></td><td>Column and row, from 0 at the top left</td></tr><tr><td><code>TerminalModes</code></td><td><code>squared/term/terminal_modes.cppm</code></td><td>What a program has set that changes what the owner does: cursor keys, cursor visible, bracketed paste, alternate screen, autowrap, insert</td></tr><tr><td><code>TerminalEvents</code></td><td><code>squared/term/terminal_events.cppm</code></td><td>The bell rang; the title changed</td></tr><tr><td><code>Pty</code></td><td><code>squared/term/pty.cppm</code></td><td>A program in a pseudo-terminal: start it, read what it writes, write keys, resize, see it end, hang up</td></tr><tr><td><code>PtyConfig</code></td><td><code>squared/term/pty_config.cppm</code></td><td>The program (a path, or a name looked up on PATH), arguments, environment, directory, and the terminal's size</td></tr><tr><td><code>PtyError</code>, <code>PtyErrorCode</code></td><td><code>squared/term/pty_error.cppm</code></td><td>Why starting it failed: the step, and its <code>errno</code></td></tr><tr><td><code>ProcessExit</code></td><td><code>squared/term/process_exit.cppm</code></td><td>How it ended: the exit code, or the signal</td></tr><tr><td><code>ScreenPublisher</code></td><td><code>squared/term/screen_publisher.cppm</code></td><td>A terminal's screen written as a snapshot, on the model's thread, with a version for each row</td></tr><tr><td><code>ScreenView</code></td><td><code>squared/term/screen_view.cppm</code></td><td>A screen snapshot as the UI reads it: rows, versions, cursor, modes, title</td></tr><tr><td><code>KeyBytes</code>, <code>key_bytes</code>, <code>key_text_bytes</code></td><td><code>squared/term/key_bytes.cppm</code></td><td>What a key sends to the program: a named key with its modifiers, or a typed character with Ctrl or Alt</td></tr><tr><td><code>TextPoint</code></td><td><code>squared/term/text_point.cppm</code></td><td>A place in the terminal's text: a line number (kept as more lines scroll off) and a column</td></tr><tr><td><code>paste_text</code></td><td><code>squared/term/paste_text.cppm</code></td><td>What a paste sends to the program: ESC and C1 taken out, newlines as CR, bracketed when the program asked</td></tr></tbody></table></div>
+<h2 id="the-shortest-use">The shortest use</h2>
+<pre><code class="lang-cpp">sq::term::Terminal terminal{ { .columns = 80, .rows = 24 } };
+sq::term::Pty shell;
+if( const auto error = shell.spawn( { .program = &quot;/system/bin/sh&quot; } ) ) {
+    report( error.what() );
+}
+std::array&lt;std::byte, 4096&gt; buffer;
+terminal.feed( { buffer.data(), shell.read( buffer ) } );   // any piece of the stream
+for( std::uint16_t r = 0; r &lt; terminal.rows(); ++r ) {
+    if( terminal.row_dirty( r ) ) {
+        draw( r, terminal.row( r ) );                 // std::span&lt;const sq::term::Cell&gt;
+    }
+}
+terminal.clear_dirty();
+shell.write( terminal.replies() );                    // a cursor position report, say
+terminal.clear_replies();</code></pre>
+<h2 id="terminal">Terminal</h2>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>Terminal(config)</code></td><td>a blank screen of <code>config.columns</code> x <code>config.rows</code> (each at least 1), the scrollback's ring allocated</td></tr><tr><td><code>feed(bytes)</code>, <code>feed(text)</code></td><td>reads what the program wrote. A character or sequence split between two calls is read whole. Never allocates</td></tr><tr><td><code>resize(columns, rows)</code></td><td>a new size. The main screen keeps its top left; when rows below the cursor are lost, the rows above go to the scrollback, so the cursor's line stays on screen. Lines are not rewrapped. Every row is marked dirty</td></tr><tr><td><code>columns()</code>, <code>rows()</code></td><td>the size</td></tr><tr><td><code>row(r)</code></td><td>row <code>r</code> of the screen in use (the alternate one while a program has it), as <code>std::span&lt;const Cell&gt;</code></td></tr><tr><td><code>row_dirty(r)</code>, <code>clear_dirty()</code></td><td>changed since the last <code>clear_dirty</code>: draw only those</td></tr><tr><td><code>cursor()</code></td><td>where the next character goes</td></tr><tr><td><code>modes()</code></td><td><code>TerminalModes</code>: how to send keys and a paste, whether to draw the cursor</td></tr><tr><td><code>history_size()</code>, <code>history_line(back)</code></td><td>lines scrolled off the top of the main screen; <code>back</code> 0 is the newest. A line is as long as its last non-blank cell</td></tr><tr><td><code>title()</code></td><td>the title a program set (OSC 0 or 2), UTF-8, at most 128 bytes</td></tr><tr><td><code>take_events()</code></td><td>the bell and a new title since the last call; then cleared</td></tr><tr><td><code>replies()</code>, <code>clear_replies()</code></td><td>bytes to write back to the program: replies to a device status report (<code>CSI 6 n</code>, the cursor position) and a device attributes request. At most 256 wait; more are dropped</td></tr></tbody></table></div>
+<p>Preconditions: <code>r</code> below <code>rows()</code>, <code>back</code> below <code>history_size()</code>. One thread uses a <code>Terminal</code>. Failure modes: none returned. Bytes that are not UTF-8 show as U+FFFD; a sequence it does not implement is ignored; an operating system command over 256 bytes is dropped.</p>
+<p>Moved, not copied.</p>
+<h2 id="cell">Cell</h2>
+<pre><code class="lang-cpp">const sq::term::Cell &amp;cell = terminal.row( 0 )[3];
+if( cell.flags.wide_tail ) { /* drawn by the cell before */ }
+const auto fg = cell.flags.default_foreground ? theme.foreground : cell.foreground;</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>code</code></td><td>the character, a Unicode scalar value; a blank is a space; 0 in a wide character's second cell</td></tr><tr><td><code>foreground</code>, <code>background</code></td><td>24-bit colours. The 256 indexed colours (SGR 30-37, 90-97, <code>38;5;n</code>) arrive here already as xterm's RGB</td></tr><tr><td><code>attributes</code></td><td><code>bold</code>, <code>faint</code>, <code>italic</code>, <code>underline</code>, <code>blink</code>, <code>inverse</code>, <code>conceal</code>, <code>crossed_out</code></td></tr><tr><td><code>flags.default_foreground</code>, <code>flags.default_background</code></td><td>the colour is "the default": the theme's, and the <code>Rgb</code> is unused</td></tr><tr><td><code>flags.wide</code>, <code>flags.wide_tail</code></td><td>the two cells of a wide character (CJK, most emoji)</td></tr></tbody></table></div>
+<p>Combining marks (an accent written as its own code point) are dropped for now: the letter shows without it.</p>
+<h2 id="what-it-reads">What it reads</h2>
+<div class="tablewrap"><table><thead><tr><th>Kind</th><th>Implemented</th></tr></thead><tbody><tr><td>C0</td><td>BEL, BS, HT, LF, VT, FF, CR; CAN and SUB end a sequence</td></tr><tr><td>C1 (<code>ESC</code> + letter, or the code point)</td><td>IND, NEL, HTS, RI; <code>ESC 7</code> and <code>ESC 8</code> (save and restore the cursor), <code>ESC c</code> (reset)</td></tr><tr><td>Cursor</td><td>CUU, CUD, CUF, CUB, CNL, CPL, CHA, HPA, HPR, CUP, HVP, VPA, VPR, CHT, CBT; <code>CSI s</code> and <code>CSI u</code></td></tr><tr><td>Editing</td><td>ED (0, 1, 2; 3 clears the scrollback), EL, ECH, ICH, DCH, IL, DL, SU, SD, REP</td></tr><tr><td>Regions</td><td>DECSTBM (<code>CSI top ; bottom r</code>)</td></tr><tr><td>Tabs</td><td>HT, HTS, TBC (0, 3); stops every 8 columns</td></tr><tr><td>SGR</td><td>0-9, 21-29, 30-39, 40-49, 90-97, 100-107; <code>38</code> and <code>48</code> with <code>5;n</code> or <code>2;r;g;b</code>, and the <code>:</code> forms of ITU T.416</td></tr><tr><td>Modes</td><td>IRM (<code>CSI 4 h</code>); DECCKM (<code>?1</code>), DECAWM (<code>?7</code>), DECTCEM (<code>?25</code>), the alternate screen (<code>?47</code>, <code>?1047</code>, <code>?1049</code>), bracketed paste (<code>?2004</code>)</td></tr><tr><td>Reports</td><td>DSR 5 and 6, DA (<code>CSI c</code>, <code>CSI &gt; c</code>)</td></tr><tr><td>OSC</td><td>0 and 2, the title</td></tr></tbody></table></div>
+<p>Erasing fills with the current background colour.</p>
+<h2 id="pty">Pty</h2>
+<p>A program in a pseudo-terminal, the same on Linux and Android (POSIX). Its terminal starts with UTF-8 input and without XON/XOFF, so Ctrl-S and Ctrl-Q reach the program.</p>
+<pre><code class="lang-cpp">sq::term::Pty shell;
+const std::array&lt;std::string_view, 2&gt; environment{ &quot;TERM=sqterm&quot;, &quot;HOME=/data/...&quot; };
+if( const auto error = shell.spawn( { .program = &quot;/system/bin/sh&quot;, .environment = environment,
+                                      .columns = 80, .rows = 24 } ) ) {
+    report( error.what(), error.system_error );
+}
+shell.write( &quot;ls\r&quot; );                         // keys: Enter is \r, Ctrl-C is \x03
+if( shell.wait_readable( 16 ) ) {
+    terminal.feed( { buffer.data(), shell.read( buffer ) } );
+}
+shell.resize( terminal.columns(), terminal.rows() );   // after terminal.resize
+if( const auto exit = shell.poll_exit() ) { /* exit-&gt;code, or exit-&gt;signal */ }</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>spawn(config)</code></td><td>starts <code>config.program</code> (a path such as <code>/system/bin/sh</code> or <code>./run.sh</code>, or a name such as <code>zsh</code>, looked up on PATH as a shell does: the given environment's PATH, else this process's) with <code>config.arguments</code> after its name, in a new session with the pty as its terminal, sized <code>columns</code> x <code>rows</code>. <code>environment</code> empty: this process's own; <code>directory</code> empty: this process's. An error (true) when it could not</td></tr><tr><td><code>read(into)</code></td><td>what the program wrote, up to <code>into.size()</code> bytes; 0 when nothing waits. Never blocks</td></tr><tr><td><code>write(bytes, timeout_ms)</code>, <code>write(text, timeout_ms)</code></td><td>sends keys or a paste; waits for room up to <code>timeout_ms</code> (1000) in all and returns how many bytes went</td></tr><tr><td><code>resize(columns, rows)</code></td><td>the new size; the program gets SIGWINCH</td></tr><tr><td><code>wait_readable(timeout_ms)</code></td><td>waits up to <code>timeout_ms</code> for something to read, or for the end</td></tr><tr><td><code>poll_exit()</code></td><td>how the program ended, once it has (the process is reaped then); nothing while it runs</td></tr><tr><td><code>closed()</code></td><td>nothing more will come: every process holding the terminal has closed it</td></tr><tr><td><code>hang_up()</code></td><td>ends the program: SIGHUP to its process group, SIGKILL after 200 ms if it is still there; closes the pty. The destructor does it</td></tr><tr><td><code>fd()</code>, <code>pid()</code></td><td>the pty, to wait on with poll alongside other things; the program's process</td></tr></tbody></table></div>
+<p>Failure modes, returned by <code>spawn</code> (<code>PtyError::code</code>): <code>already_running</code> (this <code>Pty</code> has a program that has not ended), <code>no_program</code> (empty), <code>open_master</code>, <code>open_slave</code>, <code>fork</code>, each with its <code>errno</code> in <code>system_error</code>; <code>what()</code> says it in words. A program that cannot be run (or a name not on PATH) is not one of them: the process was made, so it writes <code>pty: cannot run &lt;program&gt;: &lt;why&gt;</code> to the terminal and exits with 127. On Android 10 and later the "why" for a program in an app's own folder is "permission denied" unless the app targets SDK 28 (sqterm does).</p>
+<p>Preconditions: one thread uses a <code>Pty</code>. Moved, not copied.</p>
+<p>A program that reads nothing fills the pty: a <code>write</code> then waits up to its timeout and returns short. In line mode (the default, until a program turns it off) the line discipline drops what does not fit instead, and a write never waits.</p>
+<h2 id="the-screen-as-a-snapshot">The screen as a snapshot</h2>
+<p>A terminal runs on the model's thread (the shell's output is read and fed there); the UI draws it from the Telegraph's snapshot channel (<a href="messaging.html#snapshots">messaging.md</a>).</p>
+<pre><code class="lang-cpp">// The model&#x27;s thread, after feeding what the shell wrote:
+auto room = t.snapshot( screen, publisher.bytes_for( terminal ) );
+t.publish( screen, publisher.write( terminal, room ) );
+
+// The UI thread:
+if( const auto shot = ui.snapshot( screen ) ) {
+    if( const auto view = sq::term::ScreenView::read( shot-&gt;bytes ) ) {
+        for( std::uint16_t r = 0; r &lt; view-&gt;rows(); ++r ) {
+            if( view-&gt;version( r ) != drawn[r] ) { draw_row( r, view-&gt;row( r ) ); drawn[r] = view-&gt;version( r ); }
+        }
+        if( view-&gt;cursor_shown() ) { draw_cursor( view-&gt;cursor() ); }
+    }
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th><code>ScreenPublisher</code></th><th>Does</th></tr></thead><tbody><tr><td><code>bytes_for(terminal)</code></td><td>the room a snapshot of it needs now: 160 bytes, 4 a row, 12 a cell</td></tr><tr><td><code>write(terminal, out)</code></td><td>the screen into <code>out</code>; each row changed since the last write (or every row, when the size or the view moved) gets a new version; the terminal's dirty marks cleared; the bytes written, 0 when <code>out</code> is too small</td></tr><tr><td><code>scroll_back(lines)</code>, <code>scrolled_back()</code></td><td>the view <code>lines</code> back into the scrollback (0: the screen); held to what the scrollback has</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th><code>ScreenView</code></th><th>Gives</th></tr></thead><tbody><tr><td><code>read(bytes)</code></td><td>the view, or nothing when the bytes are not a whole snapshot of this layout</td></tr><tr><td><code>columns()</code>, <code>rows()</code>, <code>row(r)</code></td><td>the size, and row <code>r</code>'s cells</td></tr><tr><td><code>version(r)</code></td><td>moves on each time row <code>r</code> changes: redraw the rows whose version is not the one drawn</td></tr><tr><td><code>cursor()</code>, <code>cursor_shown()</code></td><td>where the cursor is, and whether to draw it (the program shows it and the view is not scrolled back)</td></tr><tr><td><code>modes()</code>, <code>title()</code>, <code>history_size()</code>, <code>scrolled_back()</code></td><td>as the terminal had them</td></tr><tr><td><code>top_line()</code></td><td>the terminal's number for the line row 0 shows: row <code>r</code> is line <code>top_line() + r</code> (see <a href="#copying-and-pasting">Copying and pasting</a>)</td></tr></tbody></table></div>
+<p>Each snapshot is the whole screen (24 KB at 50 x 40): the UI may skip some, and what it reads must stand alone. A scrolled-back view follows the bottom: new output moves it.</p>
+<h2 id="what-keys-send">What keys send</h2>
+<p>A terminal widget turns the keys it is given into the bytes a program reads, as xterm sends them, and writes them to the pty (<a href="gui.html">gui.md</a>: <code>key_down</code> for named keys, <code>key_text</code> for a character typed with Ctrl or Alt, <code>text_input</code> for plain text, written as it is).</p>
+<pre><code class="lang-cpp">bool key_down( sq::app::Key key, sq::app::KeyModifiers held ) override
+{
+    const sq::term::KeyBytes bytes = sq::term::key_bytes( key, held, view.modes() );
+    return !bytes.empty() &amp;&amp; send( bytes.view() );
+}
+bool key_text( std::string_view text, sq::app::KeyModifiers held ) override
+{
+    const sq::term::KeyBytes bytes = sq::term::key_text_bytes( text, held );
+    return !bytes.empty() &amp;&amp; send( bytes.view() );
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Gives</th></tr></thead><tbody><tr><td><code>key_bytes( key, modifiers, modes )</code></td><td>arrows <code>ESC [ A</code> (<code>ESC O A</code> when the program asked for application cursor keys), Home <code>ESC [ H</code>, End <code>ESC [ F</code>, Insert <code>ESC [ 2 ~</code>, Delete <code>ESC [ 3 ~</code>, Page Up and Down <code>ESC [ 5 ~</code> and <code>6 ~</code>, F1 to F4 <code>ESC O P</code> to <code>S</code>, F5 to F12 <code>ESC [ 15 ~</code> to <code>24 ~</code>; with modifiers xterm's parameter, 1 + Shift 1 + Alt 2 + Ctrl 4 + Meta 8 (<code>ESC [ 1 ; 5 A</code> is Ctrl-Up, <code>ESC [ 5 ; 2 ~</code> Shift-Page Up). Backspace DEL (Ctrl: BS), Enter CR, Tab HT (Shift: <code>ESC [ Z</code>), Escape ESC, Alt putting ESC before these four. Empty for Space (it is text) and <code>unknown</code></td></tr><tr><td><code>key_text_bytes( text, modifiers )</code></td><td>Ctrl with <code>@</code> to <code>_</code> or a letter: its control character (Ctrl-C 0x03, Ctrl-[ ESC); with Space or <code>2</code> NUL, <code>3</code> to <code>7</code> ESC to US, <code>8</code> and <code>?</code> DEL, <code>/</code> US; any other text as it is. Alt puts ESC before it. Empty for empty text, or text over 14 bytes</td></tr><tr><td><code>KeyBytes::view()</code>, <code>empty()</code></td><td>the bytes; none. 16 bytes by value, no allocation</td></tr></tbody></table></div>
+<h2 id="copying-and-pasting">Copying and pasting</h2>
+<p>A selection's ends are <code>TextPoint</code>s: a line, as the terminal numbers them, and a column. A line keeps its number as more lines scroll off the top, so a selection made in a view, then scrolled, still names the same text. The UI reads the numbers off a snapshot (<code>ScreenView::top_line</code>); the model, which holds the scrollback, makes the text (<code>Terminal::copy_text</code>).</p>
+<pre><code class="lang-cpp">// UI: row r of the view is line view.top_line() + r.
+const sq::term::TextPoint from{ .line = view.top_line() + r0, .column = c0 };
+const sq::term::TextPoint to{ .line = view.top_line() + r1, .column = c1 };
+
+// Model: the text, sized once, then written.
+std::string text( terminal.copy_text( from, to, {} ), &#x27;\0&#x27; );
+terminal.copy_text( from, to, text );
+
+// UI: a paste, as the program should get it.
+std::string bytes( sq::term::paste_text( pasted, view.modes(), {} ), &#x27;\0&#x27; );
+sq::term::paste_text( pasted, view.modes(), bytes );</code></pre>
+<div class="tablewrap"><table><thead><tr><th><code>Terminal</code></th><th>Gives</th></tr></thead><tbody><tr><td><code>first_line()</code></td><td>the number of the oldest line the scrollback keeps</td></tr><tr><td><code>screen_line()</code></td><td>the number of the screen's row 0; row <code>r</code> is <code>screen_line() + r</code></td></tr><tr><td><code>row_wrapped(row)</code></td><td>the row went on into the next by autowrap</td></tr><tr><td><code>copy_text(from, to, out)</code></td><td>the text from <code>from</code> to <code>to</code> (both included, either first) as UTF-8 into <code>out</code>; the bytes the whole text takes, whatever <code>out</code> holds</td></tr></tbody></table></div>
+<p><code>copy_text</code> reads the scrollback's lines, then the screen in use's rows (on the alternate screen, the program's rows after the main screen's scrollback), held to the lines there are: a point before <code>first_line()</code> starts at the oldest line kept, one past the last row ends there, and a range with no line left gives 0. A line that wrapped runs on into the next with no LF; any other ends with LF, its trailing blanks left out (a wrapped line keeps its spaces: they are the text's). The last line gets no LF. A wide character comes once. <code>out</code> takes whole characters in order until one does not fit: call it with an empty span for the size, then with that much. It allocates nothing; finding the first scrollback line walks back to it, one step a line.</p>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Gives</th></tr></thead><tbody><tr><td><code>paste_text( text, modes, out )</code></td><td><code>text</code> as the program is sent it, into <code>out</code>; the bytes it takes. ESC and the C1 controls (U+0080 to U+009F) taken out, so a paste starts no control sequence and cannot end a bracketed paste early; CR LF, LF and CR each become CR (Enter); between <code>ESC [ 200 ~</code> and <code>ESC [ 201 ~</code> when the program set bracketed paste (<code>modes.bracketed_paste</code>), so a shell takes it as text rather than running each line. Invalid UTF-8 passes as it is. No allocation</td></tr></tbody></table></div>
+<p>Failure modes are returned sizes: 0 from <code>copy_text</code> for nothing to copy, a size larger than <code>out</code> for a buffer too small (then call again with that much). Neither fails otherwise.</p>
+<p>sqterm's widget does both: a long press selects, its handles drag through the scrollback, Copy asks the Shell for the text (a snapshot back), and Paste sends <code>paste_text</code> of the clipboard in pieces. The clipboard is the Stage's (<a href="stage.html#the-clipboard">stage.md</a>).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

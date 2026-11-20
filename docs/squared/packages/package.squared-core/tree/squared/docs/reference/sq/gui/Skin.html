@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Skin · squared</title>
+<meta name="description" content="squared: class Skin">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Skin.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Skin.md">on GitHub</a></p><h1 id="class-skin">class Skin</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/skin.cppm#L27">gui/skin.cppm:27</a></i></p>
+<p><b>brief</b> Named, reusable skin resources and widget styles.</p>
+<p>The skin owns named drawables and style values. Styles are plain value types; drawables are shared via DrawablePtr. A skin is not thread-safe.</p>
+<h2 id="members">Members</h2>
+<p>public Color surface</p>
+<p>public Color control</p>
+<p>public Color control_hover</p>
+<p>public Color accent</p>
+<p>public Color text</p>
+<p>public Color muted_text</p>
+<p>public Color border</p>
+<p>public float padding</p>
+<p>public float spacing</p>
+<p>public float border_width</p>
+<p>public float minimum_touch_size</p>
+<h2 id="functions">Functions</h2>
+<h3 id="skin">Skin</h3>
+<p><i>public void Skin()</i></p>
+<p><b>brief</b> Construct a skin with default palette values and default styles.</p>
+<h3 id="add_button_style">add_button_style</h3>
+<p><i>public void add_button_style(std::string name, ButtonStyle style)</i></p>
+<p><b>brief</b> Register or replace a named button style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_check_box_style">add_check_box_style</h3>
+<p><i>public void add_check_box_style(std::string name, CheckBoxStyle style)</i></p>
+<p><b>brief</b> Register or replace a named check-box style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_drawable">add_drawable</h3>
+<p><i>public void add_drawable(std::string name, DrawablePtr drawable)</i></p>
+<p><b>brief</b> Register a named drawable.</p>
+<p><b>name</b> Lookup name; replaces any existing drawable with the name.</p>
+<p><b>drawable</b> Drawable to store; shared ownership.</p>
+<h3 id="add_font">add_font</h3>
+<p><i>public void add_font(std::string name, FontPtr font)</i></p>
+<p><b>brief</b> Register or replace a named immutable font resource.</p>
+<p><b>name</b> Lookup name; must be non-empty.</p>
+<p><b>font</b> Shared font resource; must be non-empty.</p>
+<p><b>throws</b>when name or font is empty.</p>
+<h3 id="add_label_style">add_label_style</h3>
+<p><i>public void add_label_style(std::string name, LabelStyle style)</i></p>
+<p><b>brief</b> Register or replace a named label style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_nine_patch_drawable">add_nine_patch_drawable</h3>
+<p><i>public void add_nine_patch_drawable(std::string name, const graphics::AtlasRegion &amp; region)</i></p>
+<p><b>brief</b> Register a named nine-patch drawable from an atlas region.</p>
+<p><b>name</b> Lookup name.</p>
+<p><b>region</b> Atlas region supplying texture and splits; must outlive the skin.</p>
+<h3 id="add_nine_patch_drawable">add_nine_patch_drawable</h3>
+<p><i>public void add_nine_patch_drawable(std::string name, const graphics::TextureRegion &amp; region, NinePatchSplits splits, std::optional&lt;Insets&gt; content_insets)</i></p>
+<p><b>brief</b> Register a named nine-patch drawable.</p>
+<p><b>name</b> Lookup name.</p>
+<p><b>region</b> Region referenced by the new drawable; must outlive the skin.</p>
+<p><b>splits</b> Corner scissor amounts in source pixels.</p>
+<p><b>content_insets</b> Content insets; derived from splits when empty.</p>
+<h3 id="add_panel_style">add_panel_style</h3>
+<p><i>public void add_panel_style(std::string name, PanelStyle style)</i></p>
+<p><b>brief</b> Register or replace a named panel style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_progress_bar_style">add_progress_bar_style</h3>
+<p><i>public void add_progress_bar_style(std::string name, ProgressBarStyle style)</i></p>
+<p><b>brief</b> Register or replace a named progress-bar style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_region_drawable">add_region_drawable</h3>
+<p><i>public void add_region_drawable(std::string name, const graphics::TextureRegion &amp; region, Insets insets)</i></p>
+<p><b>brief</b> Register a named region drawable.</p>
+<p><b>name</b> Lookup name.</p>
+<p><b>region</b> Region referenced by the new drawable; must outlive the skin.</p>
+<p><b>insets</b> Content insets in logical units.</p>
+<h3 id="add_slider_style">add_slider_style</h3>
+<p><i>public void add_slider_style(std::string name, SliderStyle style)</i></p>
+<p><b>brief</b> Register or replace a named slider style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_text_field_style">add_text_field_style</h3>
+<p><i>public void add_text_field_style(std::string name, TextFieldStyle style)</i></p>
+<p><b>brief</b> Register or replace a named text-field style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="add_window_style">add_window_style</h3>
+<p><i>public void add_window_style(std::string name, WindowStyle style)</i></p>
+<p><b>brief</b> Register or replace a named window style.</p>
+<p><b>name</b> Style name.</p>
+<p><b>style</b> Style value to store.</p>
+<h3 id="button_style">button_style</h3>
+<p><i>public const ButtonStyle &amp; button_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a button style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="check_box_style">check_box_style</h3>
+<p><i>public const CheckBoxStyle &amp; check_box_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a check-box style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="drawable">drawable</h3>
+<p><i>public DrawablePtr drawable(std::string_view name)</i></p>
+<p><b>brief</b> Look up a named drawable.</p>
+<p><b>name</b> Drawable name to look up.</p>
+<p><b>return</b> Shared drawable, or an empty pointer when the name is absent.</p>
+<h3 id="font">font</h3>
+<p><i>public FontPtr font(std::string_view name)</i></p>
+<p><b>brief</b> Look up a named font resource.</p>
+<p><b>name</b> Font name to look up.</p>
+<p><b>return</b> Shared font, or an empty pointer when absent.</p>
+<h3 id="label_style">label_style</h3>
+<p><i>public const LabelStyle &amp; label_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a label style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="panel_style">panel_style</h3>
+<p><i>public const PanelStyle &amp; panel_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a panel style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="progress_bar_style">progress_bar_style</h3>
+<p><i>public const ProgressBarStyle &amp; progress_bar_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a progress-bar style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="slider_style">slider_style</h3>
+<p><i>public const SliderStyle &amp; slider_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a slider style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="text_field_style">text_field_style</h3>
+<p><i>public const TextFieldStyle &amp; text_field_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a text-field style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p>
+<h3 id="window_style">window_style</h3>
+<p><i>public const WindowStyle &amp; window_style(std::string_view name)</i></p>
+<p><b>brief</b> Look up a window style.</p>
+<p><b>name</b> Style name to look up.</p>
+<p><b>return</b> Named style, or <code>default</code> when the name is absent.</p>
+<p><b>throws</b>only when <code>default</code> is also absent.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

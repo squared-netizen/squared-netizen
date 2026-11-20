@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Face · squared</title>
+<meta name="description" content="squared: class Face">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/font/Face.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/font/Face.md">on GitHub</a></p><h1 id="class-face">class Face</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L36">font/face.cppm:36</a></i></p>
+<p><b>brief</b> One font face (a .ttf, .otf, or one face of a .ttc), at one pixel size: its cell metrics, whether it has a character, and the character rendered as 8-bit coverage.</p>
+<p>FreeType 2.15 underneath (third_party/freetype/), with its auto-hinter in light mode (vertical hinting only: glyphs keep their shapes, stems land on whole pixels) and anti-aliasing. Each face has its own FreeType library, so faces on different threads never share state. A face is used by one thread at a time.</p>
+<p>Memory: FreeType's own allocations, from the C heap: about 100 KB a face opened from memory, more from a file (it keeps its own read buffer), and the rendered glyph's buffer, reused. Rendering allocates only when a glyph is larger than any before it.</p>
+<p>sq::font::Face face;</p>
+<p>if( const auto error = face.open_file( "fonts/JetBrainsMono-Regular.ttf" ) ) { report( error.what() ); }</p>
+<p>face.set_pixel_size( 32 );</p>
+<p>const auto cells = face.metrics();          // cell_width, cell_height, ascender ...</p>
+<p>if( const auto glyph = face.render( U'A' ) ) { upload( *glyph ); }</p>
+<h2 id="functions">Functions</h2>
+<h3 id="face">Face</h3>
+<p><i>public void Face()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L39">font/face.cppm:39</a></i></p>
+<h3 id="face">Face</h3>
+<p><i>public void Face(Face &amp;&amp; other)</i></p>
+<h3 id="face">Face</h3>
+<p><i>public void Face(const Face &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L40">font/face.cppm:40</a></i></p>
+<h3 id="bold">bold</h3>
+<p><i>public bool bold()</i></p>
+<p>The face is a bold one of its family.</p>
+<h3 id="family">family</h3>
+<p><i>public std::string_view family()</i></p>
+<p>The face's family ("JetBrains Mono"), empty when none is open.</p>
+<h3 id="has_glyph">has_glyph</h3>
+<p><i>public bool has_glyph(char32_t code)</i></p>
+<p>It has a glyph for <code>code</code> (else a fallback face draws it).</p>
+<h3 id="is_open">is_open</h3>
+<p><i>public bool is_open()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L58">font/face.cppm:58</a></i></p>
+<h3 id="italic">italic</h3>
+<p><i>public bool italic()</i></p>
+<p>The face is an italic one of its family.</p>
+<h3 id="metrics">metrics</h3>
+<p><i>public FontMetrics metrics()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L59">font/face.cppm:59</a></i></p>
+<h3 id="open_file">open_file</h3>
+<p><i>public FaceError open_file(std::string_view path, int index)</i></p>
+<p>The face <code>index</code> of the font file at <code>path</code> (0 for a .ttf; a .ttc holds several).</p>
+<h3 id="open_memory">open_memory</h3>
+<p><i>public FaceError open_memory(std::span&lt;const std::byte&gt; file, int index)</i></p>
+<p>The same from the file's bytes, which are not copied: they must outlive the face (an asset mapped from the APK, say).</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Face &amp; operator=(Face &amp;&amp; other)</i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Face &amp; operator=(const Face &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/font/face.cppm#L41">font/face.cppm:41</a></i></p>
+<h3 id="render">render</h3>
+<p><i>public std::optional&lt;GlyphBitmap&gt; render(char32_t code, GlyphStyle style)</i></p>
+<p><code>code</code> rendered, <code>style</code> applied where the face lacks it (bold on a regular face is emboldened; italic is slanted). Nothing when the face has no glyph for it or no size is set. Valid until the next <code>render</code>.</p>
+<h3 id="set_pixel_size">set_pixel_size</h3>
+<p><i>public FaceError set_pixel_size(std::uint16_t pixels)</i></p>
+<p>Glyphs <code>pixels</code> high (the em size: about the height of a line); the metrics follow.</p>
+<h3 id="face">~Face</h3>
+<p><i>public void ~Face()</i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

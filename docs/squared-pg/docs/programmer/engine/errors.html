@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Errors · squared-pg</title>
+<meta name="description" content="squared-pg: Errors">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/engine/errors.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/engine/errors.md">on GitHub</a></p><h1 id="errors">Errors</h1>
+<p>Developer counterpart: <a href="../../developer/engine/transactions.html">transactions</a>.</p>
+<p>Every operation returns an <code>OperationResult</code>. There is no second channel: if you have the result, you have everything the engine knows. You never need to read a log or inspect the filesystem to find out what happened.</p>
+<pre><code class="lang-cpp">struct EngineError {
+    ErrorCategory category;     // closed enum — branch on this
+    std::string   code;         // stable dotted string — diagnose with this
+    std::string   message;      // human-readable; never parse it
+    std::string   operation;
+    std::string   resource;
+    std::string   path;
+    Value         diagnostics;  // structured detail
+    bool          recoverable;
+};</code></pre>
+<h2 id="two-identifiers-on-purpose">Two identifiers, on purpose</h2>
+<p><code>category</code> is <b>closed</b>, so you can switch on it exhaustively and the compiler tells you when a new one appears.</p>
+<p><code>code</code> is <b>open within its category</b>, so a new specific failure can be added without breaking code that branches on the category.</p>
+<p>Branch on one of those two. Do not branch on <code>message</code> — its wording is explicitly not part of the contract.</p>
+<h2 id="categories">Categories</h2>
+<pre><code class="lang-text">configuration  validation   resource      template
+kit            package      asset         framework
+filesystem     transaction  compatibility capability
+lifecycle      internal</code></pre>
+<p><code>internal</code> means a defect in the engine. It is never used for something you could have caused, because there would be nothing you could do about it.</p>
+<h2 id="codes">Codes</h2>
+<div class="tablewrap"><table><thead><tr><th>Code</th><th>Meaning</th></tr></thead><tbody><tr><td><code>configuration.input.missing</code></td><td>required inputs absent; <code>diagnostics.missing</code> names each</td></tr><tr><td><code>configuration.name.invalid</code></td><td>project name is not a C identifier</td></tr><tr><td><code>configuration.identity.invalid</code></td><td>a resource reference is malformed</td></tr><tr><td><code>configuration.type.invalid</code></td><td>a config field has the wrong shape</td></tr><tr><td><code>configuration.json.malformed</code></td><td>invalid JSON, with byte offset</td></tr><tr><td><code>validation.operation.unknown</code></td><td>no such operation; <code>diagnostics.known_operations</code> lists them</td></tr><tr><td><code>validation.parameter.invalid</code></td><td>missing or ill-typed parameters; each is named</td></tr><tr><td><code>validation.path.unsafe</code></td><td>a resource entry does not name a path inside the workspace</td></tr><tr><td><code>resource.identity.duplicate</code></td><td>two resources share an identity and version</td></tr><tr><td><code>resource.root.missing</code></td><td>a declared root is absent (<code>strict_roots</code> only)</td></tr><tr><td><code>resource.payload.unreadable</code></td><td>a payload could not be opened or read</td></tr><tr><td><code>template.not_found</code></td><td><code>diagnostics.available</code> lists what is indexed</td></tr><tr><td><code>template.version.unsatisfiable</code></td><td><code>diagnostics.considered</code> lists the versions tried</td></tr><tr><td><code>template.parameter.missing</code></td><td><code>diagnostics.missing</code> names every one</td></tr><tr><td><code>template.parameter.invalid</code></td><td><code>diagnostics.invalid</code> names each with its expected type</td></tr><tr><td><code>template.ownership.invalid</code></td><td>a generated path falls inside the working directory</td></tr><tr><td><code>template.kit.required</code></td><td>the template requires a kit that was not selected</td></tr><tr><td><code>kit.not_found</code>, <code>kit.version.unsatisfiable</code></td><td>as above</td></tr><tr><td><code>kit.compatibility.template</code></td><td>the kit does not support this template</td></tr><tr><td><code>kit.compatibility.platform</code></td><td>the kit does not support a requested platform</td></tr><tr><td><code>kit.compatibility.conflict</code></td><td>a kit declares an incompatibility with another selected kit</td></tr><tr><td><code>kit.integration_point.conflict</code></td><td>two contributors to a single-arity area, or the same path</td></tr><tr><td><code>kit.integration_point.undeclared</code></td><td>a kit writes an area the template does not declare</td></tr><tr><td><code>package.*</code>, <code>asset.*</code></td><td>the same shapes for those kinds</td></tr><tr><td><code>framework.compatibility.&lt;kind&gt;</code></td><td>a resource requires a different framework version</td></tr><tr><td><code>framework.version.invalid</code></td><td>the framework version is not valid SemVer</td></tr><tr><td><code>filesystem.workspace.exists</code></td><td>the output location already exists</td></tr><tr><td><code>filesystem.permission</code></td><td>could not open a path for writing</td></tr><tr><td><code>filesystem.space</code></td><td>a write ended before completion</td></tr><tr><td><code>filesystem.directory.create</code>, <code>filesystem.read</code>, <code>filesystem.remove</code></td><td>as named</td></tr><tr><td><code>transaction.commit_failed</code></td><td>the staged workspace could not be landed</td></tr><tr><td><code>capability.unsatisfied</code></td><td>a resource requires a capability this build lacks</td></tr><tr><td><code>lifecycle.invalid_state</code></td><td>the call is illegal in the current state</td></tr><tr><td><code>internal.service.missing</code></td><td>a required core service is not registered</td></tr></tbody></table></div>
+<h2 id="recoverable">Recoverable</h2>
+<p><code>recoverable == true</code> means a different selection may succeed — a different template version, a different kit, a corrected parameter. It does not mean "retry the same thing".</p>
+<p>Resolution failures, compatibility failures and validation failures are recoverable. Filesystem and transaction failures are not.</p>
+<h2 id="diagnostics-are-the-point">Diagnostics are the point</h2>
+<pre><code class="lang-text">category:  package
+code:      package.version.unsatisfiable
+resource:  package.squared.gui
+message:   no version of package.squared.gui satisfies &#x27;^2.0&#x27;
+diagnostics:
+  constraint: ^2.0
+  considered: [1.4.2, 1.3.0, 1.0.0]</code></pre>
+<p>"No compatible version found" is not actionable. The list of versions actually considered is. Every error the engine raises tries to carry the evidence you need to act on it.</p>
+<h2 id="branching">Branching</h2>
+<pre><code class="lang-lua">local result = engine.project.generate(config)
+if result.ok then
+  return 0
+end
+
+if result.error.code == &quot;template.not_found&quot; then
+  choose_another_template(result.error.diagnostics.available)
+elseif result.error.category == &quot;compatibility&quot; then
+  drop_a_kit()
+elseif result.error.category == &quot;filesystem&quot; then
+  report_and_stop(result.error)
+end</code></pre>
+<p><code>result.error</code> is an alias for the first entry of <code>result.errors</code>, for the common single-error case.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dev &amp;amp;mdash; development aids · squared</title>
+<meta name="description" content="squared: dev &amp;amp;mdash; development aids">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/dev.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/dev.md">on GitHub</a></p><h1 id="dev-ampmdash-development-aids">dev &amp;mdash; development aids</h1>
+<p>Not part of a release build. Linked only when a project asks for it.</p>
+<p>Developer counterpart: <a href="../developer/dev.html">../developer/dev.md</a></p>
+<p>Headers: <code>squared/dev/dev_log.cppm</code> (the log sink), <code>squared/dev/frame_allocations.cppm</code> (the frame-allocation counter)</p>
+<h2 id="why-it-exists">Why it exists</h2>
+<p>On a phone with no computer attached, and without Wireless Debugging (which needs Wi-Fi; see <a href="building.html#installing-starting-the-log">building.md</a>), there is no <code>adb logcat</code>, and Android shows a crashed app as "keeps stopping" with no reason. The log sink sends each log line, and a backtrace if the app dies, to a UDP port on the same device. You read it in a terminal on that device. It uses the loopback address only: no network, no Wi-Fi, and nothing leaves the device.</p>
+<h2 id="the-shortest-use">The shortest use</h2>
+<p>In the Android template, one flag does everything:</p>
+<pre><code class="lang-sh">make DEV_LOG=1 apk &amp;&amp; make install      # build with the sink
+nc -klu 5555                            # in Termux: print what arrives</code></pre>
+<p>Open the app in another window. Log lines appear as they are written. If the app crashes, the last lines are:</p>
+<pre><code>CRASH SIGSEGV (11) code 1 addr 0x0
+  #0 pc 0x1ba7 libdemo.so
+  #1 pc 0x2c25 libdemo.so
+  ...
+END</code></pre>
+<p>Each <code>pc</code> is an offset into the named library. Turn it into a function and line with the unstripped library from your build:</p>
+<pre><code class="lang-sh">addr2line -f -C -e build/libdemo.so 0x1ba7</code></pre>
+<p>A normal build (<code>make apk</code>) contains none of this and does not request the <code>INTERNET</code> permission. The template adds that permission to a copy of the manifest only for <code>DEV_LOG</code> builds.</p>
+<h2 id="logsinkoptions">LogSinkOptions</h2>
+<pre><code class="lang-cpp">struct LogSinkOptions {
+    std::uint16_t port = 5555;  // UDP port on 127.0.0.1
+    bool catch_crashes = true;  // report fatal signals
+};</code></pre>
+<h2 id="open_log_sink">open_log_sink</h2>
+<pre><code class="lang-cpp">[[nodiscard]] LogSinkStatus open_log_sink(const LogSinkOptions&amp; options = {}) noexcept;</code></pre>
+<p>Opens the socket and, unless <code>catch_crashes</code> is false, installs handlers for SIGSEGV, SIGABRT, SIGBUS, SIGFPE, SIGILL and SIGTRAP.</p>
+<div class="tablewrap"><table><thead><tr><th>Returns</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Opened</code></td><td>Ready.</td></tr><tr><td><code>AlreadyOpen</code></td><td>A sink is already open; nothing changed.</td></tr><tr><td><code>SocketFailed</code></td><td>The OS refused the socket. On Android this is almost always the missing <code>INTERNET</code> permission.</td></tr></tbody></table></div>
+<p>Failure is a returned value; nothing is thrown.</p>
+<h2 id="log_line">log_line</h2>
+<pre><code class="lang-cpp">void log_line(std::string_view line, LogLevel level = LogLevel::Info) noexcept;</code></pre>
+<p>Sends one line to the sink, if one is open; lines over 1000 bytes are cut. Also hands it, whole and with its level, to the listener, if one is set and this is the thread that set it. It never blocks; if nothing is listening the line is dropped. The sink sends the text alone: <code>level</code> is for the listener (the in-app Console colours warnings and errors).</p>
+<pre><code class="lang-cpp">sq::dev::log_line(&quot;loaded skin&quot;);
+sq::dev::log_line(&quot;skin: no font named &#x27;title&#x27;; using the default&quot;, sq::dev::LogLevel::Warning);</code></pre>
+<p><code>LogLevel</code> is <code>Info</code>, <code>Warning</code> or <code>Error</code>.</p>
+<h2 id="set_log_listener">set_log_listener</h2>
+<pre><code class="lang-cpp">using LogListener = void (*)(void* context, LogLevel level, std::string_view line) noexcept;
+void set_log_listener(LogListener listener, void* context) noexcept;</code></pre>
+<p>Every later <code>log_line()</code> made on the calling thread is also handed to <code>listener</code>, with <code>context</code>; <code>nullptr</code> stops it. One listener at a time. Lines written on other threads go to the sink only, so the listener needs no lock; the crash handler's lines never reach it. The listener must not call <code>log_line()</code> itself.</p>
+<p>The Android template sets one in <code>CONSOLE</code> builds with <code>DEV_LOG</code>, so the dev log shows in the in-app Console (<a href="console.html">console.md</a>).</p>
+<h2 id="write_crash_trace">write_crash_trace</h2>
+<p><code>import sq.dev;</code>. Defined in its interface (<code>dev/crash_trace.cppm</code>), whose object is in <code>libsquared_dev.a</code>: link it (until 7b.4 it was header-only).</p>
+<pre><code class="lang-cpp">using CrashSink = void (*)(void* context, const char* text, std::size_t length) noexcept;
+void write_crash_trace(int signal, const siginfo_t* info, void* ucontext,
+                       CrashSink sink, void* context) noexcept;</code></pre>
+<p>From inside a fatal-signal handler: hands <code>sink</code> the report a line at a time (<code>CRASH &lt;name&gt; (&lt;n&gt;) code &lt;c&gt; addr &lt;a&gt;</code>, frame 0 from the saved registers, then up to 23 of its callers as <code>  #n pc 0xOFFSET library</code>, the handler's own frames left out, <code>END</code>). The sink must be async-signal-safe (<code>write</code>, <code>sendto</code>). The dev log's crash report and the Console's crash file both use it.</p>
+<h2 id="close_log_sink">close_log_sink</h2>
+<pre><code class="lang-cpp">void close_log_sink() noexcept;</code></pre>
+<p>Closes the socket and restores the signal handlers it replaced.</p>
+<h2 id="frame-allocations">Frame allocations</h2>
+<p>A frame should not touch the heap: squared allocates at load time and reuses during frames. Static checks cannot tell a load-time <code>push_back</code> from a frame-time one, so a development build counts them.</p>
+<p>The Android template does it for you in <code>DEV_LOG</code> builds: every frame's <code>update()</code> and <code>render()</code> are counted, and frames that allocate are reported over the log sink.</p>
+<pre><code>alloc: site 1 (frame 3): libdemo.so 0x4a5f0 &lt; libdemo.so 0x51c2c &lt; libdemo.so 0x3e110 &lt; libdemo.so 0x3d9a8
+alloc: frame 3: 2 allocations, 96 bytes (the first frame that allocated)
+alloc: site 2 (frame 7): libdemo.so 0x8f1c4 &lt; libdemo.so 0x52018 &lt; libdemo.so 0x3e110 &lt; libdemo.so 0x3d9a8
+alloc: 41 of the last 120 frames allocated: 82 allocations, 3936 bytes; most in one frame: 2
+alloc: by site: 1:41 2:41</code></pre>
+<ul><li><b><code>frame</code> and summary lines.</b> The first arrives the first time any frame allocates. After that, at most one summary every 120 frames (two seconds at 60 frames a second), and only when a frame in that window allocated. A program whose frames never allocate prints nothing.</li><li><b><code>site</code> lines</b> name each place that allocates, once, the first time it does. A site is the four innermost frames above <code>operator new</code>, innermost first: the code that called <code>new</code> (often a container growing), then what called that. The number is the site's id for the rest of the run.</li><li><b><code>by site</code></b> follows each summary: the window's busiest sites as <code>id:allocations</code>, most first.</li></ul>
+<p>Turn a site into function names and source lines with the unstripped library from your build, one offset or several at once:</p>
+<pre><code class="lang-sh">addr2line -f -C -i -e build/libdemo.so 0x4a5f0 0x51c2c 0x3e110</code></pre>
+<p><code>-i</code> matters. It shows the functions inlined at that address, which is where <code>std::vector</code> and <code>std::string</code> growth usually is. The C++ library is linked into your library, so its frames resolve the same way, from the same unstripped <code>build/libdemo.so</code>; the APK's copy is stripped. A frame inside libc++ is usually a container growing: look one frame further out to see who asked it to.</p>
+<p>To count something else, bracket it yourself:</p>
+<pre><code class="lang-cpp">sq::dev::frame_begin();
+level.update(delta);
+const sq::dev::FrameAllocations used = sq::dev::frame_end();
+// used.count, used.bytes</code></pre>
+<h3 id="frameallocations">FrameAllocations</h3>
+<pre><code class="lang-cpp">struct FrameAllocations {
+    std::uint64_t count = 0;  // calls to operator new, every form
+    std::uint64_t bytes = 0;  // bytes those calls asked for
+};</code></pre>
+<h3 id="frame_begin">frame_begin</h3>
+<pre><code class="lang-cpp">void frame_begin() noexcept;</code></pre>
+<p>Starts counting allocations made by the calling thread. Calling it again before <code>frame_end()</code> restarts the count.</p>
+<h3 id="frame_end">frame_end</h3>
+<pre><code class="lang-cpp">FrameAllocations frame_end() noexcept;</code></pre>
+<p>Stops counting and returns the count. Reports through the log sink as above when one is open. Returns zeros when <code>frame_begin()</code> was not called on this thread.</p>
+<h3 id="report_allocations">report_allocations</h3>
+<pre><code class="lang-cpp">void report_allocations() noexcept;</code></pre>
+<p>Reports every frame counted so far through <code>log_line()</code>: one summary line; what <code>operator new</code> holds now, on every thread (squared's and your own heap, apart from the GPU driver's and the C library's direct <code>malloc</code>); then a <code>site</code> line for every site found.</p>
+<pre><code class="lang-text">alloc: 1840 frames counted, 3 allocated: 6 allocations, 288 bytes; most in one frame: 2
+alloc: operator new holds 4120 KB in 1873 blocks now (peak 6212 KB), every thread
+alloc: site 1 (frame 3): libdemo.so 0x4a5f0 &lt; libdemo.so 0x51c2c &lt; ...</code></pre>
+<p>The Console's <code>alloc</code> command runs it. Call it on the thread that counts frames.</p>
+<h3 id="what-it-counts">What it counts</h3>
+<ul><li>Every <code>operator new</code> the counted thread makes, including the ones inside the C++ library (a <code>std::string</code> growing, a <code>std::vector</code> reallocating).</li><li>Not other threads: a loader or audio thread allocating meanwhile is not a frame allocation.</li><li>Not <code>malloc</code> called directly, and not the GPU driver.</li><li>At most 64 distinct sites are named per run. Later ones are still counted and show as <code>unnamed</code> in the <code>by site</code> line.</li></ul>
+<p>Linking this part of the module replaces the global <code>operator new</code> and <code>operator delete</code> for the whole process. That is why it exists only in a development build.</p>
+<h2 id="lua">Lua</h2>
+<p>Not bound. These are native debugging aids.</p>
+<h2 id="notes">Notes</h2>
+<ul><li>After reporting, the crash handler restores the default action and re-raises the signal, so Android still produces its own report and the process still dies the way it would have.</li><li>A crash that happens before <code>open_log_sink</code> runs is not reported. The Android template opens the sink when the library loads, to cover startup.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

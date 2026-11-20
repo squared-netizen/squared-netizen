@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>namespace messaging · squared</title>
+<meta name="description" content="squared: namespace messaging">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/index.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/index.md">on GitHub</a></p><h1 id="namespace-messaging">namespace messaging</h1>
+<h2 id="namespaces">Namespaces</h2>
+<ul><li><a href="detail/index.html">detail</a></li><li><a href="telegraph_size/index.html">telegraph_size</a></li></ul>
+<h2 id="records">Records</h2>
+<ul><li><a href="Address.html">Address</a></li><li><a href="BoundEntry.html">BoundEntry</a></li><li><a href="CacheStats.html">CacheStats</a></li><li><a href="CachedValue.html">CachedValue</a></li><li><a href="DataRef.html">DataRef</a></li><li><a href="DoResult.html">DoResult</a></li><li><a href="Key.html">Key</a></li><li><a href="ListOutput.html">ListOutput</a></li><li><a href="ListSource.html">ListSource</a></li><li><a href="ListWindow.html">ListWindow</a></li><li><a href="ModelList.html">ModelList</a></li><li><a href="ModelRunner.html">ModelRunner</a></li><li><a href="ModelStats.html">ModelStats</a></li><li><a href="NameTableProbe.html">NameTableProbe</a></li><li><a href="NameTable.html">NameTable</a></li><li><a href="Name.html">Name</a></li><li><a href="OnUiThread.html">OnUiThread</a></li><li><a href="Received.html">Received</a></li><li><a href="RingStats.html">RingStats</a></li><li><a href="RowSpan.html">RowSpan</a></li><li><a href="SnapshotKey.html">SnapshotKey</a></li><li><a href="SnapshotView.html">SnapshotView</a></li><li><a href="TelegramBytes.html">TelegramBytes</a></li><li><a href="TelegramData.html">TelegramData</a></li><li><a href="TelegramRing.html">TelegramRing</a></li><li><a href="Telegram.html">Telegram</a></li><li><a href="TelegraphLine.html">TelegraphLine</a></li><li><a href="TelegraphUi.html">TelegraphUi</a></li><li><a href="Telegraph.html">Telegraph</a></li><li><a href="ValueCache.html">ValueCache</a></li><li><a href="Verbs.html">Verbs</a></li><li><a href="WaitStats.html">WaitStats</a></li><li><a href="Wake.html">Wake</a></li></ul>
+<h2 id="functions">Functions</h2>
+<h3 id="float_count">float_count</h3>
+<p><i>std::size_t float_count(ValueType type)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/src/value_type.cppm#L34">messaging/src/value_type.cppm:34</a></i></p>
+<p><b>brief</b> How many floats a <code>vec2</code>, <code>vec3</code> or <code>vec4</code> holds; 0 for any other type.</p>
+<h3 id="list_source">list_source</h3>
+<p><i>ListSource list_source(Source &amp; source)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/model_list.cppm#L47">messaging/model_list.cppm:47</a></i></p>
+<p><b>brief</b> <code>source</code> as a <code>ListSource</code>, publishing through an <code>Out</code>.</p>
+<h3 id="name_hash">name_hash</h3>
+<p><i>std::uint64_t name_hash(std::string_view text, std::uint64_t seed)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/name.cppm#L14">messaging/name.cppm:14</a></i></p>
+<p><b>brief</b> 64-bit FNV-1a of a name's text, continuing from <code>seed</code>.</p>
+<p>The id a Name carries. Continuing from a seed lets a name be hashed in pieces, as <code>item[17].name</code> is: "item", then ".name", with nothing copied.</p>
+<h3 id="operatorltgt">operator&lt;=&gt;</h3>
+<p><i>std::strong_ordering operator&lt;=&gt;(Name , Name )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/name.cppm#L98">messaging/name.cppm:98</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(DataRef , DataRef )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/src/data_ref.cppm#L18">messaging/src/data_ref.cppm:18</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(Name , Name )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/name.cppm#L97">messaging/name.cppm:97</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(RowSpan , RowSpan )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/list_window.cppm#L17">messaging/list_window.cppm:17</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(Verbs , Verbs )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/src/verb.cppm#L44">messaging/src/verb.cppm:44</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(const Address &amp; , const Address &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/address.cppm#L21">messaging/address.cppm:21</a></i></p>
+<h3 id="operator">operator==</h3>
+<p><i>bool operator==(const Telegram &amp; , const Telegram &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram.cppm#L72">messaging/telegram.cppm:72</a></i></p>
+<h3 id="operator">operator|</h3>
+<p><i>Verbs operator|(Verbs a, Verbs b)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/src/verb.cppm#L40">messaging/src/verb.cppm:40</a></i></p>
+<h3 id="parse_address">parse_address</h3>
+<p><i>std::optional&lt;Address&gt; parse_address(std::string_view text)</i></p>
+<p><b>brief</b> An address from its text form, with no name table: the name is hashed.</p>
+<p><code>player.hp</code>, <code>item[17].name</code>, <code>inventory[20]</code>: the uid in brackets after the first segment, in decimal. <code>#</code> and 16 hex digits stand for a name's id written without its text, with the uid after it (<code>#0123456789abcdef[17]</code>), which is how an unregistered name is written. <code>[0]</code> reads as no uid.</p>
+<p><b>return</b> The address, or nothing when <code>text</code> is not one (not a valid name, a uid past 4294967295, brackets anywhere else).</p>
+<h3 id="read_telegram">read_telegram</h3>
+<p><i>std::optional&lt;Telegram&gt; read_telegram(std::string_view line, TelegramData &amp; data)</i></p>
+<p><b>brief</b> A telegram from its line, with no table (names are hashed). Text and uid lists go into <code>data</code>.</p>
+<p>Reads more than the canonical form (more spaces, <code>[0]</code>, <code>1.50</code>), and writing what it read gives the canonical line.</p>
+<p><b>return</b> The telegram, or nothing when the line is not one, or <code>data</code> is full.</p>
+<h3 id="valid_name">valid_name</h3>
+<p><i>bool valid_name(std::string_view text)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/name.cppm#L32">messaging/name.cppm:32</a></i></p>
+<p><b>brief</b> Whether <code>text</code> is a name: dot-separated segments of <code>a</code>-<code>z</code>, <code>0</code>-<code>9</code> and <code>_</code>, none empty, at most 255 bytes in all (<code>player.hp</code>, <code>item.name</code>).</p>
+<p>One spelling per name, so one id per name: no capitals, no spaces. Which object a telegram is about never goes in the name; that is the uid.</p>
+<h3 id="value_type_of">value_type_of</h3>
+<p><i>ValueType value_type_of()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/src/value_type.cppm#L65">messaging/src/value_type.cppm:65</a></i></p>
+<p><b>brief</b> The value type a <code>Key</code>'s C++ type means.</p>
+<h3 id="verb_text">verb_text</h3>
+<p><i>std::string_view verb_text(Verb verb)</i></p>
+<p><b>brief</b> The text of a verb: <code>set</code>, <code>do</code>, <code>state</code>, <code>event</code>.</p>
+<h3 id="write_telegram">write_telegram</h3>
+<p><i>std::size_t write_telegram(const Telegram &amp; telegram, std::span&lt;const std::byte&gt; data, const NameTable &amp; names, std::span&lt;char&gt; out)</i></p>
+<p><b>brief</b> A telegram as its one canonical line of text: what the dev log prints, and what replay files and saves hold.</p>
+<pre><code class="lang-text">
+ `&lt;verb&gt; &lt;address&gt; &lt;value&gt;`, then ` &lt;correlation&gt;` when it is not 0. The value: `true`/`false`; an integer in decimal; a double in the shortest form that reads back to the same bits, always with a `.` or an exponent so it is not an integer (`2.0`, `1e+21`, `inf`); two to four floats in parentheses; text in double quotes with `\`, `&quot;`, `**n** `, `**&lt;not a builtin command&gt;** ` and `**&lt;not a builtin command&gt;** ` for any other byte below 0x20 or 0x7F (other bytes as they are); uids in brackets. The same telegram always gives the same line, on every device: no locale.
+
+
+
+**data** The data area the telegram&#x27;s text or uid list is in.
+
+**return** The length written, or 0 when `out` is too small, the telegram is not valid, or its data is outside `data`.
+
+### write_value
+
+*std::size_t write_value(const Telegram &amp; telegram, std::span&lt;const std::byte&gt; data, std::span&lt;char&gt; out)*
+
+
+
+**brief** Only the value of a telegram, as `write_telegram` writes it (`42`, `2.0`, `(1.5 2)`, `&quot;fur coat&quot;`): what a label bound to it shows, text aside, which it shows as it is.
+
+**return** The length written; 0 when `out` is too small, the telegram has no value or is not valid, or its data is outside `data`.
+
+## Enums
+
+| enum class CacheResult |
+
+--
+
+| stored |
+| dropped |
+| too_large |
+
+
+*Defined at [messaging/value_cache.cppm:11](../../../../messaging/value_cache.cppm#L11)*
+
+
+
+**brief** What `ValueCache::store` did. 
+
+| enum class RingResult |
+
+--
+
+| sent |
+| full |
+| too_large |
+
+
+*Defined at [messaging/telegram_ring.cppm:10](../../../../messaging/telegram_ring.cppm#L10)*
+
+
+
+**brief** What `TelegramRing::push` did. 
+
+| enum class SendResult |
+
+--
+
+| sent |
+| pending |
+| full |
+| too_large |
+
+
+*Defined at [messaging/telegraph.cppm:27](../../../../messaging/telegraph.cppm#L27)*
+
+
+
+**brief** What a send did. 
+
+| enum class TapDirection |
+
+--
+
+| to_model |
+| to_ui |
+
+
+*Defined at [messaging/telegraph.cppm:62](../../../../messaging/telegraph.cppm#L62)*
+
+
+
+**brief** Which way a telegram crossed, for a tap. 
+
+| enum class ValueType |
+
+--
+
+| none |
+| boolean |
+| integer |
+| number |
+| vec2 |
+| vec3 |
+| vec4 |
+| text |
+| uids |
+
+
+*Defined at [messaging/src/value_type.cppm:21](../../../../messaging/src/value_type.cppm#L21)*
+
+
+
+**brief** What a telegram&#x27;s value is, in four bits.
+
+ | Type | Held | Written | |---|---|---| | `none` | nothing | (nothing) | | `boolean` | in the telegram | `true`, `false` | | `integer` | in the telegram, 64-bit signed | `42`, `-7` | | `number` | in the telegram, a double | `1.5`, `2.0`, `1e+21`, `inf` | | `vec2`, `vec3`, `vec4` | in the telegram, floats | `(1.5 2 0 1)` | | `text` | in the data area | `&quot;notes.txt&quot;` | | `uids` | in the data area, 32-bit each | `[17 4 22]` |
+
+| enum class Verb |
+
+--
+
+| set |
+| do_ |
+| state |
+| event |
+
+
+*Defined at [messaging/src/verb.cppm:18](../../../../messaging/src/verb.cppm#L18)*
+
+
+
+**brief** What a telegram does, in two bits.
+
+ | Verb | Direction | Means | |---|---|---| | `set` | UI to model | the user changed a value | | `do_` | UI to model | an intent (`do file.open &quot;notes.txt&quot;`) | | `state` | model to UI | a value is now this | | `event` | model to UI | something happened |
+
+</code></pre></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

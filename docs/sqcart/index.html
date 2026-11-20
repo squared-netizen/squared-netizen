@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqcart · sqcart</title>
+<meta name="description" content="sqcart: sqcart">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../index.html">squared-netizen</a>
+  <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
+  <a href="../../docs/index.html">Docs</a>
+  <a href="../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqcart</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqcart/blob/main/README.md">on GitHub</a></p><h1 id="sqcart">sqcart</h1>
+<p>My Vision for sqcart</p>
+<p>Squared .sq cartridges will act as high-capacity, high-performance data containers that can support both enormous datasets and executable extensions.</p>
+<p>Reference implementation of the <a href="docs/developer/specs/sq-cartridge-2.0.html">Squared Cartridge Specification 2.0</a> — the <code>.sq</code> container format used for Squared templates, kits, packages, asset bundles, plugins and distributable applications.</p>
+<p>Standalone C++20. No dependency on <code>squared-pg</code> or on the Squared framework.</p>
+<h2 id="build">Build</h2>
+<pre><code class="lang-sh">cmake -S . -B build -DSQCART_BUILD_TESTS=ON
+cmake --build build -j
+ctest --test-dir build --output-on-failure</code></pre>
+<p>Or, without CMake (handy on Termux):</p>
+<pre><code class="lang-sh">make check</code></pre>
+<p>Embedded, with the host supplying the backends:</p>
+<pre><code class="lang-cmake">set(SQCART_USE_EXTERNAL_MINIZ  ON)
+set(SQCART_USE_EXTERNAL_YYJSON ON)
+add_subdirectory(sqcart)
+target_link_libraries(my_target PRIVATE sqcart::read)</code></pre>
+<h2 id="targets">Targets</h2>
+<div class="tablewrap"><table><thead><tr><th>Target</th><th>Option</th><th>Default</th><th>For</th></tr></thead><tbody><tr><td><code>sqcart::read</code></td><td>—</td><td>always</td><td>every consumer</td></tr><tr><td><code>sqcart::write</code></td><td><code>SQCART_ENABLE_WRITER</code></td><td><code>ON</code></td><td>packaging tools</td></tr><tr><td><code>sqcart</code> (CLI)</td><td><code>SQCART_ENABLE_CLI</code></td><td>top-level only</td><td>humans and CI</td></tr><tr><td><code>sqcart::lua</code></td><td><code>SQCART_ENABLE_LUA</code></td><td><code>OFF</code></td><td>deferred; no consumer yet</td></tr></tbody></table></div>
+<p>A game runtime or Android launcher links <code>sqcart::read</code> alone and carries no compressor, no canonical-ordering logic and no manifest serialiser.</p>
+<h2 id="library">Library</h2>
+<pre><code class="lang-cpp">#include &lt;sqcart/sqcart.hpp&gt;
+
+auto cart = sqcart::Cartridge::open(&quot;kit.sdl3-1.2.0.sq&quot;);
+if (!cart) {
+    std::cerr &lt;&lt; sqcart::to_string(cart.error().code) &lt;&lt; &quot;: &quot;
+              &lt;&lt; cart.error().message &lt;&lt; &#x27;\n&#x27;;
+    return 1;
+}
+
+// The envelope is typed. Everything a *consumer* needs is carried as text
+// under its own namespace and parsed by that consumer -- sqcart does not
+// know what a kit is, and deliberately cannot be taught here.
+std::cout &lt;&lt; cart-&gt;manifest().kind() &lt;&lt; &#x27;\n&#x27;;        // &quot;kit&quot;, an opaque token
+
+if (auto section = cart-&gt;manifest().consumer(&quot;squared_pg&quot;)) {
+    // JSON text. Parse it with your own reader.
+}</code></pre>
+<p>sqcart implements the container and the manifest envelope. It carries consumer sections without interpreting them, which is what lets the same library serve <code>squared-pg</code> and the Squared framework runtime without either acquiring the other's vocabulary (spec §0.1, §5.6).</p>
+<p><code>.sq</code> archives and exploded directories containing <code>SQ-INF/manifest.json</code> are both accepted; <code>open()</code> detects which, and the two are semantically equivalent (spec §3.5) down to producing the same content digest.</p>
+<h2 id="cli">CLI</h2>
+<pre><code>reading:
+  list &lt;cartridge&gt;            entries: size, compressed, method, path (tab-separated)
+  show &lt;cartridge&gt;            manifest JSON, for piping into jq
+  info &lt;cartridge&gt;            human summary
+  cat &lt;cartridge&gt; &lt;entry&gt;     one entry&#x27;s bytes to stdout
+  verify &lt;cartridge&gt;          full validation pipeline
+  digest &lt;cartridge&gt;          content digest, sha256sum-compatible output
+
+writing:
+  pack &lt;directory&gt; -o &lt;out&gt;   build a cartridge from an exploded tree
+  extract &lt;cartridge&gt; [-d D]  materialise the payload</code></pre>
+<p>Exit codes: <code>0</code> success, <code>1</code> operation failed, <code>2</code> usage error, <code>3</code> cartridge is non-conforming. <code>verify</code> is usable as a CI gate unchanged.</p>
+<p>stdout carries machine-readable results only; diagnostics go to stderr.</p>
+<pre><code class="lang-sh">$ sqcart digest resources/kits/sdl3          # exploded tree
+84bcf810ec4007d9fa4fa4910797195d4d8f9ec07833f51e5dcddb6a39e0745b  resources/kits/sdl3
+$ sqcart pack resources/kits/sdl3 -o kit.sdl3.sq
+84bcf810ec4007d9fa4fa4910797195d4d8f9ec07833f51e5dcddb6a39e0745b  kit.sdl3.sq</code></pre>
+<p>The digest is computed over content and paths, never over archive bytes, so it is stable across compressors and across container forms.</p>
+<h2 id="c20-and-stdexpected">C++20 and <code>std::expected</code></h2>
+<p><code>&lt;expected&gt;</code> is C++23. <code>include/sqcart/expected.hpp</code> aliases <code>std::expected</code> where available and supplies a minimal substitute otherwise. Code using <code>sqcart::Result&lt;T&gt;</code> compiles either way; <code>tests/test_expected.cpp</code> asserts the two paths behave identically.</p>
+<h2 id="constraints">Constraints</h2>
+<p>See <code>AGENTS.md</code> for the scope rule, the CLI's IO-isolation rule, and the single-digest-implementation rule. Run <code>../tools/sqcart-isolation.fish</code> before committing.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

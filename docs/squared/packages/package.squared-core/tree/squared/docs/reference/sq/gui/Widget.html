@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Widget · squared</title>
+<meta name="description" content="squared: class Widget">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Widget.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Widget.md">on GitHub</a></p><h1 id="class-widget">class Widget</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L28">gui/widget.cppm:28</a></i></p>
+<p><b>brief</b> Base class for every GUI node. Widgets may own other widgets.</p>
+<p>Widget inherits the composite ownership model: children owned via Group. Widgets carry layout, painting, and input behavior.</p>
+<p>Inherits from Group</p>
+<h2 id="members">Members</h2>
+<p>public static const ActorInterfaceId actor_interface_id</p>
+<h2 id="functions">Functions</h2>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public const void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L56">gui/widget.cppm:56</a></i></p>
+<p><b>brief</b> Publish the Widget interface to actor_cast(), read-only.</p>
+<p><b>id</b> Identifier of the requested interface.</p>
+<p><b>return</b> This widget for the Widget identifier, otherwise the Group answer.</p>
+<h3 id="actor_interface">actor_interface</h3>
+<p><i>public void * actor_interface(ActorInterfaceId id)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L45">gui/widget.cppm:45</a></i></p>
+<p><b>brief</b> Publish the Widget interface to actor_cast().</p>
+<p><b>id</b> Identifier of the requested interface.</p>
+<p><b>return</b> This widget for the Widget identifier, otherwise the Group answer, so actor_cast&lt;Group&gt;() still resolves.</p>
+<h3 id="clear_tooltip">clear_tooltip</h3>
+<p><i>public void clear_tooltip()</i></p>
+<p><b>brief</b> Remove the tooltip declaration from this widget.</p>
+<h3 id="enabled">enabled</h3>
+<p><i>public bool enabled()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L215">gui/widget.cppm:215</a></i></p>
+<p><b>brief</b> Read the enabled state.</p>
+<p><b>return</b> true while the widget is enabled.</p>
+<h3 id="focus_changed">focus_changed</h3>
+<p><i>public void focus_changed(bool focused)</i></p>
+<p><b>brief</b> Notify the widget of a focus change.</p>
+<p><b>focused</b> true when the widget gained focus.</p>
+<h3 id="focusable">focusable</h3>
+<p><i>public bool focusable()</i></p>
+<p><b>brief</b> Report whether this widget can take keyboard focus.</p>
+<p><b>return</b> true when the widget is focusable.</p>
+<h3 id="has_tooltip">has_tooltip</h3>
+<p><i>public bool has_tooltip()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L237">gui/widget.cppm:237</a></i></p>
+<p><b>brief</b> Return true when this widget declares tooltip content.</p>
+<h3 id="input_event">input_event</h3>
+<p><i>protected void input_event(InputEvent &amp; event)</i></p>
+<p><b>brief</b> Bridge actor dispatch into widget input handlers.</p>
+<p><b>event</b> GUI input event to adapt.</p>
+<h3 id="invalidate_layout">invalidate_layout</h3>
+<p><i>public void invalidate_layout()</i></p>
+<p><b>brief</b> Invalidate cached layout so it is recomputed next pass.</p>
+<h3 id="key_down">key_down</h3>
+<p><i>public bool key_down(app::Key key, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> Handle a key-down event.</p>
+<p><b>key</b> Portable key name.</p>
+<p><b>modifiers</b> Modifier state at the time of the event.</p>
+<p><b>return</b> true when the key was handled.</p>
+<h3 id="key_text">key_text</h3>
+<p><i>public bool key_text(std::string_view text, app::KeyModifiers modifiers)</i></p>
+<p><b>brief</b> Handle what a key typed with Ctrl, Alt or Meta held: <code>c</code> with Ctrl for Ctrl-C. Text fields leave it (false, the default), as a desktop's do; a terminal makes control characters of it.</p>
+<p><b>text</b> The character the key types without those modifiers.</p>
+<p><b>modifiers</b> Which were held: at least one of control, alt, meta.</p>
+<p><b>return</b> true when the key was handled.</p>
+<h3 id="layout">layout</h3>
+<p><i>public void layout(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Position and size this widget, then lay out children.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style and spacing values.</p>
+<h3 id="layout_valid">layout_valid</h3>
+<p><i>public bool layout_valid()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L109">gui/widget.cppm:109</a></i></p>
+<p><b>brief</b> Check whether cached layout is current.</p>
+<p><b>return</b> true while the layout is valid.</p>
+<h3 id="maximum_size">maximum_size</h3>
+<p><i>public Size maximum_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Report the largest acceptable size.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style and spacing values.</p>
+<p><b>return</b> Maximum extent in logical units.</p>
+<h3 id="minimum_size">minimum_size</h3>
+<p><i>public Size minimum_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Report the smallest acceptable size.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style and spacing values.</p>
+<p><b>return</b> Minimum extent in logical units.</p>
+<h3 id="paint">paint</h3>
+<p><i>public void paint(Painter &amp; painter, const Skin &amp; skin, float stage_x, float stage_y)</i></p>
+<p><b>brief</b> Paint this widget and, typically, its children.</p>
+<p><b>painter</b> Active painter; valid for the call.</p>
+<p><b>skin</b> Skin providing style resources.</p>
+<p><b>stage_x</b> Stage-space origin associated with this widget.</p>
+<p><b>stage_y</b> Stage-space origin associated with this widget.</p>
+<h3 id="pinch">pinch</h3>
+<p><i>public bool pinch(const PinchEvent &amp; event)</i></p>
+<p><b>brief</b> Take a two-finger pinch that starts over this widget, instead of the UI's zoom: a terminal scales its font, a map its view.</p>
+<p>The Stage offers <code>begin</code> to the widget under the fingers' middle, then to its parents, until one returns true; that one gets the pinch's <code>change</code>s and its <code>end</code>. When none takes it, the whole UI zooms (<code>Stage::zoom</code>). Both fingers' pointer events stop while it lasts, and the first finger's press is cancelled (<code>PointerAction::cancel</code>).</p>
+<p><b>event</b> The pinch, its middle in widget-local logical units.</p>
+<p><b>return</b> At <code>begin</code>: true to take it (false, the default, to leave it). Ignored after.</p>
+<h3 id="pointer_event">pointer_event</h3>
+<p><i>public bool pointer_event(const PointerEvent &amp; event)</i></p>
+<p><b>brief</b> Handle a pointer event.</p>
+<p><b>event</b> Pointer payload in widget-local coordinates.</p>
+<p><b>return</b> true when the event was handled and should stop propagating.</p>
+<h3 id="preferred_size">preferred_size</h3>
+<p><i>public Size preferred_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Report the preferred size.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style, font, and spacing values.</p>
+<p><b>return</b> Preferred extent in logical units.</p>
+<h3 id="set_enabled">set_enabled</h3>
+<p><i>public void set_enabled(bool enabled)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L209">gui/widget.cppm:209</a></i></p>
+<p><b>brief</b> Control the enabled state.</p>
+<p><b>enabled</b> false disables interaction and dims rendering.</p>
+<h3 id="set_tooltip">set_tooltip</h3>
+<p><i>public void set_tooltip(std::string text)</i></p>
+<p><b>brief</b> Attach a plain-text tooltip composed from standard GUI widgets.</p>
+<p><b>text</b> UTF-8 tooltip text. An empty string clears the tooltip.</p>
+<p><b>post</b> A fresh Stack/Panel/MarginContainer/Label subtree is created each time the tooltip is shown.</p>
+<h3 id="set_tooltip_factory">set_tooltip_factory</h3>
+<p><i>public void set_tooltip_factory(TooltipFactory factory)</i></p>
+<p><b>brief</b> Attach a custom tooltip widget factory.</p>
+<p><b>factory</b> Copyable callback returning a fresh unparented widget subtree. An empty callback clears the tooltip.</p>
+<p><b>note</b> The Ui temporarily owns each returned subtree while it is shown.</p>
+<h3 id="size_hints">size_hints</h3>
+<p><i>public SizeHints size_hints(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Compute the full size-hint set.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style and spacing values.</p>
+<p><b>return</b> Minimum, preferred, and maximum sizes.</p>
+<h3 id="text_editing">text_editing</h3>
+<p><i>public bool text_editing(std::string_view , int , int )</i></p>
+<p><b>brief</b> Handle composition-edit updates.</p>
+<p><b>note</b> Arguments are the current composition text, its start offset, and its length, matching the virtual signature.</p>
+<p><b>return</b> true when the composition was handled.</p>
+<h3 id="text_input">text_input</h3>
+<p><i>public bool text_input(std::string_view text)</i></p>
+<p><b>brief</b> Handle committed UTF-8 text input.</p>
+<p><b>text</b> Committed text to insert.</p>
+<p><b>return</b> true when the text was handled.</p>
+<h3 id="validate_layout">validate_layout</h3>
+<p><i>public void validate_layout(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Recompute layout if currently invalid.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Skin providing style and spacing values.</p>
+<h3 id="wants_text_input">wants_text_input</h3>
+<p><i>public bool wants_text_input()</i></p>
+<p><b>brief</b> Report whether focusing this widget should raise the platform text-input service.</p>
+<p><b>return</b> false by default; text-entry widgets override it.</p>
+<p><b>note</b> The Ui starts, moves, and stops the platform soft keyboard from this answer. A custom text-entry widget opts in by overriding it, which the previous TextField-specific check did not allow.</p>
+<h3 id="widget">~Widget</h3>
+<p><i>public void ~Widget()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/widget.cppm#L37">gui/widget.cppm:37</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

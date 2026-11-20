@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Slider · squared</title>
+<meta name="description" content="squared: class Slider">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/gui/Slider.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/gui/Slider.md">on GitHub</a></p><h1 id="class-slider">class Slider</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/slider.cppm#L16">gui/slider.cppm:16</a></i></p>
+<p><b>brief</b> Draggable one-axis value selector with an optional gradient fill.</p>
+<p>Inherits from Widget</p>
+<h2 id="functions">Functions</h2>
+<h3 id="slider">Slider</h3>
+<p><i>public void Slider(float minimum, float maximum, float value)</i></p>
+<p><b>brief</b> Construct a slider.</p>
+<p><b>minimum</b> Smallest selectable value.</p>
+<p><b>maximum</b> Largest selectable value.</p>
+<p><b>value</b> Initial value; clamped into the range.</p>
+<h3 id="dragging">dragging</h3>
+<p><i>public bool dragging()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/slider.cppm#L111">gui/slider.cppm:111</a></i></p>
+<p><b>brief</b> Whether a pointer is dragging the knob.</p>
+<p><b>return</b> true from the press on the slider until its release or cancel.</p>
+<h3 id="focus_changed">focus_changed</h3>
+<p><i>public void focus_changed(bool )</i></p>
+<p><b>brief</b> Track the focused state.</p>
+<p><b>note</b> The parameter matches Widget::focus_changed: true when the widget gained focus.</p>
+<h3 id="focusable">focusable</h3>
+<p><i>public bool focusable()</i></p>
+<p><b>brief</b> Report focusability.</p>
+<p><b>return</b> true; sliders take keyboard focus.</p>
+<h3 id="key_down">key_down</h3>
+<p><i>public bool key_down(app::Key , app::KeyModifiers )</i></p>
+<p><b>brief</b> Adjust the value with arrow keys.</p>
+<p><b>note</b> Parameters match the Widget::key_down signature: a portable key name and the modifier state at the time of the event.</p>
+<p><b>return</b> true when the key adjusted the value.</p>
+<h3 id="minimum_size">minimum_size</h3>
+<p><i>public Size minimum_size(Painter &amp; , const Skin &amp; )</i></p>
+<p><b>brief</b> Report the style-driven minimum size.</p>
+<p><b>note</b> Parameters match Widget::minimum_size: an active painter and the skin providing the slider style.</p>
+<p><b>return</b> Minimum extent in logical units.</p>
+<h3 id="paint">paint</h3>
+<p><i>public void paint(Painter &amp; , const Skin &amp; , float , float )</i></p>
+<p><b>brief</b> Paint the track, gradient fill, and knob.</p>
+<p><b>note</b> Parameters match the Widget::paint signature: the active painter, the skin providing the slider style, and the stage-space origin.</p>
+<h3 id="pointer_event">pointer_event</h3>
+<p><i>public bool pointer_event(const PointerEvent &amp; )</i></p>
+<p><b>brief</b> Drag the knob to set the value.</p>
+<p><b>note</b> The parameter matches Widget::pointer_event: a pointer payload in widget-local coordinates.</p>
+<p><b>return</b> true when the event was handled.</p>
+<h3 id="preferred_size">preferred_size</h3>
+<p><i>public Size preferred_size(Painter &amp; painter, const Skin &amp; skin)</i></p>
+<p><b>brief</b> Report the track-driven preferred size.</p>
+<p><b>painter</b> Active painter used for measurement.</p>
+<p><b>skin</b> Active skin; unused by slider measurement.</p>
+<p><b>return</b> Preferred extent in logical units.</p>
+<h3 id="set_on_change">set_on_change</h3>
+<p><i>public void set_on_change(ChangeCallback callback)</i></p>
+<p><b>brief</b> Set the change callback.</p>
+<p><b>callback</b> Action copied into the slider; invoked with each new value.</p>
+<h3 id="set_range">set_range</h3>
+<p><i>public void set_range(float minimum, float maximum)</i></p>
+<p><b>brief</b> Set the selectable range.</p>
+<p><b>minimum</b> Smallest selectable value.</p>
+<p><b>maximum</b> Largest selectable value; with minimum must be ordered.</p>
+<h3 id="set_step">set_step</h3>
+<p><i>public void set_step(float step)</i></p>
+<p><b>brief</b> Set the value granularity.</p>
+<p><b>step</b> Snap increment in value units; zero disables snapping.</p>
+<h3 id="set_style">set_style</h3>
+<p><i>public void set_style(std::string style)</i></p>
+<p><b>brief</b> Change the applied slider style.</p>
+<p><b>style</b> Named slider style to apply.</p>
+<h3 id="set_value">set_value</h3>
+<p><i>public void set_value(float value)</i></p>
+<p><b>brief</b> Set the current value.</p>
+<p><b>value</b> New value; clamped into the range and snapped to the step.</p>
+<h3 id="value">value</h3>
+<p><i>public float value()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/gui/slider.cppm#L47">gui/slider.cppm:47</a></i></p>
+<p><b>brief</b> Read the current value.</p>
+<p><b>return</b> Current value in the configured range.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

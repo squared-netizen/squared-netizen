@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code style &amp;amp;mdash; internals · squared</title>
+<meta name="description" content="squared: Code style &amp;amp;mdash; internals">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/code-style.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/code-style.md">on GitHub</a></p><h1 id="code-style-ampmdash-internals">Code style &amp;mdash; internals</h1>
+<p>How squared's C++ is formatted, where the rules come from, and where they deliberately differ from their source.</p>
+<p>Programmer counterpart: none. Formatting is a maintainer's concern; code that uses squared can be formatted however its author likes.</p>
+<h2 id="source">Source</h2>
+<p>The rules are Cataclysm: Dark Days Ahead's, from its <code>.astylerc</code>. CDDA is a large, long-lived, modern C++ code base, and its style is built for code read far more often than written: braces always, operators at the end of a broken line, and padded parentheses that keep a call's arguments visually separate from its name.</p>
+<p>CDDA formats with Artistic Style. squared uses clang-format, because the Sprint 2 plan already relies on the LLVM toolchain for clang-tidy, and one tool family is one less thing to install on a phone. <code>squared/.clang-format</code> says the same things in clang-format's terms, one astyle option per comment.</p>
+<h2 id="what-it-looks-like">What it looks like</h2>
+<pre><code class="lang-cpp">namespace sq::gui
+{
+
+class Ui final : public Widget
+{
+    public:
+        [[nodiscard]] Insets safe_area() const noexcept { return safe_area_; }
+        void set_safe_area( Insets insets ) noexcept;
+
+    private:
+        Widget *content_{ nullptr };
+};
+
+void Ui::set_safe_area( Insets insets ) noexcept
+{
+    if( content_ != nullptr ) {
+        content_-&gt;invalidate_layout();
+    }
+    for( const auto &amp;[key, value] : classes ) {
+        switch( value.kind() ) {
+            case 1:
+                break;
+            default:
+                return;
+        }
+    }
+}
+
+} // namespace sq::gui</code></pre>
+<h2 id="the-rules-by-cdda-option">The rules, by CDDA option</h2>
+<div class="tablewrap"><table><thead><tr><th>CDDA (astyle)</th><th>Effect</th><th>clang-format</th></tr></thead><tbody><tr><td><code>--style=1tbs</code></td><td>braces on their own line for namespaces, classes and functions; attached for control statements and enums</td><td><code>BraceWrapping</code></td></tr><tr><td><code>--add-brackets</code></td><td>every <code>if</code>, <code>for</code> and <code>while</code> body has braces</td><td><code>InsertBraces</code></td></tr><tr><td><code>--indent=spaces=4</code>, <code>--convert-tabs</code></td><td>four spaces, no tabs</td><td><code>IndentWidth</code>, <code>UseTab</code></td></tr><tr><td><code>--max-code-length=100</code></td><td>100 columns</td><td><code>ColumnLimit</code></td></tr><tr><td><code>--align-pointer=name</code></td><td><code>char *foo</code>, <code>const T &amp;x</code></td><td><code>PointerAlignment</code>, <code>ReferenceAlignment</code></td></tr><tr><td><code>--indent-classes</code></td><td><code>public:</code> one level in, members two</td><td><code>IndentAccessModifiers</code></td></tr><tr><td><code>--indent-switches</code></td><td><code>case</code> one level inside <code>switch</code></td><td><code>IndentCaseLabels</code></td></tr><tr><td><code>--break-after-logical</code>, <code>--pad-oper</code></td><td>a broken condition ends its line with <code>&amp;&amp;</code>; spaces around binary operators</td><td><code>BreakBeforeBinaryOperators: None</code></td></tr><tr><td><code>--unpad-paren</code>, <code>--pad-paren-in</code></td><td><code>if( x )</code>, <code>f( a, b )</code>, <code>f()</code></td><td><code>SpaceBeforeParens: Never</code>, <code>SpacesInParens</code></td></tr><tr><td><code>--min-conditional-indent=0</code></td><td>a wrapped condition lines up with its open paren</td><td><code>AlignAfterOpenBracket</code></td></tr></tbody></table></div>
+<h2 id="where-squared-differs">Where squared differs</h2>
+<p><b><code>--attach-inlines</code> has no clang-format equivalent.</b> CDDA keeps the brace of a function defined inside a class on the same line; clang-format has one setting for every function definition. A body short enough for one line stays on one line inside a class (<code>AllowShortFunctionsOnASingleLine: InlineOnly</code>), which covers accessors; a longer one gets its brace on its own line. That is also how squared's code already read before the format.</p>
+<p><b><code>--indent-preprocessor</code> is not reproduced.</b> clang-format leaves the continuation lines of a multi-line <code>#define</code> alone. squared has few, and none in a header a user reads.</p>
+<p><b>Includes are sorted and grouped.</b> astyle never reorders includes, so CDDA says nothing about it. squared regroups them: the file's local headers, then platform and third-party C headers, then the C library's own, alphabetical within each group. Since 7b.4 a squared unit includes only those (in its global module fragment): squared's types and the standard library are imports, which clang-format leaves in their order. This is safe only because every header left is self-contained: no header depends on another having been included first, so order cannot change meaning. A file whose includes really must stay in order &amp;mdash; a third-party implementation file with <code>#define</code>s between its includes &amp;mdash; keeps it, because sorting stops at anything that is not an <code>#include</code> line.</p>
+<p><b>Comments are not reflowed.</b> astyle does not reflow them either; clang-format would, and would break the tables and lists in doxygen comments. A comment over 100 columns stays over.</p>
+<p><b>Additions with no CDDA counterpart</b>, chosen to fit it: closing namespace comments, braced lists padded like parentheses (<code>{ a, b }</code>), constructor initialisers one per line with the comma leading, <code>template&lt;</code> with no space.</p>
+<h2 id="running-it">Running it</h2>
+<pre><code class="lang-sh">squared/tools/format.sh --check   # list files that would change; exit 1 if any
+squared/tools/format.sh           # format in place</code></pre>
+<p>It formats the framework only. A generated project's own code (<code>sq_app/</code>, <code>sq_android/</code>) is the project's: it has the template's <code>.clang-format</code>, and the project decides its own style. The tool refuses to run on a tree with uncommitted changes unless given <code>--force</code>, so a formatting commit holds formatting and nothing else.</p>
+<p><code>third_party/</code> is never touched. Neither is any file between <code>// clang-format off</code> and <code>// clang-format on</code>.</p>
+<h2 id="cost">Cost</h2>
+<p>None at run time: formatting changes no generated code. It is the one change in Sprint 2 that the priority order has nothing to say about.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

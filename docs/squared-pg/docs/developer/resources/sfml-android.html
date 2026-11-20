@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SFML on Android — internals · squared-pg</title>
+<meta name="description" content="squared-pg: SFML on Android — internals">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/developer/resources/sfml-android.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/developer/resources/sfml-android.md">on GitHub</a></p><hr>
+<p>title: SFML on Android — internals tags: [developer, resources, sfml, android]</p>
+<hr>
+<h1 id="sfml-on-android--internals">SFML on Android — internals</h1>
+<p>Counterpart: [[programmer/resources/sfml]] · [[usermanual/android-sfml]] Decisions: D-067, D-068, D-069, D-073, D-074 · Open: Q-35</p>
+<p>How <code>kit.sfml</code>'s archives are produced and why the build is shaped as it is. Everything here was established empirically against SFML 3.1.0, Termux clang 21.1.8 and NDK 29.0.14206865 on aarch64.</p>
+<h2 id="why-a-template-rather-than-a-kit">Why a template rather than a kit</h2>
+<p>Three blockers, each in SFML's source. See D-067 for the full entry; the short form is that <code>sfml-main</code> defines <code>ANativeActivity_onCreate</code>, the same process entry point <code>android_native_app_glue</code> occupies, and there is one such slot per process. SFML is the platform layer; it does not plug into someone else's.</p>
+<h2 id="the-build">The build</h2>
+<p><code>tools/build-sfml.sh</code>. Configures System, Window and Main only — Graphics, Audio and Network off — so none of the vendored dependencies are touched. Output goes to <code>build/sfml-stage/</code>; <code>--install</code> copies into kit.sfml's payload for local iteration.</p>
+<p>Five facts the script encodes. Each cost a build to learn, and each produces a failure that names something other than its cause.</p>
+<h3 id="1-termuxs-cmake-already-selects-the-android-branch">1. Termux's CMake already selects the Android branch</h3>
+<p>SFML tests <code>if(ANDROID)</code> in <code>cmake/Config.cmake</code>, not the system name, and Termux sets it. <code>-DANDROID=1</code> is therefore unnecessary — but it is passed anyway, so the build does not depend on a Termux packaging detail that could change.</p>
+<p><b>The failure this prevents:</b> a plain configure on a host where <code>ANDROID</code> is unset selects the X11 backend, builds cleanly, and produces libraries that are wrong for an APK with no error anywhere. The script verifies <code>WindowImplAndroid</code> is in the archive and <code>WindowImplX11</code> is not, because the backend is chosen at configure time and silently.</p>
+<h3 id="2-egl-and-gles-must-be-named-by-absolute-path">2. EGL and GLES must be named by absolute path</h3>
+<p><code>FindEGL.cmake</code> does <code>find_library(EGL_LIBRARY NAMES EGL)</code>. On Termux that finds <code>$PREFIX/lib/libEGL.so</code>, which belongs to <b>libglvnd — the X11 EGL, not Android's.</b> The link succeeds and the APK dies inside the package installer.</p>
+<p>Same reasoning as <code>mk/kit_opengl.mk</code>: a search order cannot go wrong when there is no search.</p>
+<h3 id="3-the-include-directory-must-not-be-the-ndk-sysroot">3. The include directory must not be the NDK sysroot</h3>
+<p>SFML does <code>target_link_libraries(sfml-window PRIVATE EGL::EGL)</code>, and an imported target propagates its includes as <b><code>-isystem</code></b> — which places a second complete set of C headers ahead of libc++. <code>&lt;cctype&gt;</code> then finds the NDK's <code>ctype.h</code> and the build stops with <i>"tried including <code>&lt;ctype.h&gt;</code> but didn't find libc++'s"</i>.</p>
+<p>This is the hazard <code>mk/kit_opengl.mk</code> solves with <code>-idirafter</code>. Here the fix has to be a directory rather than a flag position, because the path arrives through an imported target's interface. The script builds <code>build/sfml-khronos/</code> containing symlinks to exactly five directories — <code>EGL</code>, <code>GLES</code>, <code>GLES2</code>, <code>GLES3</code>, <code>KHR</code> — and points both finders at it.</p>
+<p>Symlinks rather than copies, so an NDK update is picked up by rerunning the script rather than by remembering to refresh a copy.</p>
+<h3 id="4-no-cross-toolchain-is-used">4. No cross-toolchain is used</h3>
+<p>Termux's clang reports <code>aarch64-unknown-linux-android24</code>. It already emits Android objects. The NDK's <code>android.toolchain.cmake</code> is deliberately <b>not</b> used: it sets <code>CMAKE_SYSROOT</code> and reintroduces hazard 3 wholesale.</p>
+<p>The script still verifies the archives contain AArch64 objects via <code>readelf</code>, because an archive of host objects would link and then fail on device.</p>
+<h3 id="5-naming-and-link-order">5. Naming and link order</h3>
+<p>Static archives are suffixed <code>-s</code> — <code>libsfml-system-s.a</code>, <code>libsfml-window-s.a</code> — <b>except <code>libsfml-main.a</code>, which is not.</b></p>
+<p>Link order is main, window, system, then EGL, GLESv1_CM, android, log. These are static archives and the linker resolves left to right: a symbol needed by an earlier archive must be defined by a later one.</p>
+<p><code>GLESv1_CM</code> is what SFML links (see its <code>FindGLES</code>). <code>GLESv3</code> is added by <code>mk/kit_sfml.mk</code> for application code, which draws through GLES 3.0 and would otherwise have no implementation to bind against.</p>
+<h3 id="6-the-dependency-patches-and-where-dependencies-must-live">6. The dependency patches, and where dependencies must live</h3>
+<p>Graphics and Audio need six third-party libraries. SFML acquires them with FetchContent and patches each one's CMakeLists.txt; the override that feeds the build from vendored trees skips the stage where those patches run. See D-074 and <code>third-party/README.md</code>.</p>
+<p><b>Dependencies are staged into <code>build/sfml-build/_deps/&lt;name&gt;-src</code>, not referenced in place.</b> SFML excludes freetype's <code>pfr.c</code> from its unity build by naming <code>${FETCHCONTENT_BASE_DIR}/freetype-src/src/pfr/pfr.c</code>, and CMake matches source-file properties by path string rather than by inode — so pointing the source directory elsewhere makes the exclusion silently miss and freetype fails to compile. Symlinks do not help. See D-073.</p>
+<p>Staging is a plain copy: <code>cp -al</code> fails on Android's filesystems, and its partial failure leaves a destination that makes a subsequent <code>cp -a</code> nest the tree one level too deep.</p>
+<h3 id="7-dependency-archives-land-in-lib">7. Dependency archives land in <code>lib/</code></h3>
+<p>Not under <code>_deps/</code>. Each dependency inherits <code>CMAKE_ARCHIVE_OUTPUT_DIRECTORY</code> from the top-level project, so <code>libfreetype.a</code> and the rest sit beside <code>libsfml-*.a</code>. The build script finds them by globbing <code>lib/</code> and excluding <code>libsfml-*</code>.</p>
+<p>SheenBidi produces no archive: SFML patches it to an OBJECT library, so it folds into <code>libsfml-graphics-s.a</code>.</p>
+<h2 id="the-entry-point">The entry point</h2>
+<p><code>libsfml-main.a</code> defines <code>ANativeActivity_onCreate</code>, which Android resolves <b>by name at load time</b>. Nothing in a generated project references it, so a static linker drops the archive member that defines it. The link succeeds, the <code>.so</code> is well formed, the APK installs, and the process dies at launch with nothing in the log naming the cause.</p>
+<p><code>mk/squared_generated.mk</code> carries <code>-Wl,-u,ANativeActivity_onCreate</code> to force it in. <code>make verify-link</code> confirms with <code>nm</code> that it survived, and <code>make</code> depends on that check — this failure is too cheap to catch and too expensive to find on a device.</p>
+<h2 id="threading">Threading</h2>
+<p>SFML's activity glue receives lifecycle and window callbacks on Android's UI thread, records them in <code>ActivityStates</code>, and runs the project's <code>main()</code> on a <b>detached thread of its own</b> (<code>std::thread(sf::priv::main, states).detach()</code>).</p>
+<p>Consequences: <code>App</code> sees one consistent thread and needs no synchronisation; blocking will not trigger an ANR the way blocking the UI thread would, but still stops the frame loop and the event queue; JNI from that thread needs an attached environment, and SFML attaches its own.</p>
+<h2 id="no-java">No Java</h2>
+<p>SFML 3.1.0's tree contains <b>zero <code>.java</code> files</b>. Every <code>FindClass</code> names a stock Android framework class — <code>android/view/MotionEvent</code>, <code>android/os/Build$VERSION</code> — never an SFML one, and it reaches the activity via <code>states.activity-&gt;clazz</code> with <code>GetObjectClass</code>, so it uses whatever activity object it is handed. Stock <code>android.app.NativeActivity</code> satisfies it.</p>
+<p>The <code>SFMLActivity.java</code> seen in SFML's Gradle examples exists to <code>System.loadLibrary</code> several <code>.so</code> files in dependency order. Static archives linked into one <code>.so</code> make that problem disappear.</p>
+<h2 id="not-established">Not established</h2>
+<ul><li><b>The release-time build has not been exercised.</b> During alpha the archives are produced on-device by <code>tools/build-sfml.sh</code>; CI running the same script is the intended shape but has not run.</li><li><b>Only arm64-v8a at API 24 has been produced</b> (Q-35). The script accepts <code>SQ_ABI</code> and <code>SQ_MIN_SDK</code> overrides; neither alternative has been tried.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sq.cart: the 3.0 reader and writer · sqcart</title>
+<meta name="description" content="sqcart: sq.cart: the 3.0 reader and writer">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqcart</a> · <code>v3/README.md</code> · <a href="https://github.com/squared-netizen/sqcart/blob/main/v3/README.md">on GitHub</a></p><h1 id="sqcart-the-30-reader-and-writer">sq.cart: the 3.0 reader and writer</h1>
+<p>The reader and writer for the <a href="../docs/developer/specs/sq-cartridge-3.0.html">Squared Cartridge Specification 3.0</a>, as C++23 modules, in namespace <code>sq::cart</code>:</p>
+<ul><li><code>sq.cart</code>: open, look up, read and verify, check signatures, validate.</li><li><code>sq.cart.write</code>: commit, compact, sign. Its own module, so a program that only reads carries no compressor.</li></ul>
+<p>Nothing here shares code with the 2.0 library in <code>../src</code>; 3.0 does not have to be compatible with it.</p>
+<pre><code class="lang-cpp">import std;
+import sq.cart;
+
+auto cart = sq::cart::Archive::open(&quot;world.sq&quot;);
+if (!cart) { std::println(std::cerr, &quot;{}&quot;, cart.error().message); return 1; }
+if (auto e = cart-&gt;find(&quot;world/settlements/9001.json&quot;)) {
+    auto bytes = cart-&gt;read(*e);                 // verified against its digest
+    auto part = cart-&gt;read_range(*e, 0, 4096);   // a chunked entry: only those chunks
+}
+auto report = sq::cart::check(&quot;world.sq&quot;);       // §12, in full</code></pre>
+<pre><code class="lang-cpp">import sq.cart.write;
+
+auto w = sq::cart::Writer::open(&quot;world.sq&quot;);     // takes world.sq.lock (§10.2)
+w-&gt;put(&quot;world/settlements/9001.json&quot;, bytes, {.title = &quot;Northford&quot;, .flags = sq::cart::flag::r | sq::cart::flag::w});
+w-&gt;put_range(&quot;world/map.bin&quot;, offset, patch);    // a chunked entry: only the chunks it touches
+w-&gt;resize(&quot;world/map.bin&quot;, 8 &lt;&lt; 20);             // cut, or grow with zeros
+w-&gt;rename(&quot;world/map.bin&quot;, &quot;maps/world.bin&quot;);    // the same runs, named again: nothing copied (§3.6)
+w-&gt;put_file(&quot;video/intro.webm&quot;, &quot;/sdcard/intro.webm&quot;);  // read at commit, 1 MiB at a time
+w-&gt;put_range_file(&quot;world/map.bin&quot;, offset, &quot;patch.bin&quot;, 0, n);  // a range, read from a file at commit
+w-&gt;set_metadata(&quot;README.md&quot;, {.title = &quot;Read me&quot;});  // no content written again (§3.6)
+w-&gt;remove(&quot;old.txt&quot;);
+w-&gt;sign_with(sq::cart::SigningKey::from_seed(seed, &quot;Jesse&quot;));
+auto commit = w-&gt;commit();                       // append, flush, spare slot, flush (§10.3)
+sq::cart::compact(&quot;world.sq&quot;);                   // §10.4; or w-&gt;compact(), under the writer&#x27;s own lock
+
+auto id = w-&gt;train_dictionary(samples);          // many small, similar entries (§4.3)
+w-&gt;put(&quot;world/settlements/9001.json&quot;, record, {.dictionary = *id});</code></pre>
+<p>Any number of ranges and resizes may be staged for one entry; they apply in the order given, and <code>size()</code> says what the entry's size will be. A second writer gets <code>Code::busy</code>; <code>discard()</code> drops what is staged. A commit that fails before its record is written cuts the file back to what it was.</p>
+<p>The writer stores what is compressed already (by media type) or would not shrink 5%, chunks entries past 64 MiB, stores the manifest and mappable entries, writes a full index first and before the delta chain would pass its limit, and reads every commit back through the reader before it reports it done.</p>
+<h2 id="building">Building</h2>
+<pre><code class="lang-sh">make test                          # the library, sqcart3 and the tests, then run them
+make CXX=/usr/lib/llvm-23/bin/clang++ test</code></pre>
+<p>Needs clang and libc++ with <code>import std;</code>: 23 is what sqterm's packages and CI use. The std module is built once from the libc++ the compiler names (<code>clang++ -stdlib=libc++ -print-library-module-manifest-path</code>). In sqterm, <code>pkg install llvm</code> brings clang, the sysroot and the runtimes (libc++ with its module sources).</p>
+<p>Offline: everything else is in <code>../third_party</code>:</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>squared-data</code></td><td>squared's JSON facade, <code>sq.data</code> (<code>../tools/vendor_squared_data.sh</code> copies it): sq.cart reads and writes JSON only through it</td></tr><tr><td><code>yyjson-0.12.0</code></td><td>what sq.data parses with</td></tr><tr><td><code>zstd-1.5.7</code></td><td>zstd: its decoder alone for readers, the whole library for the writer</td></tr><tr><td><code>monocypher-4.0.3</code></td><td>Ed25519, from its optional file (§9.3, Appendix B.1)</td></tr></tbody></table></div>
+<h2 id="the-pieces">The pieces</h2>
+<div class="tablewrap"><table><thead><tr><th>Partition</th><th>What</th></tr></thead><tbody><tr><td><code>:error</code></td><td><code>Code</code>, <code>Error</code>, <code>Result&lt;T&gt;</code> (std::expected)</td></tr><tr><td><code>:bytes</code></td><td>where the bytes are (pread on a file, or memory), little-endian fields, overflow-checked sums</td></tr><tr><td><code>:sha256</code></td><td>SHA-256, and the entry digest's tree over 1 MiB leaves (§9.1)</td></tr><tr><td><code>:json</code></td><td>I-JSON and RFC 8785, through sq.data</td></tr><tr><td><code>:fold</code></td><td>Unicode for paths (§4.1): full case folding, for paths that collide, and Normalization Form C, which every path must be in (the reader refuses others; <code>pack</code> converts a Mac's decomposed names). <code>casefold.inc</code> and <code>nfc.inc</code> are generated from Python's <code>str.casefold</code> and <code>unicodedata</code> (<code>tools/gen_casefold.py</code>, <code>tools/gen_nfc.py</code>); NFC was checked against Python for every code point and 20,000 mixed strings</td></tr><tr><td><code>:zstd</code></td><td>one frame, its size and window and dictionary checked before it is decoded (§4.3)</td></tr><tr><td><code>:ed25519</code></td><td>verification that refuses non-canonical encodings (§9.3)</td></tr><tr><td><code>:archive</code></td><td><code>Archive</code>, <code>Entry</code>, <code>Commit</code>, signatures, and <code>check</code></td></tr></tbody></table></div>
+<p><code>sqcart3</code> is both on the command line: <code>check</code>, <code>ls</code>, <code>cat</code>, <code>info</code> and <code>unpack</code> to read; <code>new</code>, <code>put</code>, <code>rm</code>, <code>mv</code>, <code>truncate</code>, <code>compact</code>, <code>keygen</code> and <code>pack</code> to write (<code>--sign KEYFILE</code> signs a commit). <code>make</code> also builds <code>sqcart3-read</code>, the read commands linked against the reading archives alone: it holds no zstd compressor.</p>
+<div class="tablewrap"><table><thead><tr><th>Archive</th><th>Holds</th><th>Link for</th></tr></thead><tbody><tr><td><code>libsqcart.a</code></td><td>sq.cart, sq.data, yyjson, Monocypher</td><td>both</td></tr><tr><td><code>libsqcart-unzstd.a</code></td><td>zstd's decoder</td><td>reading only</td></tr><tr><td><code>libsqcart-write.a</code></td><td>sq.cart.write</td><td>writing</td></tr><tr><td><code>libsqcart-zstd.a</code></td><td>all of zstd (its decoder too: never with <code>-unzstd</code>)</td><td>writing</td></tr></tbody></table></div>
+<h2 id="opening-and-what-is-checked-when">Opening, and what is checked when</h2>
+<p>Open reads the header, the superblocks, the commit records down to the full index, and the manifest, and maps the indexes and string tables in place (<code>mmap</code>, read-only) rather than reading them. Each record <code>find()</code> returns is checked as it is returned; each run must lie in a data region of its own commit or an earlier one, which the reader learns by walking every commit's record once, on first need. The whole state (every index's order, every record, the live count, collisions, features) is checked the first time something needs all of it: <code>entries()</code>, the content digest, <code>check()</code> (§12). On a cartridge of 100,000 entries: open 8 ms, a <code>find</code> 9 µs, the whole state 107 ms.</p>
+<p><code>find()</code> returns the entry, or <code>Code::not_found</code>, or the error that stops it; <code>entries()</code> returns the live entries, or the error that stops them.</p>
+<h2 id="the-tests">The tests</h2>
+<p><code>tests/testing.cppm</code> (<code>sq.cart.testing</code>) writes 3.0 cartridges byte by byte for the tests, including the broken ones a writer must never write, with real zstd frames and a trained dictionary (<code>tests/zstd_fixtures.inc</code>). <code>test_redteam.cpp</code> has one case for each finding of the red-team review that a reader can see.</p>
+<h2 id="not-yet">Not yet</h2>
+<ul><li><b>Staging</b> is in memory, except <code>put_file</code> and <code>put_range_file</code>, which read at commit: a commit's content is held until it is written. Staging large changes on disk, and deciding when to commit, is the Drive's (sqdrive, §10.5).</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

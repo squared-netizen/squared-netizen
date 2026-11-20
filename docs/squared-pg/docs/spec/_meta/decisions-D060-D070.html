@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pending decision entries · squared-pg</title>
+<meta name="description" content="squared-pg: Pending decision entries">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/decisions-D060-D070.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/decisions-D060-D070.md">on GitHub</a></p><hr>
+<p>title: Spec decisions — D-060 to D-070 (pending merge) tags: [spec, meta, pending]</p>
+<hr>
+<h1 id="pending-decision-entries">Pending decision entries</h1>
+<p><b>These are not yet in [[Spec decisions]].</b> Append them there, matching the existing format, then delete this file.</p>
+<h2 id="numbering">Numbering</h2>
+<p>The log runs D-001 to D-059 with <b>D-057 absent</b> — an unexplained gap, left alone rather than filled, since a reused number is worse than a missing one.</p>
+<p><b>D-060 is written to match an existing citation.</b> <code>tools/bootstrap.sh</code> cites D-060 for the pin circularity, but no such entry was ever recorded. The entry below is reconstructed from the script's own comments and the failure it describes; check it against your memory of that session before merging.</p>
+<p>Earlier drafts this session proposed D-057–D-063 for these decisions. Those numbers collide with the real D-058 and D-059 and should be discarded. <code>docs/decision-D061.md</code> in the docs root is one such draft; its content is D-064 below.</p>
+<hr>
+<h2 id="d-060----latest-exists-because-a-pin-cannot-advance-itself">D-060 — <code>--latest</code> exists because a pin cannot advance itself</h2>
+<p><b>[[1.7 Tools]]</b></p>
+<p><code>bootstrap.sh</code> checks out the pin; <code>--update</code> records whatever is checked out. Running them in sequence writes the old pin straight back.</p>
+<p><b>The failure was silent and every individual step reported success.</b> A pushed change to <code>squared</code> was reverted by a bootstrap doing exactly what it was told. Nothing in the output said a version had moved backwards.</p>
+<p><code>git pull</code> was not the alternative: before D-065 bootstrap left each component on a detached HEAD, where pull refuses.</p>
+<p><code>--latest</code> fetches, moves each component to <i>the remote's own default branch</i> rather than an assumed <code>main</code> — a component may call it something else, and guessing would fail in a way that looks like a network problem — and records that as the new pin.</p>
+<p>Rejected: making <code>--update</code> fetch first, which would silently change what "the current checkout" means — the one thing <code>--update</code> is for.</p>
+<hr>
+<h2 id="d-061--kit-headers-live-at-sq_kitincludeltkit-namegt">D-061 — Kit headers live at <code>sq_kit/include/&lt;kit-name&gt;/</code></h2>
+<p><b>[[2.9 Kits]]</b></p>
+<p>Supersedes the <code>sq_kit/include/squared/kit/&lt;header&gt;</code> layout shipped in the first four kits.</p>
+<p>A generated project compiles with two include roots, <code>-Isq_app/include</code> and <code>-Isq_kit/include</code>. Header resolution takes the first match in <code>-I</code> order and <b>issues no diagnostic when a second file of the same name exists further down the list.</b> With both roots flat, any shared filename resolves silently to the app's copy — including from inside kit sources, which surfaces as errors in a translation unit the user never touched.</p>
+<p>The names at risk are exactly the ones a bridge wants: <code>window.hpp</code>, <code>graphics.hpp</code>, <code>event.hpp</code>. One prefix segment makes the roots disjoint by construction, so no <code>-I</code> ordering discipline and no naming convention has to be maintained by kit authors.</p>
+<p><b>The segment sits inside the include root, not above it.</b> A layout of <code>sq_kit/&lt;kit-name&gt;/include/</code> looks equivalent when browsing the tree but is not: the <code>-I</code> would point at <code>sq_kit/&lt;kit-name&gt;/include</code>, the include string would be bare <code>&lt;gl.hpp&gt;</code>, and the flat-search-space problem returns in full. Recorded because the distinction is invisible in a directory listing.</p>
+<p>The segment is the kit name rather than a generic <code>squared/</code> because it is the only variant that survives multiple kits in one workspace: <code>squared/</code> collides with itself the moment a second kit appears.</p>
+<p>Rejected: a shared installed include root under <code>sqsysroot</code>, which would have justified a fuller namespace. Kits are owned by the workspace that contains them; there is no shared kit and no mechanism to produce one.</p>
+<hr>
+<h2 id="d-062--kit-identifiers-are-exactly-two-dot-separated-segments">D-062 — Kit identifiers are exactly two dot-separated segments</h2>
+<p><b>[[2.9 Kits]]</b></p>
+<p><code>kit.opengl</code>, <code>kit.sfml</code>. Template identifiers stay free-form (<code>template.android.cpp</code>).</p>
+<p>D-061 derives a filesystem path segment from the kit identifier, and that derivation must be total. <code>kit.sfml.x11</code> could map to <code>sfml/x11/</code>, <code>sfml_x11/</code>, or be an error — each with different collision properties. Constraining the identifier removes the question rather than answering it.</p>
+<p>Templates are unconstrained because template identifiers never produce include paths. <b>The asymmetry follows from what each identifier is used for, not from a general naming rule.</b></p>
+<p>Already enforced in practice: <code>project_name</code> is typed <code>identifier</code>, and <code>-p project_name=a.b</code> is refused with <code>template.parameter.invalid</code>. No new validation was required.</p>
+<hr>
+<h2 id="d-063--the-dot-remains-the-single-namespace-separator">D-063 — The dot remains the single namespace separator</h2>
+<p><b>[[2.6 Identity]]</b></p>
+<p>Confirms existing practice; recorded because it was reopened.</p>
+<p>Underscore and hyphen alternatives were rejected. The dot reads as hierarchy — kind, then identity, then optional qualification — and <code>template.android.cpp</code> expresses that <code>android.cpp</code> is a subdivision of android templates, which <code>template_android_cpp</code> flattens into one opaque token.</p>
+<p><b>The separator is already load-bearing elsewhere.</b> <code>manifest_extension()</code> resolves dotted paths and consumer sections nest under dotted keys. Changing identifier separators would leave the dot as the manifest-path separator and something else as the identifier separator — two conventions where there is one.</p>
+<p>CLI cost is nil: dots are not shell metacharacters, so no quoting, no escaping, no glob interaction.</p>
+<p>See Q-27: §2.8.1's grammar and cartridge format §5.2's still disagree on segment counts, and this entry does not resolve that.</p>
+<hr>
+<h2 id="d-064--ownership-tables-glob-the-kits-own-tree-enumerate-outside-it">D-064 — Ownership tables glob the kit's own tree, enumerate outside it</h2>
+<p><b>[[2.9 Kits]]</b></p>
+<p><code>ownership.generated</code> uses a glob for the kit's own subtree (<code>sq_kit/**</code>) and literal paths for files dropped outside it (<code>mk/kit_&lt;name&gt;.mk</code>).</p>
+<p>Both forms were in use. kit.terminal globbed; kit.lua, kit.opengl and kit.termux enumerated their single header. <b>The D-061 flatten showed the difference is not cosmetic:</b> the glob was immune to the header move, while all three literal entries needed rewriting, and a stale entry would have left a file <code>workspace.verify</code> no longer tracks.</p>
+<p>The split follows ownership itself. Everything under <code>sq_kit/</code> belongs to the kit whatever it is named, so the pattern states a fact that stays true across refactors. Files outside that subtree share a directory with other producers, so the claim has to say which file is whose.</p>
+<p>kit.lua, kit.opengl and kit.termux should be converted to the glob form; their literal entries are correct post-flatten but remain fragile.</p>
+<hr>
+<h2 id="d-065--vendored-components-sit-on-a-branch-never-detached">D-065 — Vendored components sit on a branch, never detached</h2>
+<p><b>[[1.7 Tools]]</b></p>
+<p><code>bootstrap.sh</code> places each vendored component on <code>pin/&lt;ref&gt;</code> at the pinned commit rather than checking out the bare ref. A 40-character SHA is abbreviated in the branch name.</p>
+<p><code>git checkout &lt;sha&gt;</code> leaves a detached HEAD. A commit made there belongs to no branch and is reachable only by its SHA, <b>with no warning at commit time, at status time, or at any point before it is lost.</b></p>
+<p>Not hypothetical: the D-061 flatten was committed onto a detached HEAD in <code>resources/.squared</code> and survived only because the SHA was still in scrollback. <code>git push</code> refused it; <code>git status</code> in the parent repo showed a clean tree; every individual step reported success.</p>
+<p>The script's own header already made this argument for choosing a script over submodules — that a contributor should get "an ordinary checkout on an ordinary branch, not a detached HEAD they have to remember to fix before committing." The implementation did not do what the rationale claimed.</p>
+<p><b>If that branch exists and has moved, the script reports and leaves it.</b> A component branch that has moved means somebody worked there; discarding it would recreate the failure this change exists to prevent, only louder.</p>
+<p><code>tools/sq-sync.sh</code> handles components bootstrapped before this change, which stay detached until named.</p>
+<hr>
+<h2 id="d-066--pin-files-may-carry-a-semantic-version-resolved-to-an-exact-tag">D-066 — Pin files may carry a semantic version, resolved to an exact tag</h2>
+<p><b>[[1.7 Tools]]</b></p>
+<p><code>SQUARED_VERSION</code> and <code>SQCART_VERSION</code> may contain <code>0.3.0</code>, resolved to tag <code>v0.3.0</code> or <code>0.3.0</code>. A SHA, tag or branch name continues to work.</p>
+<p><b>A pin names one exact tag. It is not a range.</b> Ranges would make bootstrap enumerate tags and select the highest match — a resolver in the one script that touches the network, and a return to "give me whatever satisfies this", which is the failure the pins exist to prevent. Ranges stay in cartridge manifests, where they describe compatibility rather than select a checkout.</p>
+<p>A SHA pin is correct and unreadable. It cannot be compared by eye against a manifest's <code>requires.framework</code>, gives no signal about the size of a change, and in practice went un-bumped because updating it meant copying forty characters.</p>
+<p><code>--update</code> records a tag when HEAD carries one, and <b>refuses</b> when the existing pin is a version and HEAD has no tag — silently changing a pin's kind leaves the next reader unable to tell whether it was deliberate.</p>
+<p><b>New invariant: a published tag in <code>sqcart</code> or <code>squared</code> is never repointed.</b> A semver pin is reproducible only so long as this holds. Re-tagging silently changes what every past commit of squared-pg builds against, and nothing in the build would report it.</p>
+<p>Neither repository carries tags yet; until they do, semver pins cannot resolve and bootstrap says so explicitly.</p>
+<hr>
+<h2 id="d-067--sfml-on-android-is-a-template-not-a-kit">D-067 — SFML on Android is a template, not a kit</h2>
+<p><b>[[2.8 Templates]]</b> · <b>[[2.9 Kits]]</b></p>
+<p><code>template.android.sfml</code> exists because SFML cannot be applied to <code>template.android.cpp</code> as a rendering kit. Three independent blockers, each verified in SFML 3.1.0's source:</p>
+<ul><li><code>src/SFML/Main/MainAndroid.cpp:491</code> defines <code>ANativeActivity_onCreate</code> — the same process entry point <code>android_native_app_glue</code> occupies. <code>sfml-main</code> links with <code>-u,ANativeActivity_onCreate</code> to force it in. Two definitions, one slot.</li><li><code>WindowImplAndroid(WindowHandle)</code> is an <b>empty stub</b>: the parameter is commented out. Adopting an existing <code>ANativeWindow*</code> compiles and does nothing.</li><li><code>WindowImplAndroid</code> reaches global <code>ActivityStates</code> sixteen times via <code>getActivity()</code>, which asserts on a pointer set only by SFML's own <code>ANativeActivity_onCreate</code>.</li></ul>
+<p><b>SFML is the platform layer on Android; it does not plug into someone else's.</b> <code>template.android.cpp</code>'s <code>sq_android/entry.cpp</code> is ownership class <code>seeded</code> — the user's file — so a kit could not replace it even if the symbol collision did not exist. And the kit doctrine holds: a kit adds to a workspace's build, it does not reorganise it.</p>
+<p>The two templates are alternatives, and <code>sq_app/</code> compiles unchanged under both. That portability is what makes the choice reversible, and it is worth defending.</p>
+<p>Rejected: a renderer-contract header both kits satisfy. It would solve the <code>__has_include(&lt;opengl/gl.hpp&gt;)</code> hardcoding in <code>template.android.cpp</code> — still worth solving, see Q-29 — but it cannot solve an entry-point collision.</p>
+<hr>
+<h2 id="d-068--vendored-third-party-source-lives-in-third-party-artifacts-ship-in-the-cartridge">D-068 — Vendored third-party source lives in <code>third-party/</code>; artifacts ship in the cartridge</h2>
+<p><b>[[1.6 Third-party dependencies]]</b> · <b>[[2.13 Dependency graph]]</b></p>
+<p>SFML's source is vendored at <code>third-party/SFML-3.1.0/</code>, its dependencies at <code>third-party/sfml-deps/</code>. <code>tools/build-sfml.sh</code> produces static archives into <code>build/sfml-stage/</code>; <code>--install</code> copies them into kit.sfml's payload for local iteration, gitignored. At release time CI builds them and they reach users inside the cartridge.</p>
+<p><b>Source cannot live under <code>resources/</code>.</b> §2.13.2 makes resources inert data with no outgoing dependencies, and §2.13.6 lists a file-type check over resource roots as an enforcement mechanism. Eight hundred <code>.cpp</code> files and a CMake build are what that check exists to catch; built archives are worse.</p>
+<p>That is also why <code>third-party/</code> is at the repository root — the same place miniz and yyjson already live.</p>
+<p><b>Generation stays a file copy.</b> The engine's capabilities are copy, substitute, plan, generate, index, archive, rename. Nothing builds, and nothing needed to: the compile happens in tooling, the same place <code>bootstrap.sh</code> already lives and for the same reason.</p>
+<p>The workspace stays self-contained, so the smoke suite's "the generated project does not depend on the generator" check remains honest.</p>
+<p>Rejected: a <code>package.vendor.sfml</code>. §2.11.1's taxonomy assigns external frameworks to kits and reserves packages for Squared's own functionality; putting SFML in <code>resources/packages/</code> would have contradicted it <i>and</i> put source in a resource root.</p>
+<p>Rejected: referencing a shared build under <code>sqsysroot</code>, which breaks the generated-project independence invariant outright.</p>
+<hr>
+<h2 id="d-069--kitsfml-ships-sfmls-include-tree-verbatim-and-archives-under-sq_kitlib">D-069 — kit.sfml ships SFML's include tree verbatim, and archives under <code>sq_kit/lib/</code></h2>
+<p><b>[[2.9 Kits]]</b></p>
+<p>Two conventions this kit is the first to need.</p>
+<p><b>Headers at <code>sq_kit/include/SFML/</code>, capital, not a D-061 kit-name directory.</b> The payload is a third party's include tree reached as <code>&lt;SFML/Window.hpp&gt;</code>, not a Squared-side bridge. D-061 exists to keep <i>bridge</i> headers from colliding; kit.sfml ships no bridge header, so there is nothing to collide with. The scaffolded <code>include/sfml/sfml.hpp</code> was removed for the same reason — on a case-insensitive filesystem it and <code>include/SFML/</code> are the same path, and CI runs on macOS.</p>
+<p><b>Archives at <code>sq_kit/lib/</code>,</b> declared in the manifest's <code>binary.archives</code> so the location is stated rather than implied.</p>
+<p>The manifest also carries a <code>binary</code> block recording ABI, API level and linkage. Nothing reads it yet. It is the field a resolve-time ABI check would use, and without it the archives are anonymous: nothing in <code>libsfml-window-s.a</code> says arm64-v8a at API 24.</p>
+<hr>
+<h2 id="d-070--kits-are-an-ordered-list-ordering-is-the-authors-responsibility">D-070 — Kits are an ordered list; ordering is the author's responsibility</h2>
+<p><b>[[2.9 Kits]]</b></p>
+<p><code>--kit</code> is accepted repeatedly and carried as an ordered list end to end. This was found to be <b>already implemented</b>: <code>squaredpg.args</code> lists <code>kit</code> as repeatable, <code>build_config</code> passes <code>kits</code> through, and a two-kit generation against <code>template.terminal.cpp</code> applies both in order.</p>
+<p>When kit-on-kit dependency is enforced, the user supplies the order and a kit that depends on another must be listed after it. <b>Validation fires at generation time.</b> A wrong order surfacing as a missing symbol inside generated code is expensive to diagnose on-device and points the author at the wrong artifact.</p>
+<h3 id="the-schema-is-already-complete">The schema is already complete</h3>
+<p>Every field needed lives in <code>consumers.squared_pg</code> and none of it touches sqcart:</p>
+<ul><li><code>requires.kits</code> — present and empty in all four original kits</li><li><code>provides</code> — kit.terminal declares <code>console.io</code>, <code>text.regex</code>, <code>files.handle</code></li><li><code>conflicts_with</code> — <b>populated</b>: kit.terminal declares a conflict with kit.ncurses</li></ul>
+<p>Note the shape difference: a template's <code>requires.kits</code> is <code>{required: [], optional: []}</code>; a kit's is a flat array. A template declares a selection policy, a kit declares peers. Both intentional.</p>
+<h3 id="what-overlap-detection-can-and-cannot-do">What overlap detection can and cannot do</h3>
+<p><b>Declared overlap is detectable.</b> Two kits claiming the same <code>provides</code> string is a comparison of two string lists; <code>integration_arity</code> already refuses two renderers on a single-arity area, and the smoke suite exercises it.</p>
+<p><b>Undeclared overlap is not.</b> Two kits that each quietly own an EGL context without saying so are indistinguishable from two that cooperate.</p>
+<p>The kit author's responsibility is therefore narrower than "be mindful": declare accurately what a kit provides and conflicts with. The generator enforces what is declared. Enumerating incompatible pairs is explicitly not attempted — it would require sqpg to track every framework's resource model and would still be incomplete.</p>
+<h3 id="deferred">Deferred</h3>
+<p>Reading <code>requires.kits</code> for ordering, <code>provides</code> for overlap, and <code>conflicts_with</code> for the data already waiting in it. Adding kits to an existing workspace after generation.</p>
+<hr>
+<h2 id="d-071--sq_app-uses-sfml-under-templateandroidsfml">D-071 — <code>sq_app</code> uses SFML under template.android.sfml</h2>
+<p><b>[[2.8 Templates]]</b> · supersedes the rule stated in D-067's rationale</p>
+<p><code>sq_app/</code> may include <code>&lt;SFML/Graphics.hpp&gt;</code> and <code>&lt;SFML/Audio.hpp&gt;</code> freely. <code>App::render</code> takes an <code>sf::RenderTarget&amp;</code>.</p>
+<p>The template originally forbade SFML in <code>sq_app/</code> so the same class would compile unchanged under <code>template.android.cpp</code>. <b>That bought portability to a template with neither Graphics nor Audio, at the cost of making <code>sf::Texture</code>, <code>sf::Font</code>, <code>sf::Text</code> and <code>sf::Sound</code> unreachable from the only place application code is supposed to live.</b></p>
+<p>Found by building a real test project against the template: the first user hit the rule immediately and overrode it, which is the clearest signal a rule is wrong.</p>
+<p><code>sf::RenderTarget&amp;</code> rather than <code>sf::RenderWindow&amp;</code> so the same drawing code works against an <code>sf::RenderTexture</code> — which is how a project screenshots, or renders at a resolution it does not present at. <code>app.hpp</code> forward-declares it rather than including <code>&lt;SFML/Graphics.hpp&gt;</code>, so files including <code>app.hpp</code> do not pay for that header.</p>
+<p>The platform layer opens an <code>sf::RenderWindow</code>; a plain <code>sf::Window</code> has no <code>draw()</code>.</p>
+<p><b>What remains excluded is <code>&lt;android/...&gt;</code>.</b> SFML already abstracts the platform, so reaching past it gives up portability between devices rather than between templates. <code>&lt;android/log.h&gt;</code> is the exception, used by the demo.</p>
+<hr>
+<h2 id="d-072--assets-are-packaged-and-open-by-bare-name">D-072 — Assets are packaged, and open by bare name</h2>
+<p><b>[[2.8 Templates]]</b></p>
+<p><code>mk/squared_android_package.mk</code> passes <code>-A $(SQ_ASSETS_DIR)</code> to <code>aapt2 link</code>, and the template ships <code>sq_android/assets/</code>.</p>
+<p><b>Without it the directory existed, looked right, and reached nothing.</b> SFML reads every file it opens on Android through <code>AAssetManager</code>, which sees only what packaging placed under <code>assets/</code> in the APK — so every <code>sf::Font</code>, <code>sf::Texture</code> and <code>sf::Music</code> failed to open at runtime with no build-time complaint. Survivable under <code>template.android.cpp</code>, which draws through raw GLES; fatal under this one.</p>
+<p><code>-A</code> is passed only when the directory holds something: aapt2 rejects an empty asset directory and a freshly generated project has one. The template therefore ships a README in <code>assets/</code>, which also means the packaging path is exercised on the first build rather than lying dormant.</p>
+<h3 id="the-stamp">The stamp</h3>
+<p>A file list is an unreliable prerequisite. <b>Removing the last asset changes no prerequisite at all</b>, so make relinks nothing and the APK keeps shipping a file the tree no longer has. <code>$(SQ_ASSET_STAMP)</code> holds names and mtimes, sorted, and flips on add, rename, remove and touch alike.</p>
+<p>Taken from the workaround a user wrote in their own Makefile, which is where the defect was found.</p>
+<h3 id="the-path">The path</h3>
+<p>Bare name relative to the assets root. <code>sq_android/assets/ui/panel.png</code> opens as <code>&quot;ui/panel.png&quot;</code>; subdirectories survive and no prefix is wanted. SFML's <code>FileInputStream</code> hands the path unchanged to <code>AAssetManager_open</code> (<code>src/SFML/System/Android/ResourceStream.cpp</code>).</p>
+<p>Assets are read from inside the APK; nothing is unpacked to storage.</p>
+<p>One trap: that Android branch is taken only when an activity exists. Without one, <code>FileInputStream</code> falls through to an ordinary <code>fopen</code> and silently reads the filesystem.</p>
+<hr>
+<h2 id="d-073--vendored-dependencies-are-staged-into-the-build-tree">D-073 — Vendored dependencies are staged into the build tree</h2>
+<p><b>[[1.6 Third-party dependencies]]</b></p>
+<p><code>tools/build-sfml.sh</code> copies each dependency to <code>build/sfml-build/_deps/&lt;name&gt;-src</code> and points <code>FETCHCONTENT_SOURCE_DIR_&lt;NAME&gt;</code> there, rather than at <code>third-party/sfml-deps/&lt;name&gt;</code> directly.</p>
+<p><b>SFML names source files by absolute path in its unity-build exclusions.</b> <code>src/SFML/Graphics/CMakeLists.txt</code> excludes freetype's <code>pfr.c</code> and <code>smooth.c</code> as <code>${FETCHCONTENT_BASE_DIR}/freetype-src/src/pfr/pfr.c</code>, because <code>pfr.c</code> uses <code>local</code> as a variable while <code>src/gzip/zutil.h</code> does <code>#define local static</code> — combining them in one translation unit is a syntax error.</p>
+<p>Point the source directory anywhere else and that exclusion names a path that does not exist. <b>CMake matches source-file properties by path string, not by inode, so a symlink does not help.</b> <code>set_source_files_properties</code> silently does nothing, <code>pfr.c</code> joins the unity blob, and freetype fails with seven errors about <code>local</code> — none of which mentions unity builds, exclusions or the source directory.</p>
+<p>Staging by copy rather than hardlink: <code>cp -al</code> fails on Android's filesystems, and its partial failure leaves a destination directory that makes a subsequent <code>cp -a</code> nest the tree one level deeper. The script clears the destination before every attempt and verifies a <code>CMakeLists.txt</code> landed.</p>
+<hr>
+<h2 id="d-074--patched-dependency-trees-are-committed">D-074 — Patched dependency trees are committed</h2>
+<p><b>[[1.6 Third-party dependencies]]</b></p>
+<p>The six dependency <code>CMakeLists.txt</code> files that SFML patches are patched once by <code>tools/build-sfml.sh --patch</code> and the results committed, rather than patched on every build or patched into a scratch copy.</p>
+<p>They are all <code>string(REPLACE)</code> or <code>string(REGEX REPLACE)</code> whose output no longer matches their own input, so re-running is safe. Committing keeps the build from mutating <code>third-party/</code>, so <code>git status</code> stays clean there and a real edit is visible.</p>
+<p><b>The hazard is not a patch that fails; it is a patch that silently does nothing.</b> These are version-pinned literal matches. Bump freetype and <code>HARFBUZZ_FOUND</code> may not appear where expected — <code>string(REPLACE)</code> does nothing, the patch reports success, and the build fails later somewhere unrelated. A patched tree and an unpatched one look identical.</p>
+<p>So <code>build-sfml.sh</code> asserts each patch's post-condition before every build and refuses to configure otherwise. Recorded because the assertion looks like belt-and-braces and is not: it is the only thing distinguishing the two states.</p>
+<p><code>third-party/README.md</code> records which six files differ from their upstream tag, so the divergence reads as deliberate rather than as corruption.</p>
+<hr>
+<h2 id="d-075--shared-in-a-manifest-is-spec-reserved-merged">D-075 — <code>shared</code> in a manifest is spec-reserved <code>merged</code></h2>
+<p><b>[[3.5 Packages]]</b></p>
+<p><code>shared</code> in a package's ownership class was cited in <code>details/plan.hpp</code> and never recorded, leaving the vocabulary half-authored. It is the implementation spelling of the spec-reserved <code>merged</code> class, which v1 does not implement (§D-020): a file that ships in a package's payload tree and is handed to the user to own once generated.</p>
+<p>The leading comment in <code>details/plan.hpp</code> now says <code>shared</code>, matching the release sequence, and the ownership tables (§2.7.4) read <code>shared</code> the same way they read its companions.</p>
+<p>Rejected: inventing a new reserved word distinct from <code>merged</code> — two names for an un-implemented class, in a vocabulary that is already three words long.</p>
+<hr>
+<h2 id="d-076--packages-follow-d-031s-payload-root-through-a-shared-helper">D-076 — Packages follow D-031's payload root, through a shared helper</h2>
+<p><b>[[3.1 Packages]]</b> · [[2.7 Project generation model]] · [[2.2 Identity]]</p>
+<p>A package cartridge names one payload root; that root is the package's <code>tree_prefix</code>, exactly as D-031 chose for templates and kits. Rather than a new resolution rule per resource kind, <code>detail::payload_prefix()</code> serves the package resolver too — the same function that already owns the D-031 tree detection.</p>
+<p><b>[[limitations]]</b> Nothing a package materializes may live outside that root.</p>
+<p>Rejected: inventing a package-shaped payload convention — packages are not a special case, and a second convention would have to be documented, enforced, and explained, none of which earns its keep.</p>
+<hr>
+<h2 id="d-077--shared-is-a-real-ownership-class-provenance-hashes-are-unconditional">D-077 — <code>shared</code> is a real ownership class; provenance hashes are unconditional</h2>
+<p><b>[[3.2 Packages]]</b> · [[2.7.4 Ownership]] · [[2.14 Workspace verification]]</p>
+<p>The engine materializes package payload with the <code>shared</code> ownership class, with <code>generated</code> for the build fragments a package contributes to <code>mk/</code>. Package materialization runs <code>project.plan</code>, <code>project.generate</code>, writes to the journal, and records provenance <b>including the sha256</b> of every payload file — the hash is written regardless of ownership class, so a workspace verify that reads carryover files has something to check. The earlier "materialization not implemented" diagnostic on empty payload is replaced by a warning (D-079).</p>
+<p>Deferred to the update path, following <b>[[ROADMAP]]</b> item 3 and <b>[[limitations]]</b>: the <code>regenerate</code>/<code>.new</code>-writeback half of v1 ownership semantics. Generate currently records the same content to the same path, so the conflict question does not arise until journals can advance existing workspaces wells and write back. Until then a re-generated workspace is refused up front.</p>
+<p>Rejected: requiring every materialized file carry <code>generated</code> ownership as packages took from kits — the generator cannot edit user code it never wrote without asking first; keeping the diagnostic and silently dropping the package was the v0 behaviour that misled users into shipping shells.</p>
+<hr>
+<h2 id="d-078--a-package-claims-a-taken-path-only-via-an-explicit-override">D-078 — A package claims a taken path only via an explicit override</h2>
+<p><b>[[3.3 Packages]]</b> · [[2.7.10 Generation plan]]</p>
+<p>Allowable contribution order is template → kits → packages because reciprocal ordering is the two orderings we must not ship (a field claiming its sequence declaration would claim those two too). A package path that collides with a path already claimed by the template or a kit is an integration-point conflict (<code>kit.integration_point.conflict</code> — the same code kits use for the same situation), failed at plan time.</p>
+<p>A package may reclaim a path another contribution already claimed only when its cartridge manifest names that exact path in an <code>overrides</code> list; anything short of an exact name is <i>not</i> an override, and a last-writer-wins race is not.</p>
+<p>Rejected: last-writer-wins on collisions (silent, order-dependent, and exactly what §2.7.10's conflict rule is for); glob overrides (a glob that matches two paths authorises both, widening the map for what an exact path would not buy); any override defaulting on (an author must declare intent).</p>
+<hr>
+<h2 id="d-079--packages-surface-like-kits-in-reporting-and-metadata">D-079 — Packages surface like kits in reporting and metadata</h2>
+<p><b>[[3.4 Packages]]</b> · [[2.7 Project generation model]] · [[2.6 Storage]]</p>
+<p><code>plan</code>/<code>new</code>/<code>--json</code> report packages in the same shape as kits — there is no package-shaped reporting variant. <code>metadata.json</code> records packages under <code>resources.packages</code> as <code>{id, version}</code> objects, mirroring kits; provenance rows list every package path with its sha256.</p>
+<p>Rejected: a distinct package shape in reports (three kinds, three shapes, no information gained); npm-style <code>package-lock</code> json (one more file to keep in sync with the metadata that is already the journal).</p>
+<hr>
+<h2 id="d-080--template-requirespackages-is-advisory-never-auto-injected">D-080 — Template <code>requires.packages</code> is advisory, never auto-injected</h2>
+<p><b>[[3.5 Packages]]</b> · [[2.7.9 Conformance]]</p>
+<p>A template's <code>requires.packages</code> is a warning source, not an injection rule. Generating a template with a package requirement the workflow did not request warns and continues; it never silently adds the package)Skip. The android template declares <code>package.squared-core</code> in <code>requires.packages</code>.</p>
+<p>Rejected: auto-injecting the package (a parameter the user did not ask for turns up in their project unannounced); refusing to generate (turns a rendering-less android build from a wanted state into an error).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

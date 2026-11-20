@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kit.terminal · squared-pg</title>
+<meta name="description" content="squared-pg: kit.terminal">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/kits/kit.terminal.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/kits/kit.terminal.md">on GitHub</a></p><h1 id="kitterminal">kit.terminal</h1>
+<p>Developer-facing counterpart: <a href="../../developer/kits/kit.terminal.html">../../developer/kits/kit.terminal.md</a></p>
+<p>One header of simple terminal utilities. It uses only the C++20 standard library, so a workspace needs a compiler and <code>make</code> and nothing else.</p>
+<pre><code class="lang-sh">sqpg new hello -t template.terminal.cpp -k kit.terminal
+sqpg new hello -t template.term.edu.cpp -k kit.terminal   # the teaching template</code></pre>
+<p>Version <code>0.2.0</code>. Compatible with <code>template.terminal.cpp</code> and <code>template.term.edu.cpp</code>. Conflicts with <code>kit.ncurses</code>. Provides <code>console.io</code>, <code>text.regex</code> and <code>files.handle</code>.</p>
+<h2 id="using-it">Using it</h2>
+<pre><code class="lang-cpp">#include &lt;terminal/terminal.hpp&gt;
+
+int main() {
+    using namespace sq::term;
+    const auto name = prompt(&quot;Your name?&quot;, &quot;world&quot;);
+    println(&quot;Hello, &quot;, name, &quot;!&quot;);
+}</code></pre>
+<p>The header is <code>sq_kit/include/terminal/terminal.hpp</code> and everything is in namespace <code>sq::term</code>. The kit adds <code>-Isq_kit/include</code> to the build; nothing is linked. Files under <code>sq_kit/</code> and <code>mk/kit_terminal.mk</code> are generated: write your own code in <code>sq_app/</code>.</p>
+<p><b>Nothing here throws.</b> Failure comes back as an empty <code>std::optional</code>, an empty container, <code>false</code>, or the fallback you supplied.</p>
+<h2 id="output">Output</h2>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Does</th></tr></thead><tbody><tr><td><code>print(args...)</code></td><td>Write every argument to stdout. No separator, no newline.</td></tr><tr><td><code>println(args...)</code></td><td>Like <code>print</code>, then a newline.</td></tr><tr><td><code>eprintln(args...)</code></td><td>Like <code>println</code>, to stderr. Use it for diagnostics so real output stays pipeable.</td></tr><tr><td><code>flush()</code></td><td>Flush stdout.</td></tr></tbody></table></div>
+<p>Any type with <code>operator&lt;&lt;</code> works as an argument, including <code>FileHandle</code>.</p>
+<h2 id="input">Input</h2>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Returns</th><th>Notes</th></tr></thead><tbody><tr><td><code>input()</code></td><td><code>optional&lt;string&gt;</code></td><td>One line, newline removed (a trailing <code>\r</code> too). Empty optional at end of input, which is not the same as an empty line.</td></tr><tr><td><code>input(prompt)</code></td><td><code>optional&lt;string&gt;</code></td><td>Prints <code>prompt</code>, flushes, then reads.</td></tr><tr><td><code>prompt(message, fallback = &quot;&quot;)</code></td><td><code>string</code></td><td>Shows <code>[fallback]</code> when one is given. Returns <code>fallback</code> on an empty line or end of input.</td></tr><tr><td><code>confirm(message, fallback = false)</code></td><td><code>bool</code></td><td>Shows <code>[y/N]</code> or <code>[Y/n]</code>. True if the answer starts with <code>y</code> or <code>Y</code>. End of input or an empty line gives <code>fallback</code>.</td></tr><tr><td><code>read_all_input()</code></td><td><code>string</code></td><td>The whole of stdin. For programs used in a pipe.</td></tr><tr><td><code>parse&lt;T&gt;(text)</code></td><td><code>optional&lt;T&gt;</code></td><td>Parses the whole string as a number. Empty if it is not entirely a valid <code>T</code>.</td></tr></tbody></table></div>
+<p>Always check the optional from <code>input</code>. A loop that treats "no line" as "empty line" never ends when input is redirected from <code>/dev/null</code>.</p>
+<pre><code class="lang-cpp">const auto line = input(&quot;Number? &quot;);
+if (!line) return 0;                 // input ended
+const auto n = parse&lt;int&gt;(*line);
+if (!n) { println(&quot;not a number&quot;); return 1; }
+println(*n * 2);</code></pre>
+<h2 id="text">Text</h2>
+<p>A facade over <code>&lt;regex&gt;</code> (ECMAScript syntax). A pattern that does not compile never throws: the functions below return <code>false</code>, an empty container, or the input unchanged.</p>
+<div class="tablewrap"><table><thead><tr><th>Function</th><th>Returns</th></tr></thead><tbody><tr><td><code>pattern(expr, ignore_case = false)</code></td><td><code>optional&lt;std::regex&gt;</code>; empty if <code>expr</code> is invalid.</td></tr><tr><td><code>matches(text, expr, ic)</code></td><td>Whether the whole string matches.</td></tr><tr><td><code>contains(text, expr, ic)</code></td><td>Whether the pattern occurs anywhere.</td></tr><tr><td><code>find(text, expr, ic)</code></td><td>First match as <code>vector&lt;string&gt;</code>: index 0 is the whole match, 1..n the groups. Empty if no match.</td></tr><tr><td><code>find_all(text, expr, ic)</code></td><td>Every whole match.</td></tr><tr><td><code>replace(text, expr, with, ic)</code></td><td>Every match replaced. <code>$1</code>, <code>$2</code> refer to groups.</td></tr><tr><td><code>split(text, expr, ic)</code></td><td>Fields between matches. Empty fields are kept.</td></tr><tr><td><code>trim(text)</code></td><td><code>text</code> without leading and trailing ASCII whitespace.</td></tr></tbody></table></div>
+<h2 id="files">Files</h2>
+<p><code>FileHandle</code> wraps a path, modelled on libGDX's class of the same name.</p>
+<pre><code class="lang-cpp">const FileHandle notes{&quot;notes/today.txt&quot;};
+if (notes.writeString(&quot;buy milk\n&quot;, /*append=*/true)) println(&quot;saved to &quot;, notes);
+for (const auto&amp; line : notes.readLines()) println(&quot;- &quot;, line);</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Member</th><th>Does</th></tr></thead><tbody><tr><td><code>FileHandle(path)</code></td><td>Explicit; accepts anything <code>std::filesystem::path</code> accepts.</td></tr><tr><td><code>readString(path)</code> / <code>readString()</code></td><td>Whole file as <code>optional&lt;string&gt;</code>; empty if unreadable. Static and instance forms.</td></tr><tr><td><code>writeString(path, text, append = false)</code> / <code>writeString(text, append)</code></td><td>Writes the file, creating parent directories. Returns success.</td></tr><tr><td><code>path()</code>, <code>name()</code>, <code>extension()</code>, <code>nameWithoutExtension()</code></td><td>Path parts.</td></tr><tr><td><code>parent()</code>, <code>child(name)</code></td><td>A new <code>FileHandle</code>.</td></tr><tr><td><code>exists()</code>, <code>isDirectory()</code>, <code>length()</code></td><td>Queries. <code>length()</code> is 0 on error.</td></tr><tr><td><code>readLines()</code></td><td>Lines without newlines; no final empty line for a trailing newline.</td></tr><tr><td><code>mkdirs()</code>, <code>remove()</code></td><td>Return success.</td></tr><tr><td><code>list()</code></td><td>Immediate children, sorted.</td></tr></tbody></table></div>
+<h2 id="not-included">Not included</h2>
+<p>No raw mode, cursor control or alternate screen. That is a TUI's job (<code>kit.ncurses</code>).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

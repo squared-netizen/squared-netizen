@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.5 Lua control layer · squared-pg</title>
+<meta name="description" content="squared-pg: 2.5 Lua control layer">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.5 Lua control layer.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.5 Lua control layer.md">on GitHub</a></p><hr>
+<p>section: "2.5" title: Lua control layer status: review tags: [spec, architecture, lua]</p>
+<hr>
+<h1 id="25-lua-control-layer">2.5 Lua control layer</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.4 Engine lifecycle]] · Next: [[2.6 Engine-Lua boundary]]</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines Lua as the programmable orchestration layer: what it decides, what it owns, and what it may not touch.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; 2.5.1 Architectural role</li><li>&#9745; 2.5.2 Lua lifecycle</li><li>&#9745; 2.5.3 Workflow orchestration</li><li>&#9745; 2.5.4 Command-line interface control</li><li>&#9745; 2.5.5 Input handling</li><li>&#9745; 2.5.6 Configuration handling</li><li>&#9745; 2.5.7 Engine API interaction</li><li>&#9745; 2.5.8 Result-driven workflows</li><li>&#9745; 2.5.9 Filesystem scope</li><li>&#9745; 2.5.10 Ownership model</li><li>&#9745; 2.5.11 Invariants</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="251-architectural-role">2.5.1 Architectural role</h3>
+<p>Lua is the orchestration layer above the native engine. The engine provides capabilities; Lua provides decisions.</p>
+<p>Lua is responsible for acquiring user input, loading configuration, selecting workflows, invoking engine APIs, processing results, handling workflow decisions, and controlling generation order.</p>
+<p>Lua MUST NOT implement low-level generator capabilities, and MUST NOT replace engine services such as filesystem management, template processing, package resolution, resource management, project generation, or transaction handling.</p>
+<pre><code class="lang-text">User / Tool Input
+      |
+      v
+     Lua
+      |
+      v
+Engine Public API
+      |
+      v
+Engine Services
+      |
+      v
+Generated Project</code></pre>
+<p>The separation is what allows one implementation to serve command-line generation, custom workflows, embedded tools, IDE integration, automated project creation, and user-defined pipelines.</p>
+<h3 id="252-lua-lifecycle">2.5.2 Lua lifecycle</h3>
+<p>The Lua lifecycle follows the engine lifecycle:</p>
+<pre><code class="lang-text">start Lua runtime
+      |
+create engine instance
+      |
+initialize engine
+      |
+load workflow
+      |
+execute generation logic
+      |
+invoke engine operations
+      |
+process results
+      |
+shutdown engine
+      |
+terminate workflow</code></pre>
+<p>Lua MUST NOT execute engine operations before the engine reaches <code>Ready</code>. Lua MUST ensure engine shutdown occurs before the host exits.</p>
+<h3 id="253-workflow-orchestration">2.5.3 Workflow orchestration</h3>
+<p>Lua defines the order and relationship between operations. Workflows MAY select templates, kits, packages, and assets; define generation options; execute conditionally; and implement entirely custom sequences.</p>
+<p>The engine MUST NOT determine workflow order.</p>
+<pre><code class="lang-lua">local cfg = config.load(args)
+
+assert_ok(engine.validate_configuration(cfg))
+
+local tmpl = engine.template.resolve(cfg.template)
+local kit  = engine.kit.resolve(cfg.kit)
+
+local result = engine.project.generate(cfg)</code></pre>
+<p>The engine executes requested actions. Lua decides why and when.</p>
+<h3 id="254-command-line-interface-control">2.5.4 Command-line interface control</h3>
+<blockquote><p>[!note] Resolution of Q-01 (D-025) The earlier draft stated the engine must only receive requests through the Lua boundary, which contradicted the embedded-use guarantees elsewhere. Restated:</p></blockquote>
+<p><b>The CLI MUST NOT implement generation policy in native code.</b></p>
+<p>The CLI is a thin host: it starts a Lua runtime, creates and initializes an engine, hands control to a workflow, forwards I/O, and reports the final result.</p>
+<p>Lua is responsible for parsing command arguments, interpreting switches, loading command configuration, selecting workflows, and formatting user-facing output.</p>
+<p>This does <b>not</b> make Lua a mandatory intermediary. An embedding application MAY call the engine C++ API directly (see [[2.1 Architectural model]] §2.1.6). What is prohibited is baking workflow policy into the native layer.</p>
+<h3 id="255-input-handling">2.5.5 Input handling</h3>
+<p>Lua provides the input abstraction. Supported sources MAY include command-line arguments, standard input, configuration files, streams, embedded application data, and tool requests.</p>
+<p>The engine receives structured data. The engine MUST NOT parse command-line syntax, user prompts, interactive responses, or shell conventions.</p>
+<h3 id="256-configuration-handling">2.5.6 Configuration handling</h3>
+<p>A workflow MAY supply no platforms at all, and SHOULD by default.</p>
+<p>An empty platform set means <b>no restriction</b>, not "unknown". Three spellings mean the same thing and all are accepted: the resource declares no platforms, the resource declares <code>all</code>, or the request names none.</p>
+<p>A workflow MUST NOT detect the host platform and supply it as a default. The generation host is not necessarily the target — a workspace for Android is routinely generated on a desktop, and on Termux the two happen to coincide, which makes the mistake invisible exactly where it would be made. Detection would also make generation depend on ambient state, which §2.7.2 forbids.</p>
+<p>Where a platform genuinely matters, it is the caller's to name.</p>
+<p>Lua locates configuration sources, combines values, and selects workflow behaviour. The engine validates configuration data, reports compatibility issues, and processes validated values.</p>
+<pre><code class="lang-text">Lua: acquire configuration
+        |
+Engine: validate_configuration()
+        |
+Lua: continue workflow</code></pre>
+<p>Precedence between configuration sources is a workflow decision and MUST be documented by the workflow, not assumed by the engine.</p>
+<h3 id="257-engine-api-interaction">2.5.7 Engine API interaction</h3>
+<p>Lua MUST interact with the engine through the public API only.</p>
+<p>Lua MAY call services, execute operations, inspect results, handle errors, and control workflow state.</p>
+<p>Lua MUST NOT access C++ internal objects, manipulate engine memory, bypass service boundaries, or reach private engine state.</p>
+<p>The binding layer MUST preserve ownership rules, lifetime rules, error semantics, and result semantics (see [[2.6 Engine-Lua boundary]]).</p>
+<h3 id="258-result-driven-workflows">2.5.8 Result-driven workflows</h3>
+<p>Workflows MUST be driven by engine results.</p>
+<pre><code class="lang-lua">local result = engine.template.resolve(cfg.template)
+
+if result.status == &quot;success&quot; then
+    continue_generation(result.data)
+elseif result.error.code == &quot;template.not_found&quot; then
+    choose_alternative_template()
+else
+    report(result.error)
+end</code></pre>
+<p>The engine reports success, failure, warnings, diagnostics, and data. Lua decides whether to continue, retry, amend configuration, or abort.</p>
+<p>The engine MUST NOT contain workflow recovery policy.</p>
+<h3 id="259-filesystem-scope">2.5.9 Filesystem scope</h3>
+<blockquote><p>[!note] Resolution of Q-13 (D-013) The earlier prohibition on Lua filesystem access was too broad — Lua must load configuration files and streams. Scoped as follows:</p></blockquote>
+<p>Lua <b>MAY</b> read and write user-space input and output: configuration files, streams, standard I/O, and paths the user explicitly supplied.</p>
+<p>Lua <b>MUST NOT</b>:</p>
+<ul><li>read, scan, or modify generator-owned resources directly;</li><li>mutate a generated workspace except through engine services;</li><li>bypass the resource index, manifest validation, or the transaction system;</li><li>depend on the repository's directory layout.</li></ul>
+<p>Any path that will become part of a workspace MUST be written through the Filesystem and Transaction Services, so that provenance and rollback remain correct.</p>
+<h3 id="2510-ownership-model">2.5.10 Ownership model</h3>
+<p>Lua owns workflow state, user interaction, command interpretation, script execution state, and workflow decisions.</p>
+<p>The engine owns native resources, services, resource handles, generation state, and transactions.</p>
+<p>Ownership MUST NOT cross the boundary implicitly. All cross-boundary resources use explicit APIs.</p>
+<h3 id="2511-invariants">2.5.11 Invariants</h3>
+<ul><li>Lua controls workflow, not engine internals.</li><li>Lua selects operations, not implementation details.</li><li>Lua owns decisions, not native resources.</li><li>Engine results drive workflow decisions.</li><li>CLI behaviour is separate from engine capability.</li><li>Workflows remain programmable after release (see [[2.14 Extensibility model]]).</li><li>Lua execution is deterministic given identical inputs.</li><li>The engine remains usable without any particular Lua workflow.</li></ul>
+<h2 id="related">Related</h2>
+<ul><li>[[2.6 Engine-Lua boundary]] · [[2.14 Extensibility model]] · [[1.4 Lua]] · [[2.4 Engine lifecycle]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

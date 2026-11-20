@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Telegram · squared</title>
+<meta name="description" content="squared: class Telegram">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/Telegram.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/Telegram.md">on GitHub</a></p><h1 id="class-telegram">class Telegram</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram.cppm#L29">messaging/telegram.cppm:29</a></i></p>
+<p><b>brief</b> One message: 32 bytes, copied whole through the Telegraph's rings.</p>
+<p>| Bytes | Field | |---|---| | 8 | the name's id | | 4 | the uid (0: none) | | 2 | the correlation, which pairs a <code>do</code> with the <code>event</code> answering it (0: none) | | 2 | the verb (2 bits) and the value type (4 bits); the other 10 bits are 0 | | 16 | the value: a bool, an integer, a double, up to four floats, or where its text or uid list is in the data area |</p>
+<p>Made by the factories, one per value type, so a telegram is always valid: the bytes a value does not use are zero, which makes two equal telegrams equal byte for byte. Apps send through the Telegraph with typed keys; this is what travels underneath.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="address">address</h3>
+<p><i>public Address address()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram.cppm#L53">messaging/telegram.cppm:53</a></i></p>
+<h3 id="as_boolean">as_boolean</h3>
+<p><i>public bool as_boolean()</i></p>
+<p><b>brief</b> The value, read as its type; meaningless for any other type.</p>
+<h3 id="as_data">as_data</h3>
+<p><i>public DataRef as_data()</i></p>
+<h3 id="as_floats">as_floats</h3>
+<p><i>public std::array&lt;float, 4&gt; as_floats()</i></p>
+<p><b>brief</b> The floats; <code>float_count(type())</code> of them are meaningful.</p>
+<h3 id="as_integer">as_integer</h3>
+<p><i>public std::int64_t as_integer()</i></p>
+<h3 id="as_number">as_number</h3>
+<p><i>public double as_number()</i></p>
+<h3 id="boolean">boolean</h3>
+<p><i>public static Telegram boolean(Verb verb, Address to, bool value)</i></p>
+<h3 id="correlation">correlation</h3>
+<p><i>public std::uint16_t correlation()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegram.cppm#L54">messaging/telegram.cppm:54</a></i></p>
+<h3 id="data">data</h3>
+<p><i>public static Telegram data(Verb verb, Address to, ValueType type, DataRef where)</i></p>
+<p><b>brief</b> Text or a uid list, by where it is in the data area.</p>
+<h3 id="empty">empty</h3>
+<p><i>public static Telegram empty(Verb verb, Address to)</i></p>
+<p><b>brief</b> A telegram with no value (<code>event game.over</code>).</p>
+<h3 id="floats">floats</h3>
+<p><i>public static Telegram floats(Verb verb, Address to, std::span&lt;const float&gt; values)</i></p>
+<p><b>brief</b> Two to four floats (<code>vec2</code>..<code>vec4</code>); a NaN is not a value (asserted).</p>
+<h3 id="integer">integer</h3>
+<p><i>public static Telegram integer(Verb verb, Address to, std::int64_t value)</i></p>
+<h3 id="number">number</h3>
+<p><i>public static Telegram number(Verb verb, Address to, double value)</i></p>
+<p><b>brief</b> A double; a NaN has no text form, so it is not a value (asserted).</p>
+<h3 id="type">type</h3>
+<p><i>public ValueType type()</i></p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Whether these 32 bytes are a telegram: a verb and a known type, the spare bits and unused value bytes zero, no NaN. Bytes that arrived from elsewhere (a file) are checked with it; the factories make only valid ones.</p>
+<h3 id="verb">verb</h3>
+<p><i>public Verb verb()</i></p>
+<h3 id="with_correlation">with_correlation</h3>
+<p><i>public Telegram with_correlation(std::uint16_t correlation)</i></p>
+<p><b>brief</b> The same telegram, answering or awaiting <code>correlation</code>.</p>
+<h3 id="with_uid">with_uid</h3>
+<p><i>public Telegram with_uid(std::uint32_t uid)</i></p>
+<p><b>brief</b> The same telegram, to <code>uid</code> of its address: a list row's item.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

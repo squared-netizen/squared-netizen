@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec conventions · squared-pg</title>
+<meta name="description" content="squared-pg: Spec conventions">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/_meta/Spec conventions.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/_meta/Spec conventions.md">on GitHub</a></p><hr>
+<p>title: Spec conventions tags: [spec, meta]</p>
+<hr>
+<h1 id="spec-conventions">Spec conventions</h1>
+<p>Back to [[Specification Index]].</p>
+<h2 id="normative-language">Normative language</h2>
+<p>The keywords <b>MUST</b>, <b>MUST NOT</b>, <b>SHOULD</b>, <b>SHOULD NOT</b>, and <b>MAY</b> in this specification are to be interpreted as described in <a href="https://www.rfc-editor.org/rfc/rfc2119">RFC 2119</a>: they mark requirements (MUST/MUST NOT) and recommendations (SHOULD/SHOULD NOT, which a conforming implementation may ignore only with documented justification) and permissive options (MAY). They are always uppercase. Lowercase "must"/"should" in prose is non-normative and is avoided — if it is a requirement, uppercase it.</p>
+<p>The specification is a <b>strong guideline that is weakly enforced</b>: it describes the intended design and the repository is the authoritative statement of what currently exists. Where a specification statement and the repository disagree about a fact of the repository's present state, the repository wins and the specification is amended to match. Normative requirement keywords are aspirational for the design and binding on implementations that aim to conform, but nothing in the specification overrides the authority of the repository as the ground truth of the current implementation.</p>
+<p>Rules:</p>
+<ul><li>The same property MUST NOT be stated as MUST in one section and SHOULD in another.</li><li>A MAY MUST NOT be followed by a contradicting MUST.</li><li>Prohibitions are MUST NOT, never "should avoid".</li></ul>
+<h3 id="determinism-vocabulary">Determinism vocabulary</h3>
+<div class="tablewrap"><table><thead><tr><th>Property</th><th>Level</th><th>Meaning</th></tr></thead><tbody><tr><td><b>Resolution determinism</b></td><td>MUST</td><td>Same inputs → same resolved resource set.</td></tr><tr><td><b>Output reproducibility</b></td><td>SHOULD</td><td>Same inputs → byte-identical files.</td></tr></tbody></table></div>
+<p>Byte-identity is SHOULD because timestamps and archive member ordering are not worth mandating. Resolution determinism is MUST because everything depends on it.</p>
+<h2 id="status-values">Status values</h2>
+<div class="tablewrap"><table><thead><tr><th>Status</th><th>Meaning</th></tr></thead><tbody><tr><td><code>stub</code></td><td>Outline only.</td></tr><tr><td><code>outline</code></td><td>Outline agreed, content not written.</td></tr><tr><td><code>draft</code></td><td>Content written, incomplete.</td></tr><tr><td><code>review</code></td><td>Content complete, awaiting review.</td></tr><tr><td><code>final</code></td><td>Reviewed and settled.</td></tr><tr><td><code>blocked</code></td><td>Cannot progress until a dependency exists.</td></tr></tbody></table></div>
+<h2 id="note-structure">Note structure</h2>
+<ol><li>YAML frontmatter — <code>section</code>, <code>title</code>, <code>status</code>, <code>tags</code></li><li><code># &lt;number&gt; &lt;title&gt;</code></li><li>Navigation callout — index, parent, prev, next</li><li><code>## Purpose</code></li><li><code>## Outline</code> — checkbox list, retained after writing as the completeness checklist</li><li><code>## Content</code></li><li><code>## Open questions</code> (omitted when none remain)</li><li><code>## Related</code></li></ol>
+<h2 id="formatting">Formatting</h2>
+<ul><li>One second-level section per note. Third-level subsections are headings within, addressable as <code>[[2.4 Engine lifecycle#2.4.3 Service registration]]</code>.</li><li>ASCII diagrams always inside fenced code blocks.</li><li>Never nest fenced blocks.</li><li>No chat residue.</li><li>Code examples are illustrative unless labelled normative.</li></ul>
+<h2 id="cross-references">Cross-references</h2>
+<p>Wikilinks are the canonical form: <code>[[2.15 Error and transaction model]]</code>. A bare <code>§N.M</code> reference is permitted when the target note is named on the same line or is otherwise unambiguous (for example a self-reference within the note, or a range expressed in the notes tree). When a cross-note reference is the first mention of that note on a line, prefer the wikilink form. This keeps dense tables readable without requiring a full link at every call site; it is a weak style rule, not a compliance gate.</p>
+<p>When section A defers to section B, both say so: A under <code>## Open questions</code> or inline, B under <code>## Related</code>.</p>
+<h2 id="naming-inside-the-vault">Naming inside the vault</h2>
+<p>This vault lives at <code>squared-pg/docs/spec/</code>. Note names are prefixed <code>Spec </code> in <code>_meta/</code> to avoid collision with <code>docs/edu/</code> notes of the same name (notably <code>Glossary</code>) if <code>docs/</code> is opened as a single Obsidian vault.</p>
+<h2 id="audit-cadence-d-054">Audit cadence (D-054)</h2>
+<p><b>No new audit is opened until the previous one is closed.</b></p>
+<p>audit-02 sat with 22 unmarked findings for long enough that two of them described a cartridge format that had been superseded in the interval. An amendment written against a version of the system that no longer exists cannot be applied; it can only be closed or rewritten, and discovering which costs more than the amendment saved.</p>
+<p>The bottleneck is the marking pass, which is human and does not scale with how fast findings can be generated. Capping the number of open audits at one puts the constraint where it actually is.</p>
+<p><b>An amendment is checked against the code before it is applied.</b> Applying audit-02 found three amendments that were wrong: the parameter layering order was stated backwards, §2.9.2 named six kit fields no implementation reads, and §1.1 asserted a directory was unprovisioned that had been populated for months. All three had survived a full prior audit, because every audit until this one compared the specification against <i>intent</i>.</p>
+<p><b>A question added during implementation is triaged when the audit that would have caught it closes.</b> Not later. Q-26 through Q-29 accumulated untriaged because no step in the process owned them.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

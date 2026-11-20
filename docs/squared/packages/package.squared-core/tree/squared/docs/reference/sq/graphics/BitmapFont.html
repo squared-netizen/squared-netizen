@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class BitmapFont · squared</title>
+<meta name="description" content="squared: class BitmapFont">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/BitmapFont.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/BitmapFont.md">on GitHub</a></p><h1 id="class-bitmapfont">class BitmapFont</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L21">graphics/bitmap_font.cppm:21</a></i></p>
+<p><b>brief</b> Transactionally parsed text BMFont resource.</p>
+<p>The resource owns only portable metadata and relative texture-page paths. Applications resolve those pages through their selected asset and graphics systems. The class is value-semantic and not thread-safe during mutation.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="baseline">baseline</h3>
+<p><i>public int baseline()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L43">graphics/bitmap_font.cppm:43</a></i></p>
+<h3 id="clear">clear</h3>
+<p><i>public void clear()</i></p>
+<p><b>brief</b> Remove all parsed metadata and return to the invalid state.</p>
+<h3 id="glyph">glyph</h3>
+<p><i>public const BitmapGlyph * glyph(char32_t codepoint)</i></p>
+<p><b>brief</b> Find a glyph by Unicode scalar; returns null on a miss.</p>
+<h3 id="glyphs">glyphs</h3>
+<p><i>public std::span&lt;const BitmapGlyph&gt; glyphs()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L47">graphics/bitmap_font.cppm:47</a></i></p>
+<h3 id="info">info</h3>
+<p><i>public const BitmapFontInfo &amp; info()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L41">graphics/bitmap_font.cppm:41</a></i></p>
+<h3 id="kerning">kerning</h3>
+<p><i>public int kerning(char32_t first, char32_t second)</i></p>
+<p><b>brief</b> Return the pair adjustment, or zero when no pair is declared.</p>
+<h3 id="kernings">kernings</h3>
+<p><i>public std::span&lt;const BitmapKerning&gt; kernings()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L48">graphics/bitmap_font.cppm:48</a></i></p>
+<h3 id="line_height">line_height</h3>
+<p><i>public int line_height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L42">graphics/bitmap_font.cppm:42</a></i></p>
+<h3 id="load">load</h3>
+<p><i>public BitmapFontError load(std::string_view descriptor, const BitmapFontParseLimits &amp; limits)</i></p>
+<p><b>brief</b> Parse a text BMFont descriptor transactionally.</p>
+<p><b>descriptor</b> Complete UTF-8/ASCII BMFont text; not retained.</p>
+<p><b>limits</b> Positive resource bounds applied before allocation.</p>
+<p><b>return</b> The first failure, true when something failed; an empty error after committing a complete font. A failure leaves this font unchanged.</p>
+<p><code>if( const auto error = font.load( text ) ) { ... }</code></p>
+<h3 id="page_height">page_height</h3>
+<p><i>public int page_height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L45">graphics/bitmap_font.cppm:45</a></i></p>
+<h3 id="page_width">page_width</h3>
+<p><i>public int page_width()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L44">graphics/bitmap_font.cppm:44</a></i></p>
+<h3 id="pages">pages</h3>
+<p><i>public std::span&lt;const BitmapFontPage&gt; pages()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/bitmap_font.cppm#L46">graphics/bitmap_font.cppm:46</a></i></p>
+<h3 id="valid">valid</h3>
+<p><i>public bool valid()</i></p>
+<p><b>brief</b> Return true when required metadata, pages, and glyphs exist.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

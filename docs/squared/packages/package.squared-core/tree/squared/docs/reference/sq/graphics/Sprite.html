@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Sprite · squared</title>
+<meta name="description" content="squared: class Sprite">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Sprite.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/graphics/Sprite.md">on GitHub</a></p><h1 id="class-sprite">class Sprite</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L12">graphics/sprite.cppm:12</a></i></p>
+<p><b>brief</b> Lightweight mutable state for drawing one TextureRegion.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="sprite">Sprite</h3>
+<p><i>public void Sprite(const TextureRegion &amp; region)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L20">graphics/sprite.cppm:20</a></i></p>
+<p><b>brief</b> Construct a sprite whose size matches the region.</p>
+<p><b>region</b> Region referenced non-owningly; must outlive the sprite. Initial width and height are set from the region.</p>
+<h3 id="color">color</h3>
+<p><i>public sq::graphics::Color color()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L146">graphics/sprite.cppm:146</a></i></p>
+<p><b>brief</b> Read the current tint color.</p>
+<p><b>return</b> Color used for tinting the sampled texture.</p>
+<h3 id="height">height</h3>
+<p><i>public float height()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L110">graphics/sprite.cppm:110</a></i></p>
+<p><b>brief</b> Read the unscaled height.</p>
+<p><b>return</b> Unscaled height in logical pixels.</p>
+<h3 id="origin_x">origin_x</h3>
+<p><i>public float origin_x()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L116">graphics/sprite.cppm:116</a></i></p>
+<p><b>brief</b> Read the horizontal transform origin.</p>
+<p><b>return</b> Origin offset in logical pixels.</p>
+<h3 id="origin_y">origin_y</h3>
+<p><i>public float origin_y()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L122">graphics/sprite.cppm:122</a></i></p>
+<p><b>brief</b> Read the vertical transform origin.</p>
+<p><b>return</b> Origin offset in logical pixels.</p>
+<h3 id="region">region</h3>
+<p><i>public const TextureRegion &amp; region()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L86">graphics/sprite.cppm:86</a></i></p>
+<p><b>brief</b> Access the referenced texture region.</p>
+<p><b>return</b> Reference to the region provided at construction.</p>
+<h3 id="rotation">rotation</h3>
+<p><i>public float rotation()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L140">graphics/sprite.cppm:140</a></i></p>
+<p><b>brief</b> Read rotation in degrees.</p>
+<p><b>return</b> Clockwise rotation in degrees.</p>
+<h3 id="scale_x">scale_x</h3>
+<p><i>public float scale_x()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L128">graphics/sprite.cppm:128</a></i></p>
+<p><b>brief</b> Read the horizontal scale factor.</p>
+<p><b>return</b> Currently applied horizontal multiplier.</p>
+<h3 id="scale_y">scale_y</h3>
+<p><i>public float scale_y()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L134">graphics/sprite.cppm:134</a></i></p>
+<p><b>brief</b> Read the vertical scale factor.</p>
+<p><b>return</b> Currently applied vertical multiplier.</p>
+<h3 id="set_color">set_color</h3>
+<p><i>public void set_color(sq::graphics::Color color)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L80">graphics/sprite.cppm:80</a></i></p>
+<p><b>brief</b> Set the color multiplied with the sampled texture.</p>
+<p><b>color</b> Tint color; white preserves the texture unchanged.</p>
+<h3 id="set_origin">set_origin</h3>
+<p><i>public void set_origin(float x, float y)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L53">graphics/sprite.cppm:53</a></i></p>
+<p><b>brief</b> Set the transform origin relative to the top-left corner.</p>
+<p><b>x</b> Origin offset in logical pixels.</p>
+<p><b>y</b> Origin offset in logical pixels.</p>
+<h3 id="set_position">set_position</h3>
+<p><i>public void set_position(float x, float y)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L31">graphics/sprite.cppm:31</a></i></p>
+<p><b>brief</b> Set the top-left position in logical coordinates.</p>
+<p><b>x</b> Horizontal position.</p>
+<p><b>y</b> Vertical position.</p>
+<h3 id="set_rotation">set_rotation</h3>
+<p><i>public void set_rotation(float degrees)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L74">graphics/sprite.cppm:74</a></i></p>
+<p><b>brief</b> Set clockwise rotation in top-left coordinates.</p>
+<p><b>degrees</b> Clockwise rotation in degrees.</p>
+<h3 id="set_scale">set_scale</h3>
+<p><i>public void set_scale(float x, float y)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L64">graphics/sprite.cppm:64</a></i></p>
+<p><b>brief</b> Set independent horizontal and vertical scale factors.</p>
+<p><b>x</b> Horizontal multiplier.</p>
+<p><b>y</b> Vertical multiplier.</p>
+<h3 id="set_size">set_size</h3>
+<p><i>public void set_size(float width, float height)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L42">graphics/sprite.cppm:42</a></i></p>
+<p><b>brief</b> Set the unscaled logical dimensions.</p>
+<p><b>width</b> Unscaled width in logical pixels.</p>
+<p><b>height</b> Unscaled height in logical pixels.</p>
+<h3 id="width">width</h3>
+<p><i>public float width()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L104">graphics/sprite.cppm:104</a></i></p>
+<p><b>brief</b> Read the unscaled width.</p>
+<p><b>return</b> Unscaled width in logical pixels.</p>
+<h3 id="x">x</h3>
+<p><i>public float x()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L92">graphics/sprite.cppm:92</a></i></p>
+<p><b>brief</b> Read the horizontal position.</p>
+<p><b>return</b> Current x position in logical pixels.</p>
+<h3 id="y">y</h3>
+<p><i>public float y()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/graphics/sprite.cppm#L98">graphics/sprite.cppm:98</a></i></p>
+<p><b>brief</b> Read the vertical position.</p>
+<p><b>return</b> Current y position in logical pixels.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File layout · squared</title>
+<meta name="description" content="squared: File layout">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/file-layout.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/file-layout.md">on GitHub</a></p><h1 id="file-layout">File layout</h1>
+<p>Where files go inside a module, what each one is to the compiler, and the rules that keep each one small.</p>
+<p>Programmer counterpart: <a href="../programmer/include-layout.html">../programmer/include-layout.md</a>. How the build makes and uses the modules: <a href="modules.html">modules.md</a>.</p>
+<h2 id="a-module-directory">A module directory</h2>
+<p>Since 7b.4 each module is one named module, <code>sq.&lt;module&gt;</code>, and each of its types is a partition of it.</p>
+<pre><code>squared/&lt;module&gt;/
+  module.cppm      the primary interface: `export module sq.&lt;module&gt;;`
+  &lt;name&gt;.cppm      a partition per everyday type: `sq.&lt;module&gt;:&lt;name&gt;`
+  Makefile
+  src/
+    &lt;name&gt;.cppm    a partition per supporting type: `sq.&lt;module&gt;:src.&lt;name&gt;`
+    &lt;name&gt;.cpp     implementation units: `module sq.&lt;module&gt;;`
+    detail/        the framework&#x27;s own types: `sq.&lt;module&gt;:src.detail.&lt;name&gt;`
+    &lt;backend&gt;/     backend sources (null/ and gles/ in graphics)
+    common/        code shared by the backends (graphics)
+  test/</code></pre>
+<p><code>squared/third_party/</code>, <code>squared/docs/</code>, <code>squared/tools/</code> and <code>squared/build/</code> sit beside the modules and follow none of this. <code>squared/squared.cppm</code> is the one import for an app (<code>export module squared;</code>, re-exporting <code>std</code>, app, gui, messaging and stage), and <code>squared/third_party/libcxx/</code> holds the pinned sources of <code>std</code> (<a href="modules.html#std">modules.md</a>).</p>
+<p><b>A partition is named for its path</b>, the slashes as dots: <code>gui/src/detail/ui.cppm</code> is <code>sq.gui:src.detail.ui</code>. <code>tools/module_deps.sh</code> refuses a file that declares another name, as it builds, and <code>make headers</code> (<code>tools/check_modules.sh</code>) for the whole tree.</p>
+<p><b>The primary interface re-exports every partition</b> (<code>export import :label;</code> for each), and the modules its partitions import (<code>export import sq.graphics;</code> in sq.gui's): code was written against headers, whose includes reached everyone who included them, and an importer of sq.gui still gets the graphics types a widget's interface names. The detail partitions are exported too: stage uses gui's <code>Ui</code> and <code>PaneFrame</code>, and a partition is private to its module. They stay out of the programmer pages.</p>
+<p><b>A partition re-exports the partitions it imports</b> (<code>export import :widget;</code> in <code>label.cppm</code>), for the same reason: a header's includes reached whoever included it.</p>
+<p><b>Workhorse or supporting</b> was decided once per type, in Sprint 1, and the root/<code>src/</code> split keeps it. A workhorse type is one people write in their own code: <code>Button</code>, <code>TextureAtlas</code>, <code>FileHandle</code>. A supporting type is what those are made of or report: styles, error codes, options structs, small value types. Both come with <code>import sq.&lt;module&gt;;</code>.</p>
+<p><b><code>app</code> is a built module</b> since 7b.4 (<code>libsquared_app.a</code>): it was headers only, but a module's interfaces have objects (each module's initializer, and member functions defined in a class, which are not implicitly inline in a module).</p>
+<h2 id="one-type-one-file">One type, one file</h2>
+<p>One public type, one partition, named for the type in <code>snake_case</code>. One implementation unit per type that has out-of-line definitions.</p>
+<pre><code>gui/scroll_pane.cppm        class ScrollPane       (sq.gui:scroll_pane)
+gui/src/scroll_pane.cpp     its definitions        (module sq.gui;)</code></pre>
+<p>Enums, aliases and plain value structs follow the same rule: <code>squared/gui/src/pointer_action.cppm</code> holds <code>enum class PointerAction</code> and nothing else.</p>
+<p>The user chose a partition per type (2026-10-27) over one interface unit per module with the type files included into it, and over one file per module, on the numbers in <a href="modules.html#a-partition-per-type">modules.md</a>.</p>
+<h2 id="why-one-type-per-file">Why one type per file</h2>
+<p>The priority order (RAM, ergonomics, speed, extensibility) does not make this a priority-1 change and it should not be sold as one: moving text between files changes no runtime allocation. What it buys:</p>
+<ul><li><code>squared-core</code> vendors into the project tree, so editing the source is the supported way to extend the framework. That only works if a file is small enough to read in full before changing it. See <a href="extension-policy.html">extension-policy.md</a>.</li><li>Per-file measurement: the 39 errors blocking <code>-fno-exceptions -fno-rtti</code> became attributable to 17 named files instead of being a property of "the GUI".</li><li>The directory listing a user sees is the short list of types they will use (ergonomics, priority 2).</li></ul>
+<p>Until 7b.4 it also bounded the include weight of each translation unit; a module's BMI is read lazily, so that weight is gone either way.</p>
+<h2 id="what-a-partition-may-declare">What a partition may declare</h2>
+<p><b>Another module's types are imported, never declared ahead.</b> A module owns what it declares: <code>namespace sq::files { class FileSystem; }</code> in sq.assets declares a second <code>FileSystem</code>, attached to sq.assets, and clang refuses the pair. <code>app/runtime.cppm</code> imports sq.graphics, sq.files and sq.assets for the references it holds, so app comes after them in the build order.</p>
+<p><b>Declaring ahead inside the module is fine</b>: <code>class Painter;</code> in a gui widget's partition names the same module's <code>Painter</code>.</p>
+<p><b>What code outside the modules declares or defines belongs to the global module</b>, written <code>extern &quot;C++&quot;</code>:</p>
+<div class="tablewrap"><table><thead><tr><th>What</th><th>Where</th><th>Why</th></tr></thead><tbody><tr><td>the replacement <code>operator new</code> and <code>delete</code></td><td><code>dev/src/frame_allocations.cpp</code></td><td>they replace the global ones</td></tr><tr><td><code>AAssetManager</code></td><td><code>files/android_asset_file_system.cppm</code></td><td>the NDK's type, declared ahead; exported</td></tr><tr><td><code>g_null_draw_calls</code> and the null backend's other counters</td><td><code>graphics/src/null/sprite_batch.cpp</code></td><td>tests declare them <code>extern</code></td></tr><tr><td><code>StageProbe</code>, <code>NameTableProbe</code></td><td><code>stage/stage.cppm</code>, <code>messaging/name_table.cppm</code></td><td>befriended, defined by tests</td></tr><tr><td><code>squared_main</code></td><td><code>stage/app.cppm</code></td><td>the app defines it; exported</td></tr><tr><td><code>layouts::all()</code>, <code>layouts::screens()</code></td><td><code>stage/src/detail/catalog.cppm</code>, <code>stage/src/catalog.cpp</code></td><td>sqgen defines them in the app; the weak defaults with them</td></tr></tbody></table></div>
+<p>A name attached to a module is mangled with it (<code>sq::App@sq.stage</code>), so the same declaration outside the module would name another function, and the link fails.</p>
+<p><b>Includes go in the global module fragment</b>, before the module declaration: the C headers whose macros a unit uses (<code>&lt;assert.h&gt;</code>, <code>&lt;errno.h&gt;</code>, <code>&lt;stdarg.h&gt;</code>, <code>&lt;stdint.h&gt;</code>, <code>&lt;stddef.h&gt;</code>, <code>&lt;stdio.h&gt;</code>, <code>&lt;signal.h&gt;</code>, <code>&lt;stdlib.h&gt;</code>, <code>&lt;time.h&gt;</code>, <code>&lt;ctype.h&gt;</code>), the POSIX and NDK headers, and third_party (<code>&lt;yyjson.h&gt;</code>, <code>&lt;stb_image.h&gt;</code>). An <code>#if</code> block of includes goes there whole. Every standard C++ header is <code>import std;</code>.</p>
+<p><b>Configuration macros</b> (the Telegraph's and the Console's capacities, <code>-DSQUARED_TELEGRAPH_RING=512</code>) are read where the module is compiled, in its partition, and become constants there (<code>telegraph::ring</code>). An importer sees the constants, never the macros; a project passes the same values to the framework and its own code (<code>mk/pkg_squared_core.mk</code>), as before.</p>
+<h2 id="where-a-type-is">Where a type is</h2>
+<p>A test, a tool or an app reaches a type by importing its module. Inside a module, a unit that names a type of another partition imports that partition (<code>import :size;</code>), and the module's implementation units see every partition through the primary interface they implicitly import.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

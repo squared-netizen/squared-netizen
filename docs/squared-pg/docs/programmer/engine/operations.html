@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operations · squared-pg</title>
+<meta name="description" content="squared-pg: Operations">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/engine/operations.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/engine/operations.md">on GitHub</a></p><h1 id="operations">Operations</h1>
+<p>Every registered operation. Enumerate <code>engine-&gt;operations()</code> or run <code>sqpg operations</code> for the live list — this page is the prose version of the same registry.</p>
+<p>Developer counterpart: <a href="../../developer/engine/generation.html">generation</a>.</p>
+<p>Operations whose id begins with a service name are the <b>service layer</b>; <code>project.*</code> composites are the <b>operation layer</b>. Both reach the same registry, and no capability exists only at the operation layer.</p>
+<hr>
+<h2 id="enginedescribe"><code>engine.describe</code></h2>
+<p>Engine version, lifecycle state, registered services, capabilities, resource count, durability mode.</p>
+<p>No parameters. Cannot fail.</p>
+<hr>
+<h2 id="engineoperations"><code>engine.operations</code></h2>
+<p>The registry itself: an array of descriptors, each with <code>id</code>, <code>summary</code>, <code>parameters</code>, <code>required_services</code>, <code>required_capabilities</code>, <code>mutates_workspace</code>, <code>error_codes</code>.</p>
+<p>No parameters. Cannot fail.</p>
+<hr>
+<h2 id="resourcelist"><code>resource.list</code></h2>
+<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th></tr></thead><tbody><tr><td><code>kind</code></td><td>string</td><td>no — <code>template</code>, <code>kit</code>, <code>package</code>, <code>asset</code>, <code>plugin</code></td></tr></tbody></table></div>
+<p>Returns <code>{ resources: [ { id, kind, version, title, description } ] }</code>.</p>
+<p>Locations are deliberately absent. Resources are addressed by identity; a path you can see is a path you will end up depending on.</p>
+<p><b>Errors:</b> <code>validation.parameter.invalid</code> for an unknown kind.</p>
+<hr>
+<h2 id="templateresolve-kitresolve-packageresolve-assetresolve"><code>template.resolve</code>, <code>kit.resolve</code>, <code>package.resolve</code>, <code>asset.resolve</code></h2>
+<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th></tr></thead><tbody><tr><td><code>id</code></td><td>identifier</td><td><b>yes</b> — <code>kit.terminal</code> or <code>kit.terminal@^1.0</code></td></tr><tr><td><code>platforms</code></td><td>array</td><td>no</td></tr><tr><td><code>framework</code></td><td>string</td><td>no</td></tr><tr><td><code>template</code></td><td>identifier</td><td>no — the template a kit must be compatible with</td></tr></tbody></table></div>
+<p>A lone string binds to <code>id</code>, so <code>engine.template.resolve(&quot;template.x&quot;)</code> works.</p>
+<p>Returns the record, plus <code>entry_count</code>, plus <code>integration_areas</code> where declared. <code>template.resolve</code> additionally returns <code>working_directory</code> and <code>parameters</code>.</p>
+<p><b>Errors:</b> <code>&lt;kind&gt;.not_found</code>, <code>&lt;kind&gt;.version.unsatisfiable</code>, <code>&lt;kind&gt;.kind.mismatch</code>, <code>&lt;kind&gt;.compatibility.platform</code>, <code>kit.compatibility.template</code>, <code>framework.compatibility.&lt;kind&gt;</code>.</p>
+<p>All are recoverable and carry actionable detail: <code>not_found</code> lists what <i>is</i> available, <code>version.unsatisfiable</code> lists the versions considered.</p>
+<p><b>The engine never substitutes an alternative.</b> If a fallback is appropriate, that is your decision to make.</p>
+<hr>
+<h2 id="configvalidate"><code>config.validate</code></h2>
+<p>Checks a generation request without resolving anything. Same parameters as <code>project.generate</code>.</p>
+<p><b>Errors:</b> <code>configuration.input.missing</code> (names every missing input, not the first), <code>configuration.name.invalid</code>, <code>configuration.identity.invalid</code>, <code>configuration.type.invalid</code>, <code>framework.version.invalid</code>.</p>
+<hr>
+<h2 id="projectresolve"><code>project.resolve</code></h2>
+<p>Phases 2–6: resolve the template, kits, packages and assets, then cross-validate. Mutates nothing.</p>
+<p>Same parameters as <code>project.generate</code>. Returns the resolved template, kits and working directory.</p>
+<p><b>Errors:</b> everything the <code>*.resolve</code> operations can return, plus <code>kit.integration_point.conflict</code>, <code>kit.integration_point.undeclared</code>, <code>kit.compatibility.conflict</code>, <code>template.kit.required</code>, <code>template.parameter.missing</code>, <code>template.parameter.invalid</code>.</p>
+<hr>
+<h2 id="projectplan"><code>project.plan</code></h2>
+<p>Phase 7. Produces the complete generation plan and <b>creates nothing</b>.</p>
+<p>Same parameters as <code>project.generate</code>. Returns:</p>
+<pre><code class="lang-text">project_name, workspace, working_directory,
+template, template_version, kits[], packages[], assets[],
+platforms[], framework_version,
+steps[] { action, phase, path, ownership, origin, origin_version, bytes },
+step_count, diagnostics[]</code></pre>
+<p>Executing this plan produces the workspace it describes. Use it for dry runs, previews and tooling.</p>
+<p><b>Errors:</b> everything <code>project.resolve</code> can return, plus <code>template.ownership.invalid</code>, <code>validation.path.unsafe</code>, <code>capability.unsatisfied</code>, <code>resource.payload.unreadable</code>.</p>
+<hr>
+<h2 id="projectgenerate"><code>project.generate</code></h2>
+<p>Phases 2–18: resolve, plan, then generate inside a transaction.</p>
+<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th></tr></thead><tbody><tr><td><code>name</code></td><td>string</td><td><b>yes</b> — a C identifier</td></tr><tr><td><code>output</code></td><td>path</td><td><b>yes</b> — workspace location</td></tr><tr><td><code>template</code></td><td>identifier</td><td><b>yes</b></td></tr><tr><td><code>kits</code></td><td>array</td><td>no — applied in the order given</td></tr><tr><td><code>packages</code></td><td>array</td><td>no</td></tr><tr><td><code>assets</code></td><td>array</td><td>no</td></tr><tr><td><code>platforms</code></td><td>array</td><td>no</td></tr><tr><td><code>framework</code></td><td>string</td><td>no</td></tr><tr><td><code>parameters</code></td><td>object</td><td>no — template parameter values</td></tr></tbody></table></div>
+<p>Returns <code>workspace</code>, <code>working_directory</code>, <code>files_written</code>, <code>directories_created</code>, <code>template</code>, <code>kits</code>, <code>metadata_file</code>, <code>durability</code>.</p>
+<p><b>Errors:</b> everything <code>project.plan</code> can return, plus <code>filesystem.workspace.exists</code>, <code>filesystem.permission</code>, <code>filesystem.space</code>, <code>transaction.commit_failed</code>.</p>
+<p><b>This build generates new workspaces only.</b> An existing output location is refused with <code>filesystem.workspace.exists</code>; regenerating in place needs the journalled update path, which is not implemented.</p>
+<p>The whole workspace is built in a sibling temporary directory and landed with one rename. Either it exists complete, or it does not exist.</p>
+<hr>
+<h2 id="workspaceinspect"><code>workspace.inspect</code></h2>
+<div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Type</th><th>Required</th></tr></thead><tbody><tr><td><code>workspace</code></td><td>path</td><td><b>yes</b></td></tr></tbody></table></div>
+<p>Returns the parsed <code>.squared/metadata.json</code>: generator version, project identity, resolved resources, layer map, and the provenance table.</p>
+<p><b>Errors:</b> <code>filesystem.read</code>, <code>configuration.json.malformed</code>.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

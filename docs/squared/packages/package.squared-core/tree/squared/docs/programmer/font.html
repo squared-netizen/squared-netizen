@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>font · squared</title>
+<meta name="description" content="squared: font">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/font.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/font.md">on GitHub</a></p><h1 id="font">font</h1>
+<p>Font faces read and rendered at run time: a TrueType or OpenType file (or one face of a .ttc collection), at a pixel size, its cell metrics, and any character it has as 8-bit coverage, ready to put in a texture. For sqterm's terminal (Sprint 12.3), and any app that draws text from a font file rather than the skin's pre-baked bitmap fonts. FreeType 2.15 does the work (<code>third_party/freetype/</code>).</p>
+<p><code>import sq.font;</code> (it is not part of <code>import squared;</code>).</p>
+<p>Developer counterpart: <a href="../developer/font.html">../developer/font.md</a></p>
+<div class="tablewrap"><table><thead><tr><th>Type</th><th>File</th><th>Purpose</th></tr></thead><tbody><tr><td><code>Face</code></td><td><code>squared/font/face.cppm</code></td><td>One face at one size: open it, size it, its metrics, whether it has a character, the character rendered</td></tr><tr><td><code>FontMetrics</code></td><td><code>squared/font/font_metrics.cppm</code></td><td>A cell's width and height, the baseline, how far below it glyphs reach, the underline</td></tr><tr><td><code>GlyphBitmap</code></td><td><code>squared/font/glyph_bitmap.cppm</code></td><td>A rendered glyph: coverage rows, size, bearings, advance</td></tr><tr><td><code>GlyphStyle</code></td><td><code>squared/font/glyph_style.cppm</code></td><td>Bold and italic, made from the face when it lacks them</td></tr><tr><td><code>FaceError</code>, <code>FaceErrorCode</code></td><td><code>squared/font/face_error.cppm</code></td><td>Why opening or sizing failed</td></tr><tr><td><code>FontSet</code></td><td><code>squared/font/font_set.cppm</code></td><td>The faces a terminal draws with: the primary, its bold, fallbacks for what it lacks</td></tr><tr><td><code>GlyphAtlas</code></td><td><code>squared/font/glyph_atlas.cppm</code></td><td>Glyphs rendered once into one coverage image, for one texture</td></tr><tr><td><code>AtlasGlyph</code></td><td><code>squared/font/atlas_glyph.cppm</code></td><td>Where a glyph is in the atlas, and how it sits on the baseline</td></tr></tbody></table></div>
+<h2 id="the-shortest-use">The shortest use</h2>
+<pre><code class="lang-cpp">sq::font::Face face;
+if( const auto error = face.open_file( &quot;fonts/JetBrainsMono-Regular.ttf&quot; ) ) {
+    report( error.what() );
+}
+(void)face.set_pixel_size( 32 );
+const sq::font::FontMetrics cell = face.metrics();     // 19 x 43 for JetBrains Mono at 32
+if( const auto glyph = face.render( U&#x27;A&#x27; ) ) {
+    for( std::uint16_t y = 0; y &lt; glyph-&gt;height; ++y ) {
+        copy_row( glyph-&gt;row( y ), glyph-&gt;left, cell.ascender - glyph-&gt;top + y );
+    }
+}</code></pre>
+<h2 id="face">Face</h2>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>open_file(path, index)</code></td><td>opens face <code>index</code> (0 for a .ttf or .otf; a .ttc holds several) of the file at <code>path</code></td></tr><tr><td><code>open_memory(file, index)</code></td><td>the same from the file's bytes, which are not copied: they must outlive the face (an asset mapped from the APK)</td></tr><tr><td><code>set_pixel_size(pixels)</code></td><td>glyphs <code>pixels</code> high (the em: about a line's height); the metrics follow</td></tr><tr><td><code>metrics()</code></td><td><code>FontMetrics</code> at that size (all zero before a size is set)</td></tr><tr><td><code>family()</code>, <code>bold()</code>, <code>italic()</code></td><td>the family name; whether this face is its family's bold or italic</td></tr><tr><td><code>has_glyph(code)</code></td><td>it has a glyph for <code>code</code>; if not, a fallback face draws it</td></tr><tr><td><code>render(code, style)</code></td><td><code>code</code> rendered as <code>GlyphBitmap</code>; <code>style.bold</code> emboldens a face that is not bold, <code>style.italic</code> slants one that is not italic. Nothing when the face lacks the character, no size is set, or the glyph is not 8-bit coverage (a colour emoji). Valid until the next <code>render</code> on the face</td></tr></tbody></table></div>
+<p>Opening again closes what was open. Moved, not copied. One thread at a time uses a face; faces on different threads are independent.</p>
+<p>Failure modes (<code>FaceError::code</code>, with FreeType's own error in <code>freetype_error</code>): <code>library</code> (FreeType could not start: out of memory), <code>open</code> (missing, or not a font FreeType reads), <code>no_such_face</code> (no face of that index), <code>size</code> (0, or a size a bitmap-only font lacks), <code>not_open</code>, <code>set_full</code> (a <code>FontSet</code> already holds <code>max_faces</code>).</p>
+<h2 id="fontset">FontSet</h2>
+<pre><code class="lang-cpp">sq::font::FontSet fonts;
+(void)fonts.add( std::move( regular ) );          // the primary: its cell is the grid&#x27;s
+(void)fonts.set_bold( std::move( bold ) );
+fonts.add_system_fallbacks();                     // Noto CJK and symbols, where they are
+(void)fonts.set_pixel_size( 32 );</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>add(face)</code></td><td>a regular face (opened), after those before; the first is the primary. Sized to the set's size if one is set</td></tr><tr><td><code>set_bold(face)</code></td><td>the primary's bold face</td></tr><tr><td><code>add_system_fallbacks()</code></td><td>opens and adds each of <code>system_fallback_paths()</code> that exists here, in order, until the set is full; returns how many</td></tr><tr><td><code>set_pixel_size(pixels)</code></td><td>every face at <code>pixels</code>; <code>metrics()</code> is the primary's</td></tr><tr><td><code>choose(code, bold)</code></td><td>which face draws <code>code</code>: for bold the bold face when it has it, else the first face that does; nothing when none has it</td></tr><tr><td><code>render(code, style, chosen)</code></td><td><code>code</code> rendered by that face, <code>style</code> made where the face lacks it; <code>chosen</code> (optional) says which</td></tr><tr><td><code>size()</code>, <code>has_bold()</code>, <code>max_faces</code> (8)</td><td>faces held</td></tr></tbody></table></div>
+<p><code>system_fallback_paths()</code>, in order: Android's Noto Sans CJK and Noto Sans SC, the Droid Sans Fallback fonts of Android 6 and before (the 5.1 tablet's), Noto Sans Symbols; then a Debian desktop's Noto Sans CJK and DejaVu. A wide character drawn by a fallback is about an em wide, less than its two cells: centre it in them.</p>
+<h2 id="glyphatlas">GlyphAtlas</h2>
+<pre><code class="lang-cpp">sq::font::GlyphAtlas atlas;                       // 1024 x 1024, 2,048 glyphs
+const auto g = atlas.glyph( fonts, U&#x27;A&#x27;, { .bold = cell.attributes.bold } );
+if( g ) { quad( g-&gt;x, g-&gt;y, g-&gt;width, g-&gt;height, pen_x + g-&gt;left, baseline - g-&gt;top ); }
+if( !atlas.dirty().empty() ) {
+    texture.update( atlas.pixels(), atlas.dirty() );   // the changed rectangle only
+    atlas.clear_dirty();
+}</code></pre>
+<div class="tablewrap"><table><thead><tr><th>Call</th><th>Does</th></tr></thead><tbody><tr><td><code>GlyphAtlas(width, height, capacity)</code></td><td>an empty image (1024 x 1024 bytes) and room for <code>capacity</code> glyphs (2,048)</td></tr><tr><td><code>glyph(fonts, code, style)</code></td><td>where <code>code</code> in <code>style</code> is: rendered by <code>fonts</code> the first time, found after that; nothing when no face has it (remembered, so asking again costs a lookup)</td></tr><tr><td><code>pixels()</code>, <code>width()</code>, <code>height()</code></td><td>the coverage image, row by row</td></tr><tr><td><code>dirty()</code>, <code>clear_dirty()</code></td><td>the rectangle changed since the last <code>clear_dirty</code> (all of it at first): upload it</td></tr><tr><td><code>generation()</code></td><td>moves on whenever the atlas starts again (full, at capacity, or <code>clear</code>): every place taken before is gone</td></tr><tr><td><code>clear()</code></td><td>everything forgotten: after <code>set_pixel_size</code></td></tr><tr><td><code>size()</code></td><td>glyphs held</td></tr></tbody></table></div>
+<p>Never allocates after construction. One thread at a time.</p>
+<h2 id="fontmetrics">FontMetrics</h2>
+<div class="tablewrap"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody><tr><td><code>cell_width</code></td><td>the face's advance: every cell of a monospace grid</td></tr><tr><td><code>cell_height</code></td><td>ascender to descender, or the face's line height if larger</td></tr><tr><td><code>ascender</code></td><td>the baseline, down from a cell's top</td></tr><tr><td><code>descender</code></td><td>how far below the baseline glyphs reach (negative)</td></tr><tr><td><code>underline_position</code>, <code>underline_thickness</code></td><td>the underline's top below the baseline, and its thickness</td></tr></tbody></table></div>
+<h2 id="glyphbitmap">GlyphBitmap</h2>
+<p><code>coverage</code> is <code>height</code> rows of <code>pitch</code> bytes (<code>row(y)</code> gives row <code>y</code>, <code>width</code> bytes, from the top), 0 for none to 255 for full. The bitmap's top left goes <code>left</code> right of the pen and <code>top</code> above the baseline; the pen then moves <code>advance</code>. A space has an advance and no pixels.</p>
+<h2 id="licence">Licence</h2>
+<p>FreeType's licence (the FTL) asks that a program using it says so in its documentation: "Portions of this software are copyright © The FreeType Project (https://freetype.org). All rights reserved." An app that links <code>sq.font</code> carries that line in its own documentation or about screen.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

@@ -16,6 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
 import projects  # noqa: E402
+import docs  # noqa: E402
 
 E = html.escape
 
@@ -35,8 +36,11 @@ def layout(title, body, depth=0, description=""):
 <header class="top"><div class="top-inner">
   <a class="brand" href="{up}index.html">squared-netizen</a>
   <nav><a href="{up}index.html">Main page</a><a href="{up}index.html#projects">Projects</a>
+  <a href="{up}docs/index.html">Docs</a>
   <a href="{up}tracker.html">Sprint tracker</a>
   <a href="https://github.com/{projects.OWNER}">GitHub</a></nav>
+  <form class="search" action="{up}docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main>{body}</main>
 <footer class="foot">Last updated {datetime.date.today().isoformat()}. Written from each
@@ -200,6 +204,8 @@ def main():
         with open(os.path.join(ROOT, "projects", p["id"] + ".html"), "w") as f:
             f.write(project_page(p))
     print(f"index.html and {len(projects.PROJECTS)} project pages written")
+    written, repos = docs.build(ROOT, projects.OWNER, layout)
+    print(f"docs: {written} pages from {', '.join(repos) or 'no checkout here (SQ_REPOS)'}")
 
 
 if __name__ == "__main__":

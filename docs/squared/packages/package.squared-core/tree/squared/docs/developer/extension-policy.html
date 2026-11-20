@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Extension policy · squared</title>
+<meta name="description" content="squared: Extension policy">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/extension-policy.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/extension-policy.md">on GitHub</a></p><h1 id="extension-policy">Extension policy</h1>
+<h2 id="the-rule">The rule</h2>
+<p>Do not add a virtual, a plugin point, a registry, a template parameter, or a callback hook until a second concrete use exists.</p>
+<p>That is priority 4 from the project's priority order, and priority 4 is last for a reason: every speculative extension point spends priority 1's budget. A vtable pointer is 8 bytes on every instance. A <code>std::function</code> hook is 32 bytes plus a possible allocation plus an indirect call. A registry is a container that has to live somewhere and be accounted for. All three are paid by every user of the type, including the ones who never extend it.</p>
+<h2 id="why-squared-can-hold-that-line-harder-than-most-libraries">Why squared can hold that line harder than most libraries</h2>
+<p>In a normal linked library, refusing extension points is a gamble. If you guess wrong, the user is stuck: they cannot reach the code, so they fork the project, wrap it in something awkward, or give up. That fear is why most libraries end up with more abstraction than they need.</p>
+<p>squared vendors. <code>squared-core</code> is installed into the project tree, and the user owns the source. When they need behaviour the API does not expose, they open the file and change it.</p>
+<p><b>So the failure mode that makes other libraries over-engineer does not exist here.</b> The escape hatch is the source itself, and it is always open. That is not a fallback for when the design is wrong; it is the design.</p>
+<p>The practical consequence: when you are weighing whether to add an extension point "just in case", the answer here is no more often than it would be elsewhere, and you can say no with more confidence.</p>
+<h2 id="the-test">The test</h2>
+<p>Add the extension point when one of these is true:</p>
+<ul><li><b>A second concrete implementation exists in the tree.</b> Not is planned, not is likely. Exists.</li><li><b>The porting layer needs it.</b> Platform boundaries are the one place where a second use is guaranteed by the architecture, so <code>Painter</code>, <code>application::Application</code> and <code>TextInputService</code> are interfaces on purpose.</li><li><b>It has to vary per instance at runtime.</b> Editing the source changes the behaviour of every instance. If two live objects in the same program need to behave differently, source editing cannot express that and a real extension point is required. <code>Drawable</code> qualifies: one skin holds a colour fill and a nine-patch at the same time.</li></ul>
+<p>Reasons that are not sufficient:</p>
+<ul><li>"Someone might want to." They can edit the file.</li><li>"For testing." Vendored source is testable by editing it, and the test build can compile a different file.</li><li>"For symmetry with the other subsystem." Symmetry is not a use.</li><li>"It is only one virtual." It is one virtual per type, forever, on every instance, and it has to be documented and kept working.</li></ul>
+<h2 id="what-to-do-instead">What to do instead</h2>
+<div class="tablewrap"><table><thead><tr><th>Instead of</th><th>Prefer</th></tr></thead><tbody><tr><td>an interface with one implementation</td><td>the concrete type</td></tr><tr><td>a strategy hierarchy over a closed set</td><td>a tagged union, or an enum plus a switch</td></tr><tr><td>a subclass to vary one behaviour</td><td>a parameter</td></tr><tr><td>a factory</td><td>a constructor, or a free function</td></tr><tr><td>a registry of handlers</td><td>an explicit call at the one site that needs it</td></tr><tr><td>a hook "for later"</td><td>a line in this document saying where to edit</td></tr></tbody></table></div>
+<p>That last row is the one people forget. If a subsystem is expected to be modified, <b>say so in its developer page and say which file</b> — a documented edit point costs zero bytes and is more discoverable than a hook nobody knew about.</p>
+<h2 id="what-this-policy-obliges-in-return">What this policy obliges in return</h2>
+<p>Making source editing the extension mechanism is only honest if the source can actually be edited. Three obligations follow, and they are not optional:</p>
+<p><b>The source has to be readable.</b> This is why one type per file and self-contained headers matter more here than they would in a linked library. A user who needs to change how <code>ScrollPane</code> clamps its scroll offset should open <code>scroll_pane.cpp</code>, find 53 lines, and understand all of them. Before the split that same change meant reading a 3,281-line file to find out whether anything else depended on what they were touching. See <a href="file-layout.html">file-layout.md</a>.</p>
+<p><b>Internals have to be documented, not just the public API.</b> Someone editing a file needs the invariants it maintains, not a description of what its functions return. That is what this developer tree is for, and it is why every subsystem page states what the subsystem allocates and what it assumes.</p>
+<p><b>Files a user may edit must be marked <code>shared</code> in the package manifest</b>, so that updating <code>squared-core</code> reports a conflict instead of silently reverting their work. A vendored file that is marked <code>generated</code> is not editable in practice, whatever this document says.</p>
+<h2 id="where-the-line-has-held">Where the line has held</h2>
+<p>Worth recording, because these are the decisions this policy is meant to protect:</p>
+<ul><li><b>No Service Locator.</b> <code>Ui</code> receives its <code>TextInputService</code> explicitly; every subsystem takes its dependencies as parameters. See <a href="design-patterns.html">design-patterns.md</a>.</li><li><b>ECS is not the mandatory public model.</b> It is available as a storage strategy for simulation work and nothing is built on top of it.</li><li><b>No Abstract Factory anywhere.</b> <code>Widget::TooltipFactory</code> is a plain callback, not a hierarchy.</li><li><b><code>actor_cast</code> publishes one identifier per layer</b> rather than a type registry. It was added when the second concrete use existed — <code>Group</code> and <code>gui::Widget</code> — and not before.</li></ul>
+<h2 id="where-it-did-not-and-what-that-cost">Where it did not, and what that cost</h2>
+<p><code>Drawable</code> is a three-kind hierarchy behind a <code>shared_ptr</code>. It passes the per-instance test above, so an extension point is genuinely warranted — but the set is closed and known, and a tagged union would have carried the same three kinds in 400 bytes with no vtable, no control block, and no atomic refcount per copy. The interface was the reflex rather than the decision.</p>
+<p>The lesson is narrower than "do not use interfaces": when the test says you need runtime variation, ask next whether the set of kinds is open or closed. A closed set does not need virtual dispatch.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

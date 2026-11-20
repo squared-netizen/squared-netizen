@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Authoring a kit · squared-pg</title>
+<meta name="description" content="squared-pg: Authoring a kit">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/programmer/resources/kits.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/programmer/resources/kits.md">on GitHub</a></p><h1 id="authoring-a-kit">Authoring a kit</h1>
+<p>A kit is a <b>bridge</b>. It connects Squared to an external framework, middleware system or platform:</p>
+<pre><code class="lang-text">Squared Application → Squared Framework → Kit → External Framework → Platform</code></pre>
+<p>A kit does <b>not</b> define project structure — that is the template's job — and must not assume it owns the workspace.</p>
+<h2 id="layout">Layout</h2>
+<pre><code class="lang-text">resources/kits/kit.mine/
+├── SQ-INF/manifest.json
+└── tree/
+    ├── sq_kit/include/squared/kit/mine.hpp
+    └── mk/kit_mine.mk</code></pre>
+<p>Contribute under paths the template's integration areas cover, and name your build fragment <code>kit_&lt;name&gt;.mk</code> so the template's wildcard include finds it.</p>
+<h2 id="kit-body">Kit body</h2>
+<pre><code class="lang-json">&quot;kit&quot;: {
+  &quot;external&quot;: {
+    &quot;id&quot;: &quot;sdl3&quot;,
+    &quot;version&quot;: &quot;&gt;=3.0.0&quot;,
+    &quot;acquisition&quot;: &quot;system&quot;
+  },
+
+  &quot;provides&quot;: [&quot;graphics&quot;, &quot;input&quot;],
+  &quot;platforms&quot;: [&quot;termux&quot;, &quot;linux&quot;],
+  &quot;compatible_templates&quot;: [&quot;template.terminal.cpp&quot;],
+
+  &quot;requires&quot;: {
+    &quot;framework&quot;: &quot;&gt;=1.0.0 &lt;2.0.0&quot;,
+    &quot;packages&quot;: [],
+    &quot;kits&quot;: []
+  },
+
+  &quot;integration_areas&quot;: [&quot;app.include&quot;, &quot;build.make.fragments&quot;],
+  &quot;conflicts_with&quot;: [&quot;kit.sfml&quot;],
+
+  &quot;ownership&quot;: {
+    &quot;generated&quot;: [&quot;sq_kit/**&quot;, &quot;mk/kit_mine.mk&quot;],
+    &quot;user&quot;: [&quot;sq_workspace/**&quot;]
+  }
+}</code></pre>
+<h2 id="acquisition">Acquisition</h2>
+<div class="tablewrap"><table><thead><tr><th>Value</th><th>Meaning</th></tr></thead><tbody><tr><td><code>package</code></td><td>supplied by a generator package, offline</td></tr><tr><td><code>system</code></td><td>expected on the build host</td></tr><tr><td><code>vendored</code></td><td>the kit ships it into the generated project</td></tr></tbody></table></div>
+<p><b>Generation never requires network access, whichever you choose.</b> A <code>system</code> kit may require host software at <i>build</i> time, and if it does, its build fragment should detect it and fail informatively rather than cryptically — <code>kit.lua</code>'s <code>mk/kit_lua.mk</code> is the worked example: it probes pkg-config, falls back, and still lets the project build when nothing is found.</p>
+<h2 id="ownership">Ownership</h2>
+<p>Your <code>generated</code> paths are yours to rewrite. Anything you seed for the user — a script workspace, a config file — should be <code>user</code>, and the generator will never touch it again.</p>
+<p><b>Never overwrite a user-authored file just because your kit originally put a file at that path.</b></p>
+<h2 id="compatibility">Compatibility</h2>
+<p>Declare <code>compatible_templates</code>, <code>platforms</code> and <code>requires.framework</code>. All three are checked at resolution, before any mutation, so a mismatch is reported while the workspace still does not exist.</p>
+<p><code>conflicts_with</code> is honoured even when no integration area collides.</p>
+<h2 id="two-kits-one-file">Two kits, one file</h2>
+<p>Two resources contributing the same workspace path is a conflict (<code>kit.integration_point.conflict</code>), detected during cross-validation. Give your files distinct names — this is why the build-fragment convention is <code>kit_&lt;name&gt;.mk</code>.</p>
+<h2 id="header-only-is-a-gift">Header-only is a gift</h2>
+<p><code>kit.terminal</code> adds one include path and nothing else, so a workspace using only it builds on a bare Termux with a compiler and make. If your kit can be header-only, make it header-only.</p>
+<h2 id="checklist">Checklist</h2>
+<ul><li>&#9744; <code>id</code> begins with <code>kit.</code></li><li>&#9744; <code>compatible_templates</code> names every template you support</li><li>&#9744; <code>integration_areas</code> lists everything you write, and the template declares them all</li><li>&#9744; <code>acquisition</code> is accurate, and a <code>system</code> kit's build fragment detects and reports</li><li>&#9744; contributed paths are namespaced so two kits cannot collide</li><li>&#9744; ownership marks user-facing seeds as <code>user</code></li><li>&#9744; the generated project builds both with and without your kit</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

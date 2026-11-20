@@ -107,3 +107,18 @@ sup.ref { font-size: .72em; line-height: 0; }
   .article { padding: 12px; }
   h1 { font-size: 1.6rem; }
 }
+
+/* The search box, the docs (tools/docs.py) and search results (assets/search.js). */
+form.search { margin-left: auto; }
+form.search input { font: inherit; padding: 4px 8px; border: 1px solid var(--rule); border-radius: 4px;
+  background: var(--page); color: inherit; width: 14em; max-width: 40vw; }
+article.doc { max-width: 52em; overflow-wrap: anywhere; }
+article.doc pre { overflow-x: auto; padding: 10px; background: var(--soft); border-radius: 4px; }
+article.doc .tablewrap { overflow-x: auto; }
+article.doc table { border-collapse: collapse; margin: 1em 0; }
+article.doc th, article.doc td { border: 1px solid var(--rule); padding: 4px 8px; text-align: left; vertical-align: top; }
+article.doc blockquote { margin: 1em 0; padding-left: 1em; border-left: 3px solid var(--rule); }
+.crumbs { font-size: .9em; color: var(--muted); }
+.path { font-size: .85em; color: var(--muted); }
+ol.hits li { margin-bottom: .8em; }
+ol.hits .snip { font-size: .9em; color: var(--muted); }

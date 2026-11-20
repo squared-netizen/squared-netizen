@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>2.10 Assets and generator resources · squared-pg</title>
+<meta name="description" content="squared-pg: 2.10 Assets and generator resources">
+<link rel="stylesheet" href="../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../index.html">Main page</a><a href="../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../index.html">Docs</a> · <a href="../../../index.html">squared-pg</a> · <code>docs/spec/02 Generator architecture/2.10 Assets and generator resources.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/spec/02 Generator architecture/2.10 Assets and generator resources.md">on GitHub</a></p><hr>
+<p>section: "2.10" title: Assets and generator resources status: review tags: [spec, architecture, resources, assets]</p>
+<hr>
+<h1 id="210-assets-and-generator-resources">2.10 Assets and generator resources</h1>
+<blockquote><p>[!info] Navigation Index: [[Specification Index]] · Parent: [[2 Generator architecture]] Prev: [[2.9 Kits]] · Next: [[2.11 Packages]]</p></blockquote>
+<blockquote><p>[!abstract] Scope Defines <b>what an asset is</b> and how generator resources are stored and discovered. How assets are materialized is [[2.7 Project generation model]] §2.7.7.</p></blockquote>
+<h2 id="purpose">Purpose</h2>
+<p>Defines the asset resource and the storage, namespacing, and discovery rules for all generator-owned resources.</p>
+<h2 id="outline">Outline</h2>
+<ul><li>&#9745; resource storage namespaces</li><li>&#9745; generator-internal resources</li><li>&#9745; asset manifest block</li><li>&#9745; asset type vocabulary</li><li>&#9745; transformation declaration</li><li>&#9745; platform placement</li><li>&#9745; integrity</li><li>&#9745; ownership</li><li>&#9745; validation</li></ul>
+<h2 id="content">Content</h2>
+<h3 id="2101-resource-storage">2.10.1 Resource storage</h3>
+<p>Generator resources live under <code>resources/</code> ([[1.5 Resources]]):</p>
+<pre><code class="lang-text">resources/assets/      application assets for generated projects
+resources/generator/   resources squared-pg consumes for itself
+resources/kits/
+resources/packages/
+resources/templates/</code></pre>
+<blockquote><p>[!note] Resolution of Q-18 (D-018) The earlier draft defined a "generator assets" category with no home. <code>resources/generator/</code> is that home. Resources under it are <b>generator-owned and MUST NOT be materialized into a generated project</b>. <code>resources/assets/</code> remains project-bound only.</p></blockquote>
+<p><code>resources/assets/</code> is an Android-style application asset tree, per the project vision: it holds the default application assets materialized into generated projects, including the default Android assets.</p>
+<p>Physical layout beneath any namespace is a maintainer convenience and MUST NOT be part of a contract. Every resource is addressed by identity.</p>
+<h3 id="2102-asset-categories">2.10.2 Asset categories</h3>
+<div class="tablewrap"><table><thead><tr><th>Category</th><th>Provided by</th><th>Ends up</th><th>Owned after generation by</th></tr></thead><tbody><tr><td>Generator</td><td><code>resources/generator/</code></td><td>never in a project</td><td>generator</td></tr><tr><td>Framework</td><td>packages</td><td>project</td><td>project</td></tr><tr><td>Kit</td><td>kits</td><td>project</td><td>project</td></tr><tr><td>Application</td><td><code>resources/assets/</code></td><td>project</td><td>user</td></tr></tbody></table></div>
+<p>The generated project MUST distinguish these. A generator-owned resource MUST NOT silently become a user-editable application asset.</p>
+<h3 id="2103-asset-manifest-block">2.10.3 Asset manifest block</h3>
+<pre><code class="lang-json">&quot;asset&quot;: {
+  &quot;asset_type&quot;: &quot;texture&quot;,
+  &quot;format&quot;: &quot;png&quot;,
+
+  &quot;source&quot;: &quot;player.png&quot;,
+
+  &quot;target&quot;: {
+    &quot;android&quot;: &quot;assets/textures/player.png&quot;,
+    &quot;desktop&quot;: &quot;resources/textures/player.png&quot;
+  },
+
+  &quot;transform&quot;: {
+    &quot;android&quot;: &quot;texture.compress.etc2&quot;,
+    &quot;desktop&quot;: &quot;copy&quot;
+  },
+
+  &quot;requires_packages&quot;: [&quot;package.squared.graphics&quot;],
+
+  &quot;class&quot;: &quot;seeded&quot;,
+
+  &quot;integrity&quot;: {
+    &quot;algorithm&quot;: &quot;sha256&quot;,
+    &quot;value&quot;: &quot;…&quot;
+  }
+}</code></pre>
+<h3 id="2104-asset-type-vocabulary">2.10.4 Asset type vocabulary</h3>
+<p><code>asset_type</code> is drawn from a closed vocabulary so the engine can validate and route without interpreting file contents:</p>
+<pre><code class="lang-text">texture   audio   font   shader   model
+data      locale  script  binary</code></pre>
+<p><code>binary</code> is the escape hatch: an opaque payload copied without interpretation. It MUST NOT be used to smuggle a type that has a proper vocabulary entry.</p>
+<h3 id="2105-transformation">2.10.5 Transformation</h3>
+<p>A transformation is an engine capability token ([[2.14 Extensibility model]]). The manifest names a transformation per platform; <code>copy</code> is the identity transformation.</p>
+<pre><code class="lang-text">source asset -&gt; transform -&gt; platform resource</code></pre>
+<p>Transformations MUST be deterministic: identical source, settings, and engine version MUST produce equivalent output, and SHOULD produce byte-identical output where the transformation is not timestamp- or ordering-sensitive.</p>
+<p>A transformation whose capability is unavailable MUST fail at <b>resolution</b>, never at materialization — the workflow must learn it cannot proceed before anything is written.</p>
+<p><i>Pattern: Strategy, keyed by asset type and target platform.</i></p>
+<h3 id="2106-platform-placement">2.10.6 Platform placement</h3>
+<p><code>target</code> maps platform to workspace-relative destination. The template and applied kits determine which platforms are active; the Asset Service MUST NOT assume a universal layout.</p>
+<p>An asset with no <code>target</code> entry for an active platform is skipped, and the skip MUST be reported as a diagnostic rather than passing silently.</p>
+<h3 id="2107-integrity">2.10.7 Integrity</h3>
+<p>Assets SHOULD declare an <code>integrity</code> digest. Where declared, the Resource Service MUST verify it before the asset enters generation, and MUST fail with <code>asset.integrity</code> on mismatch.</p>
+<p>This is what makes an offline resource tree trustworthy after being copied, archived, or restored.</p>
+<h3 id="2108-ownership">2.10.8 Ownership</h3>
+<p>During generation the engine owns resolved asset state, transformation state, temporary files, and staging resources. After finalization the project owns materialized application assets.</p>
+<p>Materialized asset paths carry an ownership class exactly as template paths do. Application assets are <code>seeded</code> by default: the generator seeds them once and the user owns them thereafter.</p>
+<h3 id="2109-validation">2.10.9 Validation</h3>
+<p>Assets MUST be validated for envelope correctness, identity and version syntax, asset type validity, source availability, integrity where declared, transformation availability, target declarations for active platforms, and package requirements.</p>
+<p>Invalid assets MUST NOT silently enter the pipeline.</p>
+<h2 id="related">Related</h2>
+<ul><li>[[1.5 Resources]] · [[2.7 Project generation model]] · [[2.11 Packages]] · [[2.8 Templates]] · [[2.14 Extensibility model]]</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

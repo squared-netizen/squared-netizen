@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqmake: draft specification · sqmake</title>
+<meta name="description" content="sqmake: sqmake: draft specification">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqmake</a> · <code>docs/spec.md</code> · <a href="https://github.com/squared-netizen/sqmake/blob/main/docs/spec.md">on GitHub</a></p><h1 id="sqmake-draft-specification">sqmake: draft specification</h1>
+<p><b>Status: draft 0.1, 2026-11-19.</b> Nothing here is built yet. What this specification decides is marked as decided; what it only proposes is marked as proposed, and the open questions are listed at the end. It grows from the research note "sqpg Build System: Research and Recommendations" (2026-11-16) and the SDK's plan for one C++23 toolchain (2026-11-19).</p>
+<h2 id="1-what-sqmake-is">1. What sqmake is</h2>
+<p>sqmake is the squared SDK's build system. It builds an application from a workspace: it knows how to build, not what a workspace is. sqpg creates a workspace, square manages it, and sqmake builds it; sqmake asks square what to build (<code>square build-inputs</code>) and knows nothing else about workspaces.</p>
+<p>It keeps make's model (targets, prerequisites, a target rebuilt when what it is made from changes) and drops make's syntax. It runs the build itself: it never writes make, CMake or Ninja files for another tool to run.</p>
+<h3 id="11-requirements-decided">1.1 Requirements (decided)</h3>
+<ul><li><b>Small and self-contained.</b> One binary with a library behind it; no JVM, no Python, no daemon. It runs on the phone, in sqterm, as well as on a desktop or CI.</li><li><b>Offline.</b> A build makes no network request and downloads nothing.</li><li><b>Programmable.</b> Lua 5.4 describes builds; other programs use sqmake as a library (<code>libsqmake</code>).</li><li><b>Explainable.</b> <code>sqmake build --explain</code> prints the whole resolved graph and every command it would run. Nothing sqmake infers is hidden.</li><li><b>A strong reason for every concept make does not have.</b></li></ul>
+<h3 id="12-where-its-ideas-come-from">1.2 Where its ideas come from</h3>
+<div class="tablewrap"><table><thead><tr><th>Idea</th><th>From</th><th>In sqmake</th></tr></thead><tbody><tr><td>The engine</td><td>Ninja</td><td>A graph run in-process, with command hashes and compiler-written header dependencies</td></tr><tr><td>The front door</td><td>Cargo</td><td>Conventions and a short declarative description: most projects need almost no build code</td></tr><tr><td>The escape hatch</td><td>Cargo's <code>build.rs</code>, Zig's <code>build.zig</code></td><td>Real code, in Lua, for what conventions miss; no second language</td></tr><tr><td>Usage requirements</td><td>CMake</td><td>A library declares what its users need (include paths, flags, modules), and linking it applies them</td></tr></tbody></table></div>
+<h2 id="2-the-model">2. The model</h2>
+<h3 id="21-targets-rules-and-commands-decided">2.1 Targets, rules and commands (decided)</h3>
+<p>A <b>target</b> is a file sqmake makes. It has <b>inputs</b> (files, and other targets) and one <b>command</b> that makes it from them. A <b>rule</b> is a Lua function that, given inputs and an output, returns a command. A <b>command</b> is an argument list: a program and its arguments, run without a shell, so there is no quoting and no shell syntax.</p>
+<h3 id="22-when-a-target-is-out-of-date-decided">2.2 When a target is out of date (decided)</h3>
+<p>A target is rebuilt when any of these holds:</p>
+<ol><li>it does not exist, or an input is newer than it;</li><li>its command's hash differs from the last time it was built;</li><li>a header its compile read has changed (the compiler's dependency file, <code>-MMD -MF</code>, records which);</li><li>a module it imports has been rebuilt (§5);</li><li>the toolchain's fingerprint (§4.2) differs from the one it was built with. The fingerprint is part of every command's hash, so a new compiler or C++ library rebuilds what it compiled even when the command line reads the same.</li></ol>
+<p>What sqmake learns between builds (command hashes, dependency files read, fingerprints) lives in one small state file in the build folder.</p>
+<h2 id="3-describing-a-build">3. Describing a build</h2>
+<h3 id="31-a-conventional-project-proposed-syntax">3.1 A conventional project (proposed syntax)</h3>
+<p>Templates imply a layout, so a project following one names itself, its kind and what it depends on; sqmake infers its sources and outputs:</p>
+<pre><code class="lang-lua">project &quot;mygame&quot; {
+  template = &quot;terminal&quot;,
+  deps     = { &quot;squared&quot; },
+}</code></pre>
+<p>The C++ standard is not a project's choice: it is the toolchain's (§4.3).</p>
+<h3 id="32-the-escape-hatch-proposed-syntax">3.2 The escape hatch (proposed syntax)</h3>
+<p>When a convention does not fit, the same file defines rules and targets:</p>
+<pre><code class="lang-lua">local objs = map(glob &quot;src/*.cpp&quot;, rules.cxx)
+exe(&quot;mygame&quot;, objs)</code></pre>
+<p>Each of make's pain points has a plain replacement:</p>
+<div class="tablewrap"><table><thead><tr><th>make</th><th>sqmake</th></tr></thead><tbody><tr><td><code>$@</code>, <code>$&lt;</code>, <code>$^</code></td><td>named parameters: <code>out</code>, <code>ins</code></td></tr><tr><td>pattern and implicit rules</td><td>an explicit map from sources to objects</td></tr><tr><td><code>=</code>, <code>:=</code>, <code>?=</code></td><td>one assignment, evaluated when it runs</td></tr><tr><td>tabs and shell quoting</td><td>commands as argument lists, no shell</td></tr><tr><td><code>$(call ...)</code> and includes</td><td>ordinary functions, and <code>require</code></td></tr></tbody></table></div>
+<h3 id="33-usage-requirements-decided">3.3 Usage requirements (decided)</h3>
+<p>A library declares, as public or private, the include paths, flags, libraries and modules its users need. A target that links it gets the public ones, and passes on those it re-exports.</p>
+<h2 id="4-toolchains">4. Toolchains</h2>
+<h3 id="41-one-toolchain-defined-once-decided">4.1 One toolchain, defined once (decided)</h3>
+<p>A toolchain is explicit: sqmake never detects compilers. The SDK has one, for every C++ module it builds: <b>clang 23, libc++ 23 and bionic</b>, from sqterm's own <code>llvm</code>, <code>runtimes</code> and <code>sysroot</code> packages on the phone, and from apt.llvm.org's clang 23 with the same <code>sysroot</code> and <code>runtimes</code> on CI. It is defined once, in squared (<code>build/toolchain.mk</code>, and the same as <code>toolchain.sh</code> for scripts); sqmake reads that same definition, so squared's own build and sqmake can never disagree about it.</p>
+<p>The Android NDK serves only while the SDK moves to that toolchain (the plan "One C++23 toolchain"): until the <code>sysroot</code> package carries Android's own API headers and stub libraries.</p>
+<h3 id="42-the-fingerprint-decided">4.2 The fingerprint (decided)</h3>
+<p>Every toolchain has a <b>fingerprint</b>: a short hash of the compiler's version, the C++ library's version, the target triple and API level, and every flag that changes a compiled module (§4.3). It names the folder that holds compiled modules (§5.2), and it is part of every command's hash (§2.2).</p>
+<h3 id="43-flags-that-change-a-compiled-module-decided">4.3 Flags that change a compiled module (decided)</h3>
+<p>These belong to the toolchain, never to a target, and go on every compile and link alike: the C++ standard (<code>-std=c++23</code>), the C++ library (<code>-stdlib=libc++</code>), the runtime and unwind libraries (<code>-rtlib=compiler-rt</code>, <code>-unwindlib=libunwind</code>), threads (<code>-pthread</code>), bionic's ctype macro (<code>-D__BIONIC_CTYPE_INLINE=inline</code>) and the optimisation level. A target that asks for another value is refused with a plain message naming the flag, before clang's "module file was compiled with ..." can happen.</p>
+<p><code>-rtlib=compiler-rt</code> looks like a link flag, but it turns on target features (outline atomics, function multiversioning): given at the link alone, it made CI's clang refuse its own std module (sqterm #21, 2026-11-19).</p>
+<h2 id="5-c-modules">5. C++ modules</h2>
+<h3 id="51-order-decided">5.1 Order (decided)</h3>
+<p>Before it compiles, sqmake asks <code>clang-scan-deps</code> for each source's module dependencies (the P1689 format) and orders the compiles by them: a module's interface is compiled before what imports it. sqterm's <code>llvm</code> package ships <code>clang-scan-deps</code> with clang 23.</p>
+<h3 id="52-compiled-modules-decided">5.2 Compiled modules (decided)</h3>
+<p>A compiled module (a BMI, <code>.pcm</code>) is an output in the graph, like an object file, kept in <code>build/modules/&lt;fingerprint&gt;/</code>. A BMI made by another compiler or with other flags is never found there, rather than found and refused.</p>
+<h3 id="53-the-standard-library-module-decided">5.3 The standard library module (decided)</h3>
+<p><code>import std</code> is one node per fingerprint: built once from the C++ library's own <code>std.cppm</code> (the <code>runtimes</code> package's) and shared by every target that imports it.</p>
+<h3 id="54-libraries-written-as-modules-decided">5.4 Libraries written as modules (decided)</h3>
+<p>A library written as modules (sqcart, sqdrive) is vendored as sources and built by its consumer's toolchain. A compiled module never travels between repositories or machines.</p>
+<h2 id="6-running-a-build">6. Running a build</h2>
+<h3 id="61-stages-decided">6.1 Stages (decided)</h3>
+<ol><li><b>Load:</b> Lua evaluates the build file; it registers toolchains, rules and targets through sqmake's API.</li><li><b>Resolve:</b> conventions fill in sources and outputs; usage requirements flow along dependency edges.</li><li><b>Plan:</b> a directed acyclic graph of files and commands, module dependencies included (§5.1); a cycle is refused.</li><li><b>Check:</b> each node is marked out of date or not (§2.2).</li><li><b>Run:</b> out-of-date nodes whose inputs are ready run on a thread pool; progress is reported as they finish.</li></ol>
+<h3 id="62-what-it-is-built-from-decided">6.2 What it is built from (decided)</h3>
+<p>C++23 modules, <code>import std</code>. The standard library does the work it can: <code>std::filesystem</code> for paths and times, <code>std::jthread</code> and a queue for parallelism, <code>std::ranges</code> and <code>std::span</code> for the graph, <code>std::expected</code> for each step's result, <code>std::print</code> for output. Custom code is the graph, the dependency-file reader and the hash, and each is justified in the developer documentation.</p>
+<p>Design patterns: <b>Command</b> (each step: hashable, loggable, printable by <code>--explain</code>), <b>Strategy</b> (toolchains), <b>Observer</b> (progress and logs, apart from the scheduler), <b>Builder</b> (Lua's registration of targets and rules), <b>Factory</b> (<code>Context::create</code>).</p>
+<h2 id="7-the-library-and-the-command-line">7. The library and the command line</h2>
+<h3 id="71-packaging-decided">7.1 Packaging (decided)</h3>
+<ul><li><b><code>libsqmake</code></b>: the graph, the executor and the Lua bindings. It knows nothing of sqpg or square: they use it, never the reverse.</li><li><b><code>sqmake</code></b>: a thin command line over the library. A feature the command line needs and the library lacks is a gap in the library.</li><li><b>Interface:</b> C++23 modules. A small C interface over them can come later, if a tool in another language needs one.</li><li><b>One binary, later:</b> sqpg, sqmake and sqcart may share one binary that dispatches on its name (as busybox does). That is packaging, not design: each keeps its own <code>main()</code>.</li></ul>
+<h3 id="72-lua-state-decided">7.2 Lua state (decided)</h3>
+<p>sqmake works alone and embedded; the host decides who owns the Lua state:</p>
+<pre><code class="lang-cpp">auto ctx = sqmake::Context::create({});              // sqmake makes its own state
+auto ctx = sqmake::Context::create({.lua = {L}});    // the host passes one</code></pre>
+<ul><li><b>Alone</b> (the command line, an IDE): sqmake makes a state and closes it when the context goes.</li><li><b>Embedded</b> (sqpg): sqmake uses the host's state, never closes it, and puts its API in its own <code>sqmake</code> table.</li><li><b>Version:</b> <code>create()</code> refuses anything but Lua 5.4, as a <code>std::expected</code> error.</li><li><b>Sandbox:</b> a build file runs in its own environment table and reaches the host's globals only where the host allows it.</li></ul>
+<h2 id="8-not-sqmakes">8. Not sqmake's</h2>
+<ul><li><b>Code with its own build</b> (a library built with CMake, say) is a prebuilt artifact or one opaque step, never reimplemented.</li><li><b>Workspaces, templates and kits</b> are square's and sqpg's; sqmake is told what to build.</li></ul>
+<h2 id="9-risks">9. Risks</h2>
+<ul><li><b>Growing into CMake.</b> Every concept needs a strong reason (§1.1).</li><li><b>Inference hiding behaviour.</b> <code>--explain</code> always shows the resolved graph.</li><li><b>Dependency files.</b> Incremental builds rely on reading clang's (and GCC's) dependency files exactly.</li><li><b>Full Lua permits unreadable build files.</b> Whether to narrow the API, as Meson narrows its language, is open.</li></ul>
+<h2 id="10-open-questions">10. Open questions</h2>
+<ul><li>&#9744; Does sqmake also build squared and the kits, or only a workspace?</li><li>&#9744; How much comes from the template, and how much is declared?</li><li>&#9744; Do new projects keep plain make until sqmake exists?</li><li>&#9744; Which Lua API is stable for other tools?</li><li>&#9744; The build file's name (<code>build.lua</code> is proposed).</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

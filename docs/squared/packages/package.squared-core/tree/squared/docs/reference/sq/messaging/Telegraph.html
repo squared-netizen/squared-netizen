@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>class Telegraph · squared</title>
+<meta name="description" content="squared: class Telegraph">
+<link rel="stylesheet" href="../../../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../../../index.html">Main page</a><a href="../../../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../../../index.html">Docs</a> · <a href="../../../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/reference/sq/messaging/Telegraph.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/reference/sq/messaging/Telegraph.md">on GitHub</a></p><h1 id="class-telegraph">class Telegraph</h1>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L106">messaging/telegraph.cppm:106</a></i></p>
+<p><b>brief</b> The model's end of the Telegraph: what a model sees, on its thread.</p>
+<p>It sends <code>state</code> and <code>event</code> by key, declares virtualized lists, and runs the model's side of a turn (<code>deliver</code>): lifecycle signals, held-back states, then every telegram from the UI. A sending mistake (a wrong type, a verb the key does not carry, a missing or extra uid) does not compile.</p>
+<h2 id="functions">Functions</h2>
+<h3 id="telegraph">Telegraph</h3>
+<p><i>public void Telegraph(Telegraph &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L111">messaging/telegraph.cppm:111</a></i></p>
+<h3 id="telegraph">Telegraph</h3>
+<p><i>public void Telegraph(const Telegraph &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L109">messaging/telegraph.cppm:109</a></i></p>
+<h3 id="answer">answer</h3>
+<p><i>public SendResult answer(const Received &amp; request, const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L175">messaging/telegraph.cppm:175</a></i></p>
+<p><b>brief</b> <code>event &lt;key&gt;</code> answering <code>request</code> (a <code>do</code>): it carries the request's correlation.</p>
+<h3 id="answer">answer</h3>
+<p><i>public SendResult answer(const Received &amp; request, const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L184">messaging/telegraph.cppm:184</a></i></p>
+<p><b>brief</b> <code>event &lt;key&gt; &lt;value&gt;</code> answering <code>request</code>.</p>
+<h3 id="changed">changed</h3>
+<p><i>public void changed(const K &amp; rows)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L208">messaging/telegraph.cppm:208</a></i></p>
+<p><b>brief</b> The list's rows changed (a sort, an insert, a removal): what changed on screen is sent.</p>
+<h3 id="changed">changed</h3>
+<p><i>public void changed(const K &amp; rows, std::uint32_t uid)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L216">messaging/telegraph.cppm:216</a></i></p>
+<p><b>brief</b> One item's fields changed: published again if it is on screen.</p>
+<h3 id="deliver">deliver</h3>
+<p><i>public std::uint32_t deliver(M &amp; model)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L688">messaging/telegraph.cppm:688</a></i></p>
+<p><b>brief</b> One turn of the model's side: the lifecycle signals (low memory first; background and foreground in the order that ends where the app is now; quit last, after a save), then the held-back states, then each telegram from the UI: a list's <code>view</code> to its list, everything else to <code>model.receive(*this, telegram)</code>. The telegrams handled.</p>
+<h3 id="event">event</h3>
+<p><i>public SendResult event(const K &amp; key)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L147">messaging/telegraph.cppm:147</a></i></p>
+<p><b>brief</b> <code>event &lt;key&gt;</code>, for a key with no value. Never held back: with no room, the model's thread waits up to <code>TELEGRAPH_WAIT_MS</code>, then <code>full</code>.</p>
+<h3 id="event">event</h3>
+<p><i>public SendResult event(const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L155">messaging/telegraph.cppm:155</a></i></p>
+<p><b>brief</b> <code>event &lt;key&gt; &lt;value&gt;</code>.</p>
+<h3 id="event">event</h3>
+<p><i>public SendResult event(const K &amp; key, std::uint32_t uid, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L165">messaging/telegraph.cppm:165</a></i></p>
+<p><b>brief</b> <code>event &lt;key&gt;[uid] &lt;value&gt;</code>, for a key that takes a uid.</p>
+<h3 id="list">list</h3>
+<p><i>public bool list(const K &amp; rows, S &amp; source)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L200">messaging/telegraph.cppm:200</a></i></p>
+<p><b>brief</b> A virtualized list: <code>rows</code> (a key taking a uid: the row) and where its rows come from. Its count is sent at once. False when <code>TELEGRAPH_LISTS</code> lists exist already, or this one does.</p>
+<h3 id="operator">operator=</h3>
+<p><i>public Telegraph &amp; operator=(Telegraph &amp;&amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L112">messaging/telegraph.cppm:112</a></i></p>
+<h3 id="operator">operator=</h3>
+<p><i>public Telegraph &amp; operator=(const Telegraph &amp; )</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L110">messaging/telegraph.cppm:110</a></i></p>
+<h3 id="pending">pending</h3>
+<p><i>public std::uint32_t pending()</i></p>
+<p><b>brief</b> States held back, waiting for room.</p>
+<h3 id="publish">publish</h3>
+<p><i>public bool publish(const SnapshotKey &amp; key, std::size_t bytes)</i></p>
+<p><b>brief</b> The first <code>bytes</code> of what <code>snapshot( key, ... )</code> gave are the newest: the UI's next read of <code>key</code> takes them, whatever it missed before. Wakes the UI if it sleeps. False for a key never given room.</p>
+<h3 id="quitting">quitting</h3>
+<p><i>public bool quitting()</i></p>
+<p><b>brief</b> Whether quit has been asked for: the model saved, and is to stop.</p>
+<h3 id="read_watched">read_watched</h3>
+<p><i>public void read_watched(M &amp; model)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L744">messaging/telegraph.cppm:744</a></i></p>
+<p><b>brief</b> Calls <code>model.readable(*this, fd)</code> for each watched descriptor found ready since the last call, if the model has <code>readable</code>. <code>ModelRunner</code> calls it, after <code>deliver</code>.</p>
+<h3 id="snapshot">snapshot</h3>
+<p><i>public std::span&lt;std::byte&gt; snapshot(const SnapshotKey &amp; key, std::size_t bytes)</i></p>
+<p><b>brief</b> Room for the snapshot <code>key</code>: at least <code>bytes</code>, the model's to fill, then <code>publish</code>. It grows (allocates, on the model's thread) only past every size asked for before. Empty when <code>TELEGRAPH_SNAPSHOTS</code> other snapshots exist already.</p>
+<h3 id="start">start</h3>
+<p><i>public void start(M &amp; model)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L680">messaging/telegraph.cppm:680</a></i></p>
+<p><b>brief</b> Calls <code>model.start(*this)</code>, if it has one. Once, before <code>deliver</code>.</p>
+<p>---- the templates, now that the line is complete --------------------------------------------</p>
+<h3 id="state">state</h3>
+<p><i>public SendResult state(const K &amp; key, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L123">messaging/telegraph.cppm:123</a></i></p>
+<p><b>brief</b> <code>state &lt;key&gt; &lt;value&gt;</code>. When the ring is full it is held back, coalesced: <code>pending</code>. When the held-back table is full too, the model's thread waits up to <code>TELEGRAPH_WAIT_MS</code> for the UI to drain, then <code>full</code>.</p>
+<h3 id="state">state</h3>
+<p><i>public SendResult state(const K &amp; key, std::uint32_t uid, const V &amp; value)</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L133">messaging/telegraph.cppm:133</a></i></p>
+<p><b>brief</b> <code>state &lt;key&gt;[uid] &lt;value&gt;</code>, for a key that takes a uid.</p>
+<h3 id="tick_every">tick_every</h3>
+<p><i>public void tick_every(std::uint32_t milliseconds)</i></p>
+<p><b>brief</b> Ask for <code>tick</code> every <code>milliseconds</code> (0: no tick, the default). <code>ModelRunner</code> calls it.</p>
+<h3 id="tick_interval">tick_interval</h3>
+<p><i>public std::uint32_t tick_interval()</i></p>
+<h3 id="unwatch">unwatch</h3>
+<p><i>public void unwatch(int fd)</i></p>
+<p><b>brief</b> Stop watching <code>fd</code>; nothing for one not watched.</p>
+<h3 id="watch">watch</h3>
+<p><i>public bool watch(int fd)</i></p>
+<p><b>brief</b> Wake the model when <code>fd</code> has something to read (or has closed): its <code>readable( Telegraph &amp;, int fd )</code> is called in the next turn, after <code>receive</code>. For a pty, a socket, a pipe; the model keeps the descriptor, and unwatches it before closing it. False for a model with no <code>readable</code>, a negative <code>fd</code>, or <code>TELEGRAPH_WATCHES</code> watched already; true when <code>fd</code> is watched already.</p>
+<h3 id="watching">watching</h3>
+<p><i>public std::size_t watching()</i></p>
+<p><b>brief</b> How many descriptors are watched.</p>
+<h3 id="telegraph">~Telegraph</h3>
+<p><i>public void ~Telegraph()</i></p>
+<p><i>Defined at <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/messaging/telegraph.cppm#L113">messaging/telegraph.cppm:113</a></i></p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

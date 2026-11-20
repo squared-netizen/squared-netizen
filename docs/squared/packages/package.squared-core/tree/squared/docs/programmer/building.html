@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building · squared</title>
+<meta name="description" content="squared: Building">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/programmer/building.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/programmer/building.md">on GitHub</a></p><h1 id="building">Building</h1>
+<p>squared builds with clang and GNU make. No CMake, no generator step, no network access, and nothing that assumes a desktop. squared is modules, in C++23 (<a href="include-layout.html">include-layout.md</a>), which it builds the way clang does: <code>CXX</code> is clang++ by default, and another compiler stops the build at once. On Termux, <code>g++</code> and <code>c++</code> are clang already. The standard library is libc++, everywhere: Android's and Termux's already; on a desktop, install it (Debian and Ubuntu: <code>apt install libc++-dev libc++abi-dev</code>).</p>
+<h2 id="desktop-linux-and-termux">Desktop Linux and Termux</h2>
+<pre><code class="lang-sh">./tools/build.sh              # release
+./tools/build.sh debug        # -O0 -g
+./tools/build.sh release -j4  # extra arguments go to make</code></pre>
+<p>Or drive make directly:</p>
+<pre><code class="lang-sh">make                 # every module
+make gui             # one module
+make BUILD=debug
+make headers         # the pinned std sources, the modules&#x27; build order
+make sqgen           # sqgen and sqconsole, for this machine, in build/&lt;BUILD&gt;/
+make test            # every module&#x27;s tests, each only if it changed (below)
+make retest          # every test again
+make clean</code></pre>
+<p>Archives land in <code>build/&lt;release|debug&gt;/lib/libsquared_&lt;module&gt;.a</code>.</p>
+<p><b>What a build prints.</b> One short line as each step starts, and the flags once:</p>
+<pre><code>squared release: flags as before
+  mod  sq.messaging-telegram
+  cc   messaging/src/telegram.cpp
+  ar   libsquared_messaging.a
+  bin  messaging/telegram_test
+  test messaging/telegram_test
+       ok
+  gui: 4 unchanged since they passed</code></pre>
+<p><code>cc</code> compiles one file (its path from <code>squared/</code>), <code>ar</code> makes a module's archive, <code>bin</code> builds a test or tool, and <code>test</code> runs one: <code>ok</code> or <code>FAIL</code> is the line after. The first line says the flags are what they were; when they are not (another <code>CXX</code>, <code>SQUARED_ABI</code>, <code>BUILD</code>'s optimisation, or a first build) it lists every flag, one to a line, marking each <code>(new)</code> or <code>(gone)</code>, and everything they affect is rebuilt. Warnings and errors print in full, as the compiler wrote them. A failed test prints its whole output after <code>FAIL</code>; a passing test's output is in <code>build/&lt;release|debug&gt;/&lt;test&gt;.log</code>.</p>
+<pre><code class="lang-sh">make V=1             # every command, and every test&#x27;s output, in full</code></pre>
+<p><b>Tests run only when something they cover changed.</b> A test binary is rebuilt when its sources, the archives it links, the files and module interfaces it reads or the flags change, and <code>make test</code> runs it only when it was rebuilt since it last passed. A module whose tests were all kept says how many: <code>gui: 4 unchanged since they passed</code>. With nothing changed <code>make test</code> takes about a second; <code>make retest</code> (or <code>make test RETEST=1</code>) runs all of them. A failed test is run again next time, changed or not.</p>
+<h2 id="modules-outside-this-tree">Modules outside this tree</h2>
+<p>Every squared module is in this tree, and so is the one third-party dependency. Unpack it once after checkout:</p>
+<pre><code class="lang-sh">./tools/vendor_third_party.sh</code></pre>
+<p>That reads <code>third_party/yyjson-*.tar.gz</code> and puts <code>yyjson.c</code> and <code>yyjson.h</code> in <code>third_party/yyjson/</code>. It is idempotent, and it leaves an already-unpacked dependency alone, so it is safe to re-run and safe to delete the tarball afterwards.</p>
+<p><code>data/Makefile</code> compiles <code>yyjson.c</code> into <code>libsquared_data.a</code>, so an application links one library rather than two, and <code>local.mk</code> is not needed for it.</p>
+<p><b>Why vendored rather than a system package.</b> This tree is built with the NDK toolchain for an APK. <code>pkg install yyjson</code> under Termux gives you a header and a library built for the host sysroot &amp;mdash; the wrong target. It may even link and then fail on a device. The source is compiled by your build, for your target, or not at all.</p>
+<p><code>local.mk</code> still exists for anything else you need on the include path, and is still picked up automatically.</p>
+<p><code>build/common.mk</code> picks it up automatically. <code>local.mk</code> is per-checkout and should not be committed. Setting the variable on the command line still works for a one-off:</p>
+<pre><code class="lang-sh">SQUARED_EXTERNAL_INCLUDES=&quot;-I../application/include&quot; ./tools/build.sh</code></pre>
+<h2 id="for-android">For Android</h2>
+<p>A project made from the Android template builds squared for you, for the project's target: <code>make</code> in the project compiles the vendored <code>squared/</code> with the same compiler, API level and NDK sysroot as your own code. You do not build the framework separately.</p>
+<p>The API level is <code>SQ_MIN_SDK</code> in the project's <code>mk/squared_generated.mk</code>, default <b>22</b> (Android 5.1). It is what the code is compiled and linked for, not only what the manifest claims, so one APK runs on Android 5.1 and on every release after it.</p>
+<pre><code class="lang-sh">make apk                  # for API 22
+make apk SQ_MIN_SDK=26    # for Android 8.0 and later only
+make android-status       # the NDK, the API level, the C++ runtime it found</code></pre>
+<div class="tablewrap"><table><thead><tr><th>What happens</th><th>Why</th></tr></thead><tbody><tr><td>A call to a function newer than <code>SQ_MIN_SDK</code> fails the <b>link</b></td><td>It is not in that level's system libraries; reach it with <code>dlsym</code> and do without when it is absent</td></tr><tr><td>The C++ runtime is linked <b>into</b> your library</td><td>One <code>.so</code>, nothing beside it to get out of step; the APK carries no <code>libc++_shared.so</code></td></tr><tr><td>The link fails if the library could not load on Android before 6.0</td><td>It must carry the <code>DT_HASH</code> symbol table; the build adds it</td></tr><tr><td>Changing <code>SQ_MIN_SDK</code> or the NDK rebuilds the framework</td><td>Archives built for one level must not link into another</td></tr><tr><td><code>CONSOLE=app</code> (or <code>monitor</code>) links the Console in; the default, <code>0</code>, carries none of it</td><td>See <a href="console.html">console.md</a>. Switching it rebuilds nothing in the framework: its Console archive is built every time and only linked when asked for</td></tr><tr><td><code>TELEGRAPH_RING=512</code> (or another <code>TELEGRAPH_*</code>) sizes the Telegraph; unset ones keep their defaults</td><td>The app and the framework are built with the same ones, since the app makes the line; changing one rebuilds both. See <a href="messaging.html#the-telegraph">messaging.md</a></td></tr><tr><td><code>DEV_LOG</code> and <code>CONSOLE</code> builds are <b>debuggable</b>; plain builds never are</td><td><code>run-as</code> reaches a debuggable app's private files; <code>SQ_DEBUGGABLE=</code> turns it off, <code>SQ_DEBUGGABLE=1</code> on</td></tr><tr><td><code>make install</code> uses <code>adb install -r</code> when adb reaches <b>this phone</b>, and Android's installer otherwise</td><td>No prompt with adb; a second device (a tablet) only when named, <code>DEVICE=&lt;serial&gt;</code></td></tr></tbody></table></div>
+<p>The NDK must have libraries for the level you ask for; <code>make</code> says which levels it has if not. NDK r29 has 21 to 35.</p>
+<h3 id="installing-starting-the-log">Installing, starting, the log</h3>
+<pre><code class="lang-sh">make install      # adb install -r on this phone when adb reaches it, else the installer
+make run          # install, then start it (adb)
+make logcat       # the app&#x27;s lines, a library that failed to load, the crash summary (adb)
+make devices      # what adb reaches, which is this phone, and how to connect
+make dev          # the build you debug with: CONSOLE=app DEV_LOG=1 install
+make console      # a CONSOLE build&#x27;s Console in this terminal, no adb (see console.md)
+make console-only # start it with only the Console running</code></pre>
+<p>On the phone itself adb comes from Termux's <code>android-tools</code> and Wireless Debugging (Android 11 and later, on Wi-Fi): pair once, then connect each time it is turned on. The project's README walks through it. Without adb, <code>make install</code> hands the APK to Android's installer, as before, and Termux cannot read the app's log at all; the dev log (<code>DEV_LOG</code>, <a href="dev.html">dev.md</a>) and the Console (<a href="console.html">console.md</a>) work without either.</p>
+<h2 id="flags">Flags</h2>
+<p><code>build/common.mk</code> holds every shared setting and each one is overridable:</p>
+<pre><code class="lang-sh">make CXX=clang++ BUILD=debug CXXFLAGS_EXTRA=-fsanitize=address</code></pre>
+<p>Defaults are <code>-std=c++23 -stdlib=libc++ -O2 -Wall -Wextra -Wpedantic -Wshadow -Wconversion -Wsign-conversion</code>, plus <code>-ffunction-sections -fdata-sections -fvisibility=hidden</code> so the linker can drop what an application does not use. The tree builds warning-free at that level.</p>
+<p><b>Every module is compiled before what imports it</b> (7b.4): <code>mod sq.gui-label</code> is an interface becoming its BMI, in <code>build/&lt;BUILD&gt;/modules/</code>. The standard library is a module too, <code>std</code> (C++23; libc++'s own sources, pinned in <code>third_party/libcxx/</code>), made first, and only once for each compiler, flag set and libc++ on the device: in <code>~/sqsysroot/.sqpg/std/</code> when squared-pg is set up, shared by every project (<code>mod  std (libc++ 210000, made before: ...)</code> when another project made it), else in the build. Every file reads from it only what it uses. When the NDK's libc++ moves to another major version, the build says to pin again: <code>tools/pin_libcxx_modules.sh</code> (<code>third_party/libcxx/README.md</code>). (Until 7b.4 the standard headers were precompiled; until 2026-11-02 squared had its own module of them, <code>sq.std</code>.)</p>
+<p><b>A test is rebuilt only when something it includes changes</b>, and the objects of the sources tests share are kept in <code>build/&lt;BUILD&gt;/test-objects/</code> and reused.</p>
+<p><b>Framework objects are cached</b> (7b.3), by what each compile reads: the source and every file it includes by content, the module interfaces it may import, the compiler and the flags. Module interfaces are cached the same way, their BMI kept with the object. A compile that would read the same again takes the object instead: a new workspace (it compiles nothing that another workspace on the device already did), a <code>make clean</code>, a header edited and edited back. With squared-pg set up the cache is one for every workspace on the device, <code>~/sqsysroot/.sqpg/cache</code>; otherwise it is the workspace's <code>build/cache</code>, which <code>make clean</code> keeps. The archive's line says how many came from it:</p>
+<pre><code>  ar   libsquared_gui.a (39 from the cache)</code></pre>
+<p>It is kept under 500 MB, least lately used out first:</p>
+<pre><code class="lang-sh">make SQUARED_CACHE_SIZE=2000    # megabytes
+make SQUARED_CACHE=off          # compile everything, keep nothing
+make SQUARED_CACHE=/elsewhere   # another cache</code></pre>
+<p>So that one workspace's objects suit another, paths in objects start at <code>squared/</code> (<code>-ffile-prefix-map</code>): a debugger finds the sources when started from the directory that holds <code>squared/</code>.</p>
+<p><code>SQUARED_ABI</code> carries <code>-fno-rtti</code>, which builds and passes every test (<code>make SQUARED_ABI=-fno-rtti test</code>); <code>-fno-exceptions</code> does not build yet. See [../developer/build-and-toolchain.md]( ../developer/build-and-toolchain.md).</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>
