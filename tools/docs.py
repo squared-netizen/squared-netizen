@@ -45,6 +45,7 @@ SOURCES = {
     "square": (["README.md", "docs/*.md"], []),
     "sqgui": (["README.md", "docs/*.md"], []),
     "apkpack": (["README.md", "docs/*.md"], []),
+    "sqedit": (["README.md", "docs/*.md"], []),
     "manuals": (["README.md", "docs/*.md"], []),
     "squared-kits": (["README.md", "docs/*.md"], []),
 }

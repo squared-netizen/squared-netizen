@@ -19,15 +19,17 @@
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">square</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/square/blob/main/README.md">on GitHub</a></p><h1 id="square">square</h1>
 <p>The workspace manager of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>, and the one tool that knows what a workspace is. sqpg creates a workspace once; from then on square answers every question about it and makes every change to its shape.</p>
-<p><b>Status: designed, not yet built.</b></p>
+<p><b>Status: specified, not yet built.</b> <a href="docs/spec.html">docs/spec.md</a>, draft 0.1 (2026-11-20).</p>
 <h2 id="what-it-will-do">What it will do</h2>
-<ul><li><b>Answer questions, in JSON.</b> <code>square info</code>, <code>square where &lt;role&gt;</code> (the app, its layouts, its docs), <code>square owner &lt;path&gt;</code>, <code>square verify</code>, <code>square build-inputs</code> for sqmake, <code>square explain &lt;shim&gt;</code> for sqgui. Each answer is one versioned JSON envelope, through the command line or through <code>libsquare</code>, a C++ module the other tools link in. No daemon.</li><li><b>Ask sqcart, never read manifests itself.</b> Every manifest is defined by the Squared Cartridge Specification; square reads the sections addressed to it through sqcart, so a change in the format touches sqcart and square alone.</li><li><b>Change a workspace safely.</b> Adding a kit or a package and updating a resource run as plan, decide, apply: a plan the developer reads, an answer for every conflict, and a journalled transaction that a crash cannot leave half done. Ownership classes decide the rest: a <code>seeded</code> or <code>user</code> file is never touched.</li><li><b>Extract.</b> Turn a workspace that has grown to suit its developer into a template, kits or packages for the next project, through a plan file the developer edits.</li></ul>
+<ul><li><b>Answer questions, in JSON.</b> <code>square info</code>, <code>square where &lt;role&gt;</code> (the app, its layouts, its docs), <code>square owner &lt;path&gt;</code>, <code>square verify</code>, <code>square explain &lt;shim&gt;</code> for sqgui: the SDK's tool protocol (<code>square call</code>, <code>square describe</code>), and the same in process through <code>libsquare</code>. No daemon.</li><li><b>Keep a workspace's record.</b> A workspace is an exploded cartridge (<code>SQ-INF/manifest.json</code>, kind <code>workspace</code>): its template, kits and packages, each path's role and ownership. People write Lua (<code>build.lua</code>); square writes the JSON.</li><li><b>Leave the build to the workspace.</b> A template's and a kit's build conventions are Lua files in the workspace (<code>sq/build/*.lua</code>) that <code>build.lua</code> includes, so sqmake builds it asking square nothing.</li><li><b>Ask sqcart, never read manifests itself.</b> Every manifest is defined by the Squared Cartridge Specification; square reads the sections addressed to it through sqcart, so a change in the format touches sqcart and square alone.</li><li><b>Change a workspace safely.</b> Adding a kit or a package and updating a resource run as plan, decide, apply: a plan the developer reads, an answer for every conflict, and a journalled transaction that a crash cannot leave half done. Ownership classes decide the rest: a <code>seeded</code> or <code>user</code> file is never touched.</li><li><b>Extract.</b> Turn a workspace that has grown to suit its developer into a template, kits or packages for the next project, through a plan file the developer edits.</li></ul>
 <h2 id="where-it-sits">Where it sits</h2>
-<pre><code class="lang-text">sqpg (creates)   sqmake (builds)   sqgui (edits the UI)   you
-          \            |                 |               /
+<pre><code class="lang-text">sqpg (creates)        sqgui (edits the UI)        you
+          \                   |                  /
                          square
-          /            |                 \
-     sqcart     squared-pg&#x27;s engine     dexgen</code></pre>
+          /                   |                  \
+     sqcart          squared-pg&#x27;s engine         dexgen
+
+sqmake builds the workspace from its build.lua, and asks square nothing.</code></pre>
 <h2 id="licence">Licence</h2>
 <p>MIT: see <a href="https://github.com/squared-netizen/square/blob/main/LICENSE">LICENSE</a>. Security issues: see <a href="https://github.com/squared-netizen/square/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
 <footer class="foot">Last updated 2026-11-20. Written from each

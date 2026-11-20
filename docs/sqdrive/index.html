@@ -47,7 +47,8 @@ sqdrive truncate CART PATH SIZE [--keep]
 sqdrive rm CART PATH [--keep]
 sqdrive mv CART FROM TO [--keep]
 sqdrive commit CART                            # what --keep left in the journal
-sqdrive recover CART --discard</code></pre>
+sqdrive recover CART --discard
+sqdrive --help | --version                     # the commands; the release</code></pre>
 <h2 id="on-android-and-in-sqterm">On Android, and in sqterm</h2>
 <p><b>An app.</b> Android stops an app that leaves the screen, and may end its process without another word. squared already says when: the platform calls <code>Application::background()</code> on Android's stop (<code>sq::App</code> gives its model a turn there to save). That is where a Drive's changes are made safe:</p>
 <pre><code class="lang-cpp">void background() override {

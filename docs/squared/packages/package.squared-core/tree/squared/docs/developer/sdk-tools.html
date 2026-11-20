@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The SDK&#x27;s tools: one language for people, one for tools · squared</title>
+<meta name="description" content="squared: The SDK&#x27;s tools: one language for people, one for tools">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/sdk-tools.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/sdk-tools.md">on GitHub</a></p><h1 id="the-sdks-tools-one-language-for-people-one-for-tools">The SDK's tools: one language for people, one for tools</h1>
+<p><b>Status: decided 2026-11-20, draft 1.</b> Every tool of the squared SDK (sqpg, square, sqmake, sqcart, sqdrive, apkpack, pkg, sqedit, and those to come) follows this. No tool implements it yet; each takes it up as it is next changed.</p>
+<h2 id="the-rule">The rule</h2>
+<div class="tablewrap"><table><thead><tr><th>Who writes it</th><th>Language</th><th>Read with</th></tr></thead><tbody><tr><td><b>People</b></td><td><b>Lua 5.4</b></td><td>each tool's own sandboxed loader (below)</td></tr><tr><td><b>Tools, for each other</b></td><td><b>JSON</b></td><td><code>sq.data</code> (<code>parse_json</code>, <code>write_json</code>)</td></tr></tbody></table></div>
+<ul><li><b>People write Lua</b>: <code>build.lua</code>, a project's or a workspace's settings, a template's or a kit's description. It reads as plainly as a settings format (<code>name = &quot;sqterm&quot;</code>, <code>deps = {&quot;squared&quot;}</code>), and where a file needs logic, the logic is there too. No second language for that.</li><li><b>Tools write JSON</b>: what one tool asks another and its answer (tool calls, below), cartridge manifests, package indexes, state a tool keeps between runs. Fixed shapes, no comments, one parser (<code>sq.data</code>), and JSON already where it is used today (sqcart 3.0's manifests, pkg's index).</li><li><b>No YAML</b>, and no third format. A file is one or the other, by who writes it.</li></ul>
+<h2 id="lua-that-people-write">Lua that people write</h2>
+<ul><li><b>Lua 5.4</b>, vendored (as sqmake does: <code>third_party/lua</code>, compiled as C++ so an error unwinds), offline, on the phone as on a desktop.</li><li><b>Sandboxed.</b> A file runs in an environment of its own: the tool's API, and Lua's safe libraries only (<code>string</code>, <code>table</code>, <code>math</code>, <code>utf8</code>, <code>os.getenv</code>). No <code>io</code>, <code>os.execute</code>, <code>require</code> or <code>load</code>, and none of a host program's globals.</li><li><b>Settings files take values only.</b> A file that only describes (a workspace's settings, a kit's description) is loaded with no functions in reach at all, so it cannot do anything but say what it says. A build file (<code>build.lua</code>) gets its tool's API.</li><li><b>One name each</b>, <code>&lt;what&gt;.lua</code>: <code>build.lua</code> (sqmake), and the other tools' names decided as they come.</li></ul>
+<h2 id="tools-calling-tools">Tools calling tools</h2>
+<p>A tool asks another for something the way an agent calls a tool: one JSON request in, one JSON response out.</p>
+<pre><code class="lang-sh">TOOL call &lt; request.json &gt; response.json   # one request, one response
+TOOL describe                              # what it can be asked, as JSON</code></pre>
+<p>The request:</p>
+<pre><code class="lang-json">{&quot;sq&quot;: 1, &quot;command&quot;: &quot;workspace.inputs&quot;, &quot;args&quot;: {&quot;path&quot;: &quot;game.sq&quot;}}</code></pre>
+<p>The response, either:</p>
+<pre><code class="lang-json">{&quot;sq&quot;: 1, &quot;ok&quot;: true, &quot;result&quot;: {&quot;sources&quot;: [&quot;src/main.cpp&quot;], &quot;kits&quot;: [&quot;sfml&quot;]}}</code></pre>
+<p>or:</p>
+<pre><code class="lang-json">{&quot;sq&quot;: 1, &quot;ok&quot;: false, &quot;error&quot;: {&quot;code&quot;: &quot;not_a_workspace&quot;, &quot;message&quot;: &quot;game.sq has no consumers.square&quot;}}</code></pre>
+<ul><li><b><code>sq</code></b>: the protocol's version, 1. A tool answers a version it does not speak with <code>{&quot;ok&quot;: false, &quot;error&quot;: {&quot;code&quot;: &quot;version&quot;, ...}}</code>.</li><li><b><code>command</code></b>: <code>noun.verb</code> or a single word, the tool's own; <code>args</code> an object (absent or <code>{}</code> when there are none).</li><li><b><code>ok</code></b>: true with <code>result</code> (any JSON), or false with <code>error</code>: <code>code</code> (a short stable word, for programs) and <code>message</code> (a sentence, for people). The exit status agrees: 0 when <code>ok</code>, 1 when not, 2 when the request itself could not be read.</li><li><b>stdout carries the response alone.</b> Progress and logs go to stderr, so a caller reads one JSON document whatever else happened.</li><li><b><code>describe</code></b> prints the tool's name, version, the protocol versions it speaks, and each command with its arguments and result, each argument with its JSON type and whether it is required: ```json {"sq": 1, "tool": "square", "version": "0.1.0", "speaks": [1], "commands": {"workspace.inputs": {"summary": "what a workspace builds from", "args": {"path": {"type": "string", "required": true}}, "result": {"type": "object"}}}} ``` A caller, or an agent, learns what a tool offers by asking it.</li><li><b>In process, the same messages.</b> A tool's library takes a request and returns a response as <code>sq::data::JsonValue</code>, so one tool can call another's library directly, or run its program, and get the same answer either way. The program's <code>call</code> is a thin layer over the library's.</li><li><b>Dependencies go one way.</b> A tool calls only tools below it. sqmake is called by others and calls none of them (sqmake's spec §1); square calls sqmake and sqcart, never the reverse.</li></ul>
+<h2 id="cartridges-each-tool-its-own-part-of-a-manifest">Cartridges: each tool its own part of a manifest</h2>
+<p>A cartridge (sqcart 3.0) does not know what it is for. Its manifest's <code>consumers</code> object has one member per tool that gives it a meaning, and only that tool reads it:</p>
+<pre><code class="lang-json">{&quot;kind&quot;: &quot;workspace&quot;,
+ &quot;consumers&quot;: {&quot;square&quot;: {&quot;template&quot;: &quot;android&quot;, &quot;kits&quot;: [&quot;sfml&quot;]},
+               &quot;sqterm&quot;: {&quot;links&quot;: {&quot;bin/cc&quot;: &quot;clang&quot;}}}}</code></pre>
+<ul><li><b>A workspace is a cartridge that square knows is a workspace</b>: <code>consumers.square</code> says so, and sqcart keeps it without reading it, as it keeps <code>consumers.sqterm.links</code> for pkg.</li><li>A tool never reads or changes another tool's member, and keeps the members it does not know as they are.</li></ul>
+<h2 id="where-it-is-used-first">Where it is used first</h2>
+<ul><li><b>sqmake</b>: <code>build.lua</code> (Lua, done); <code>sqmake call</code> and <code>describe</code> (to come: build, explain, clean).</li><li><b>square</b>: workspaces as cartridges with <code>consumers.square</code>, and the calls that drive sqmake and sqcart.</li><li><b>pkg</b>, <b>sqcart</b>, <b>sqdrive</b>, <b>apkpack</b>: <code>call</code> and <code>describe</code> beside their command lines, as each is next changed.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

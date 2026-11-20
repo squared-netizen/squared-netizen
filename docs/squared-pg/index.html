@@ -18,7 +18,7 @@
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">squared-pg</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/README.md">on GitHub</a></p><h1 id="squared-pg">squared-pg</h1>
-<p>An offline-first project generator for applications built on the Squared framework. A native C++20 engine provides generation capability; a Lua 5.4 control layer sequences it into workflows. The output is a self-contained developer workspace you own outright.</p>
+<p>An offline-first project generator for applications built on the Squared framework. A native C++23 engine provides generation capability; a Lua 5.4 control layer sequences it into workflows. The output is a self-contained developer workspace you own outright.</p>
 <p>Termux on Android is a first-class target. A phone with a compiler and <code>make</code> is enough — to run the generator, and to build what it produces.</p>
 <h2 id="quick-start">Quick start</h2>
 <p>first clone this repo:</p>
@@ -72,7 +72,7 @@ then:
 <pre><code class="lang-sh">make -j4      # engine, CLI and tests
 make check    # run the tests
 make smoke    # generate a project, build it, run it</code></pre>
-<p>No network, at any point. A clean checkout plus <code>third-party/</code> is the whole dependency list. A C++20 compiler and <code>make</code> are the only requirements; see <a href="https://github.com/squared-netizen/squared-pg/blob/main/BUILDING.md">BUILDING.md</a> for per-platform notes and troubleshooting.</p>
+<p>No network, at any point. A clean checkout plus <code>third-party/</code> is the whole dependency list. clang and libc++ (19 or later) and <code>make</code> are the only requirements; see <a href="https://github.com/squared-netizen/squared-pg/blob/main/BUILDING.md">BUILDING.md</a> for per-platform notes and troubleshooting.</p>
 <h2 id="use">Use</h2>
 <pre><code class="lang-sh">./build/sqpg list
 ./build/sqpg new hello --template template.terminal.cpp --kit kit.terminal
@@ -90,7 +90,7 @@ cd myapp &amp;&amp; make apk &amp;&amp; make install</code></pre>
 <p>Lua decides. It parses arguments, loads configuration, chooses the template and kits, calls engine operations in whatever order it likes, and interprets the results. The CLI is one consumer of that stack, not the defining interface — and the workflows stay editable after release, without a rebuild.</p>
 <pre><code class="lang-text">User / tool input  →  Lua workflow  →  engine control surface  →  workspace</code></pre>
 <h2 id="layout">Layout</h2>
-<pre><code class="lang-text">engine/        the C++20 engine — include/ is public, src/ is not
+<pre><code class="lang-text">engine/        the C++23 engine — include/ is public, src/ is not
 engine/lua/    the Lua binding layer
 lua/           workflows and shared Lua modules
 app/           sqpg, the reference CLI host
