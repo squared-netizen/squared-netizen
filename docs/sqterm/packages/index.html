@@ -42,16 +42,21 @@ pkg/recipe.sh     pkg (sq_app/pkg/pkg.cpp): list, files, update, upgrade,
                   download)
 mbedtls/, curl/   Mbed TLS 4.3.0 (Apache-2.0; static, for building) and curl
                   8.23.0 (curl licence; HTTPS, in the APK): pkg&#x27;s downloads
-bash/ coreutils/ sed/ grep/ gawk/ make/
+bash/ coreutils/ make/
                   GNU (GPLv3): bash 5.3, coreutils 9.8 (one binary, symbolic
-                  links), sed 4.9, grep 3.12, gawk 5.3.2
-                  (awk), make 4.4.1 (recipes run under /system/bin/sh). No findutils:
+                  links), make 4.4.1 (recipes run under /system/bin/sh). No findutils:
                   its gnulib wants mktime_z (bionic: API 35); Android&#x27;s own
                   find and xargs (toybox, /system/bin) serve
-sqdrive/          sqdrive 0.4.0 (MIT): the Virtual Cartridge Drive&#x27;s tool, a
+sqdrive/          sqdrive 0.5.0 (MIT): the Virtual Cartridge Drive&#x27;s tool, a
                   cartridge&#x27;s files read and written by range; C++23 modules,
                   built by clang 23 against the sysroot and runtimes packages
-                  (not in the APK: pkg install sqdrive)</code></pre>
+                  (not in the APK: pkg install sqdrive)
+apkpack/          apkpack 0.2.0 (MIT): the APK built and signed with no Java
+                  and no Android SDK (make&#x27;s SQ_PACKER=apkpack); C++23
+                  modules, built as sqdrive is
+sqedit/           sqedit 0.1.0 (MIT): the text tool squared&#x27;s build and
+                  sqterm&#x27;s scripts use in place of sed, grep and awk; C++23
+                  modules, built as sqdrive is</code></pre>
 <h2 id="as-cartridges-from-2026-11-19">As cartridges (from 2026-11-19)</h2>
 <p>Each package is also a squared cartridge, 3.0 (sqcart's spec, Appendix B.2: kind <code>package</code>), packed from the same install by <code>tools/pack_cartridges.sh</code> into <code>build/packages/cartridges/&lt;name&gt;-&lt;version&gt;.sq</code> (offline; not in any key). Its packer, <code>tools/cartridge</code> (<code>sqterm-pack</code>), is built for the build machine with sqcart's library (<code>third_party/sqcart</code>, copied by <code>tools/vendor_sqcart.sh</code>) and clang 23:</p>
 <ul><li>a file is an entry, flags <code>r</code>, and <code>x</code> when it was executable;</li><li>a symbolic link is no entry: the manifest's <code>consumers.sqterm.links</code> names it and its target, for pkg to make (a cartridge holds no link);</li><li>the manifest is <code>format_version</code> 3, and <code>case_sensitive: true</code> when two paths collide under case folding (the sysroot's Linux headers: a package unpacks to <code>$PREFIX</code>, which does not fold case);</li><li>many small files are compressed with a zstd dictionary trained on them.</li></ul>
@@ -81,6 +86,7 @@ make dev</code></pre>
 pkg install llvm                            # in sqterm: found there by name, offline</code></pre>
 <p>llvm is built on CI only (hours on a phone): CMake and Ninja, the NDK's CMake toolchain, LLVM's tablegen built for the build machine first (<code>CXX_FOR_BUILD</code>), ccache kept between runs.</p>
 <p><b>sysroot</b> (<code>bundled=no</code>) is what that clang compiles and links against: bionic's headers and the kernel's, libc, libm and libdl as link-time stubs for API 28, and the crt objects, all from AOSP's bionic (a git source, <code>git=</code> and <code>tag=</code> in the recipe, its commit in <code>sources.lock</code>), not from the NDK. <code>stubgen.awk</code> turns bionic's symbol lists into the stubs. It also installs <code>bin/clang.cfg</code> and <code>bin/clang++.cfg</code>, so plain <code>clang</code> uses it.</p>
+<p>It also carries Android's own API, as the NDK does: <code>android/*.h</code>, <code>jni.h</code>, EGL and GLES headers, and stubs for liblog, libandroid, libnativewindow, libEGL and libGLESv1_CM/v2/v3. These come from four more AOSP repositories at the same tag, named in the recipe's <code>also</code>, one line each: <code>SUB URL FOLDER...</code>. <code>fetch_packages.sh --sources</code> clones each one sparsely, with only those folders, as <code>sysroot.SUB</code>, and records its commit in <code>sources.lock</code>. The recipe reads each one as <code>$src_SUB</code>. So an Android app builds against the sysroot as it would against the NDK.</p>
 <p><b>runtimes</b> (<code>bundled=no</code>): compiler-rt's builtins, libunwind, libc++abi and libc++ 23, static, with libc++'s module sources (<code>import std</code>), built from the same LLVM sources against the sysroot by a clang 23 for the build machine (apt.llvm.org's on CI). With llvm and sysroot, clang in sqterm compiles, links and runs C and C++ programs, modules included. Also one shared library, <code>libc++_shared.so</code> (linked in <code>lib/</code> too), for a program and the shared libraries it loads: plain <code>clang++</code> still links libc++ in statically, and <code>-nostdlib++ -lc++_shared</code> asks for the shared one.</p>
 <p><b>llvm-tools</b> (<code>bundled=no</code>): clangd, clang-tidy and clang-doc, static binaries, built as llvm is.</p>
 <p><b>lldb</b> (<code>bundled=no</code>): lldb, lldb-server, lldb-dap (for an editor) and lldb-argdumper, front ends to <code>liblldb.so</code>; all of them use the runtimes' <code>libc++_shared.so</code>, found through a RUNPATH of <code>$PREFIX/lib</code>, so install runtimes first. Built as runtimes are (clang 23 for the build machine, the sysroot, no NDK), with CMake told the system is Android. No Python or Lua scripting, line editing or curses GUI yet: each is a library to build first.</p>

@@ -18,14 +18,30 @@
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqmake</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqmake/blob/main/README.md">on GitHub</a></p><h1 id="sqmake">sqmake</h1>
-<p>The build system of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>: it builds an application from a workspace, knowing how to build it rather than what a workspace is.</p>
-<p><b>Status: planned.</b> Nothing is built yet; this repository holds the work as it starts.</p>
+<p>The build system of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>: it builds what a project's <code>build.lua</code> describes, on its own.</p>
+<p><b>Status: phases 1 and 2 of 4 built</b> (sqmake 0.3.0, with <code>call</code>): the engine, and C++ modules with the SDK's toolchain. Conventions and building sqterm come next (<a href="docs/spec.html">docs/spec.md §11</a>).</p>
+<pre><code class="lang-sh">make CXX=&quot;clang++ -stdlib=libc++&quot;     # clang and libc++ 23; make test checks it
+build/sqmake                          # builds what build.lua&#x27;s default() names
+build/sqmake --explain                # each command that would run, and why
+build/sqmake -j 4 GOAL                # a goal, four commands at once
+build/sqmake clean</code></pre>
+<p>A <code>build.lua</code>:</p>
+<pre><code class="lang-lua">toolchain.cxxflags = {&quot;-std=c++23&quot;, &quot;-O2&quot;}
+exe(&quot;hello&quot;, map(glob(&quot;src/*.cpp&quot;), rules.cxx))</code></pre>
+<p>C++ modules, with the SDK's own toolchain (squared's <code>build/toolchain.sh</code>):</p>
+<pre><code class="lang-lua">toolchain.sdk(&quot;squared/build/toolchain.sh&quot;)   -- clang 23, libc++ 23, bionic
+lib(&quot;game&quot;, map(glob(&quot;src/**/*.cpp*&quot;), rules.module))</code></pre>
+<p>Each source's <code>export module</code> / <code>import</code> lines order the compiles; BMIs go in <code>build/modules/&lt;fingerprint&gt;/</code>; <code>import std</code> builds libc++'s std module once. Other tools call it as the SDK's tools call each other (squared's <code>docs/developer/sdk-tools.md</code>): one JSON request, one JSON response.</p>
+<pre><code class="lang-sh">sqmake describe                                     # what it can be asked
+echo &#x27;{&quot;sq&quot;: 1, &quot;command&quot;: &quot;build&quot;, &quot;args&quot;: {&quot;dir&quot;: &quot;game&quot;}}&#x27; | sqmake call
+# {&quot;sq&quot;: 1, &quot;ok&quot;: true, &quot;result&quot;: {&quot;ran&quot;: 4, &quot;up_to_date&quot;: 2, &quot;explained&quot;: false}}</code></pre>
+<p><code>build</code>, <code>plan</code> (every target and its command, in order) and <code>clean</code>; progress on stderr, the response alone on stdout. A target is rebuilt when an output is missing, its command changed, or an input or a header its last compile read is newer. Commands run as argument lists, without a shell, each one's output printed whole.</p>
 <h2 id="what-it-will-be">What it will be</h2>
 <ul><li><b>It runs the build itself</b>, with no generated make, CMake or Ninja files.</li><li><b>make's model with Ninja's engine</b>: command hashes, and header dependencies written by the compiler.</li><li><b>Cargo's conventions</b>, <b>CMake's usage requirements</b>, and <b>Lua 5.4</b> as the escape hatch for what a convention does not cover.</li><li><b>A library, <code>libsqmake</code>, with a thin command line.</b> Offline, no daemon, and <code>--explain</code> shows the whole resolved graph.</li></ul>
 <h2 id="the-specification">The specification</h2>
-<p><a href="docs/spec.html">docs/spec.md</a>: a draft (0.1, 2026-11-19).</p>
+<p><a href="docs/spec.html">docs/spec.md</a>: a draft (0.2, 2026-11-20).</p>
 <h2 id="where-it-sits">Where it sits</h2>
-<p>In the SDK's workflow sqpg creates a workspace, square manages it, and sqmake builds it. sqmake asks square what to build (<code>square build-inputs</code>) and knows nothing about workspaces itself.</p>
+<p>sqmake stands alone. It builds what a project's <code>build.lua</code> describes, and depends on no other tool of the SDK: it reads nothing of sqpg's or square's and runs none of their commands. They, and any other program, may use it through its command line or its library; it never uses them.</p>
 <h2 id="licence">Licence</h2>
 <p>MIT: see <a href="https://github.com/squared-netizen/sqmake/blob/main/LICENSE">LICENSE</a>. Security issues: see <a href="https://github.com/squared-netizen/sqmake/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
 <footer class="foot">Last updated 2026-11-20. Written from each

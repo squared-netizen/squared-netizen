@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>sqedit · sqedit</title>
+<meta name="description" content="sqedit: sqedit">
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../index.html">squared-netizen</a>
+  <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
+  <a href="../../docs/index.html">Docs</a>
+  <a href="../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqedit</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqedit/blob/main/README.md">on GitHub</a></p><h1 id="sqedit">sqedit</h1>
+<p>A text tool built on parsing expression grammars, in the spirit of LPeg, to replace sed and grep in scripts: readable patterns, literals with no escaping, and a count that is checked rather than hoped for. Part of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>.</p>
+<div class="tablewrap"><table><thead><tr><th>Job</th><th>sed or grep</th><th>sqedit</th></tr></thead><tbody><tr><td>Take a field</td><td><code>sed -n &#x27;s/^libc++: //p&#x27; PINNED</code></td><td><code>sqedit pick &#x27;&quot;libc++: &quot; {.*}&#x27; PINNED</code></td></tr><tr><td>A field from JSON</td><td><code>sed -n &#x27;s/^  &quot;version&quot;: &quot;\([^&quot;]*\)&quot;.*/\1/p&#x27;</code></td><td><code>sqedit json version manifest.json</code></td></tr><tr><td>Print lines</td><td><code>sed -n &#x27;2,29p&#x27; &quot;$0&quot;</code></td><td><code>sqedit lines 2..29 &quot;$0&quot;</code></td></tr><tr><td>Lines to a pattern</td><td><code>sed -n &#x27;2,/^set -euo/p&#x27;</code></td><td><code>sqedit lines &#x27;2..&quot;set -euo&quot;&#x27; &quot;$0&quot;</code></td></tr><tr><td>Change a line</td><td><code>sed -i &#x27;s\|id = gethostid ();\|id = 0;\|&#x27; f; grep -q &#x27;id = 0;&#x27; f</code></td><td><code>sqedit sub --in-place --expect 1 &#x27;&quot;id = gethostid ();&quot;&#x27; &#x27;id = 0;&#x27; f</code></td></tr><tr><td>Literal, no pattern</td><td>(escape by hand)</td><td><code>sqedit sub -F --in-place --expect 1 &#x27;execve(&quot;/bin/sh&quot;, &#x27; &#x27;execve(&quot;/system/bin/sh&quot;, &#x27; f</code></td></tr><tr><td>Wrap a line</td><td><code>sed -i &#x27;/^    if (setgid/{i\ ... n;a\ ...}&#x27; f</code></td><td><code>sqedit wrap --in-place --expect 1 --lines 2 &#x27;&quot;    if (setgid(getgid()) != 0)&quot;&#x27; &#x27;#if !defined(__ANDROID__)&#x27; &#x27;#endif&#x27; f</code></td></tr><tr><td>Find lines</td><td><code>grep -E</code>, <code>grep -q</code>, <code>grep -c</code></td><td><code>sqedit match &#x27;&quot;class &quot; %w+&#x27; f</code> (<code>-o -c -q -v -x -n</code>)</td></tr></tbody></table></div>
+<p><code>--expect N</code> makes a command that changes a file fail, with nothing written, when the file holds a different number of matches than the script assumes. Exit status as grep's: 0 matched (or changed as expected), 1 no match or a count other than <code>--expect</code>, 2 a usage, pattern or file error, reported with where it is (<code>sqedit: pattern:1:14: expected a closing quote</code>).</p>
+<h2 id="patterns">Patterns</h2>
+<p>Parsing expression grammars, written as LPeg's <code>re</code> module writes them. A literal is quoted text and means only itself; everything unquoted is pattern.</p>
+<div class="tablewrap"><table><thead><tr><th>Write</th><th>Matches</th></tr></thead><tbody><tr><td><code>&quot;text&quot;</code> or <code>&#x27;text&#x27;</code></td><td>exactly that text</td></tr><tr><td><code>.</code></td><td>any one character (a UTF-8 code point, not a byte)</td></tr><tr><td><code>[a-z_]</code>, <code>[^&quot;]</code></td><td>one character in, or not in, a set</td></tr><tr><td><code>p q</code></td><td>p, then q</td></tr><tr><td><code>p / q</code></td><td>p; if p fails, q (ordered: the first that matches wins)</td></tr><tr><td><code>p*</code>, <code>p+</code>, <code>p?</code></td><td>repetition, greedy and possessive (no backtracking into it)</td></tr><tr><td><code>&amp;p</code>, <code>!p</code></td><td>p must, or must not, follow; nothing is consumed</td></tr><tr><td><code>{p}</code></td><td>capture what p matched</td></tr><tr><td><code>{:name: p :}</code></td><td>a named capture</td></tr><tr><td><code>{~ p ~}</code></td><td>a substitution capture: the match, with the parts inside marked <code>-&gt; &#x27;new&#x27;</code> replaced</td></tr><tr><td><code>name &lt;- p</code></td><td>a rule; rules make a grammar, and may call each other and themselves</td></tr><tr><td><code>%nl</code>, <code>%s</code>, <code>%d</code>, <code>%w</code></td><td>newline, space, digit, alphanumeric (and <code>%a %l %u %x %p %c %g</code>; <code>%S</code> and the like, their complements)</td></tr></tbody></table></div>
+<p>A match is anchored where it starts, as in every PEG; the commands search for the first place a pattern matches, line by line or, with <code>--whole</code>, across the file. In <code>sub</code>'s replacement, <code>{name}</code> is a named capture, <code>{1}</code> the first capture, <code>{0}</code> the whole match.</p>
+<p><code>-g file.peg</code> makes a file's rules usable by name in a pattern. sqedit ships <code>json</code> (a string and a number), <code>c</code> (a string literal, a comment, an include) and <code>ini</code> (a <code>key: value</code> line): <code>-g json</code>. JSON in a JSON file is <code>sqedit json</code>'s job, not a grammar's.</p>
+<h2 id="build">Build</h2>
+<pre><code class="lang-sh">make -j4 test CXX=/path/to/clang++</code></pre>
+<p>clang and libc++ 19 or later (23 is what sqterm and CI use), C++23 with <code>import std;</code>. Offline, and with no sed, grep or awk anywhere in the build: sqedit is built before anything uses it. The matching is a library (<code>sqedit.peg</code>, <code>build/libsqedit.a</code>); the command is a thin front end to it.</p>
+<p>The design, decided 2026-11-18, is in "sqedit: design".</p>
+<p>MIT licence.</p></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

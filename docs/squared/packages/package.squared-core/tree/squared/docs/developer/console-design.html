@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Console: design · squared</title>
+<meta name="description" content="squared: Console: design">
+<link rel="stylesheet" href="../../../../../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
+  <a href="../../../../../../../../docs/index.html">Docs</a>
+  <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../../../../../index.html">Docs</a> · <a href="../../../../../../index.html">squared</a> · <code>packages/package.squared-core/tree/squared/docs/developer/console-design.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/packages/package.squared-core/tree/squared/docs/developer/console-design.md">on GitHub</a></p><h1 id="console-design">Console: design</h1>
+<p>2026-11-20. What the Console is for, and the rules a change to it is weighed against. Internals: <a href="console.html">console.md</a>. Using it: <a href="../programmer/console.html">../programmer/console.md</a>.</p>
+<h2 id="what-the-console-is">What the Console is</h2>
+<p>The Console is a very light debugging tool embedded in a squared app: it starts before the app does, and lets you look into both the app's model and its GUI from inside the running program. It is for apps where embedding sqterm, a whole terminal, would be overkill.</p>
+<ul><li><b>Text in, text out:</b> an input line, a scrollback and commands. It is meant for when the rest of the program is what's broken.</li><li><b>Embedded, not installed:</b> a module of squared-core (<code>sq.console</code>), linked only into a <code>CONSOLE=app</code> or <code>CONSOLE=monitor</code> build. A <code>CONSOLE=0</code> build, the default, carries none of it.</li><li><b>Launches first:</b> it draws from the first frame, before the app is created. When the app fails to start, it is still there (<code>app start</code>, <code>crash</code>, <code>log previous</code>).</li></ul>
+<h2 id="purposes">Purposes</h2>
+<p>It has four jobs; anything else is out of scope.</p>
+<div class="tablewrap"><table><thead><tr><th>Purpose</th><th>What it gives you</th><th>Examples today</th></tr></thead><tbody><tr><td>Debug the model</td><td>Read and poke the app's state on the device, while it runs</td><td>the Telegraph's tools (<code>telegraph</code>), the app's own commands, <code>dump state</code></td></tr><tr><td>Debug the GUI</td><td>See what is on screen and why, from inside the window</td><td><code>screens</code>, <code>display</code>, <code>gl</code>, the safe area</td></tr><tr><td>Survive a broken start</td><td>Reach the app when its <code>create()</code> fails or it crashed last time</td><td><code>app stop</code>/<code>app start</code>, <code>crash</code>, <code>log previous</code>, <code>make console-only</code></td></tr><tr><td>Watch the process</td><td>Memory, threads, files, the log</td><td><code>mem</code>, <code>heap</code>, <code>threads</code>, <code>fds</code>, <code>logcat</code>, <code>alloc</code> (with <code>DEV_LOG</code>)</td></tr></tbody></table></div>
+<p>The same Console is reachable from a Termux terminal through the bridge (<code>make console</code>): its commands from a real keyboard, and its files pulled and pushed. The bridge is a way in, not a second tool.</p>
+<h2 id="what-it-is-not">What it is not</h2>
+<p>The Console is not a terminal and not a shell: it runs no programs and has no tools installed into it. sqterm is the terminal; the two are different code with different purposes.</p>
+<div class="tablewrap"><table><thead><tr><th></th><th>Console</th><th>sqterm</th></tr></thead><tbody><tr><td>What it is</td><td>a module embedded in any squared app</td><td>an app of its own (a terminal emulator)</td></tr><tr><td>Runs</td><td>the commands the app programmed into it</td><td>programs: a shell, packages, anything in its prefix</td></tr><tr><td>Its commands</td><td>compiled in, added by the app with <code>console.add</code></td><td>installed with <code>pkg</code></td></tr><tr><td>Input</td><td>its own input line: keys, history, completion</td><td>a terminal: keys, a keyboard's paste, Ctrl+V</td></tr><tr><td>Size</td><td>about 73 KB of fixed state; none of it in a release build</td><td>a prefix of packages, tens of MB</td></tr><tr><td>When</td><td>debugging the app it is in</td><td>daily work on the phone</td></tr></tbody></table></div>
+<p>A feature an app needs from a terminal (a shell, scripts, its own programs) means embedding sqterm, not growing the Console.</p>
+<h2 id="commands-are-programmed">Commands are programmed</h2>
+<p>Every command is code compiled into the app: a name, one line of help, and a function with a context pointer, added with <code>console.add</code>. Nothing is loaded or installed at run time.</p>
+<ul><li><b>Built in, always:</b> <code>help</code>, <code>clear</code>, <code>close</code>, <code>dump</code>.</li><li><b>The system's, when added:</b> <code>mem</code>, <code>heap</code>, <code>threads</code>, <code>fds</code>, <code>device</code>; the files (<code>ls</code>, <code>pull</code>, <code>push</code>), <code>logcat</code>, <code>libs</code>, <code>crash</code>, <code>log</code>, <code>copy</code>.</li><li><b>The platform layer's:</b> <code>app</code> (<code>start</code>, <code>stop</code>), <code>screens</code>, <code>display</code>, <code>gl</code>, <code>paste</code>, <code>quit</code>; <code>alloc</code> with <code>DEV_LOG</code>.</li><li><b>The app's own:</b> whatever its model and GUI need to show or change. This is the Console's main use: a game adds <code>spawn</code>, a tool adds <code>reload</code>.</li><li><b>Groups:</b> <code>dump &lt;group&gt;</code> runs a named list of commands in turn (<code>dump sys</code>, <code>dump state</code>, <code>dump crash</code>), one line per frame so no frame waits on it.</li></ul>
+<p>The table holds 64 commands by default (<code>CONSOLE_COMMANDS</code>). A full table refuses the next one and says so once in the log.</p>
+<h2 id="light-by-design">Light by design</h2>
+<p>The Console costs a fixed, known amount and nothing in a release build.</p>
+<ul><li><b>Fixed size:</b> <code>sizeof(Console)</code> is 74,592 bytes at the defaults, most of it the 64 KB scrollback; every size is a compile-time constant checked by <code>static_assert</code>.</li><li><b>No allocation after start:</b> printing, running, completing and editing allocate nothing (checked by the frame allocation counter). Output is <code>printf</code> into a 512-byte buffer, not <code>std::format</code>.</li><li><b>Its own drawing:</b> an 8x8 bitmap font and a few quads over the app's surface; no GUI toolkit, so it still draws when the app's GUI is broken.</li><li><b>Off by default:</b> <code>CONSOLE=0</code> links none of it and passes no flag, so a release APK carries none of it.</li><li><b>One thread:</b> the app's (glue) thread; nothing in it is shared.</li><li><b>The monitor (<code>CONSOLE=monitor</code>):</b> a second process with its own copy, so the Console outlives an app crash. Planned, not built.</li></ul>
+<h2 id="input">Input</h2>
+<p>The Console takes keys and a few touches, and nothing a keyboard sends for the app (decided 2026-11-20).</p>
+<ul><li><b>Keys:</b> its input line, with history (Up, Down) and completion (Tab). While it has the keyboard, the keys are its own, except the volume keys.</li><li><b>Paste:</b> the <code>paste</code> command puts the clipboard into the input line, to read before Enter. Ctrl+V does the same. A keyboard's own paste (CleverKeys' clipboard keys) is the app's text field's, not the Console's.</li><li><b>Touch:</b> only what it cannot do without. A tap gives it the keyboard, a drag scrolls, the close button closes it, a three-finger tap opens or closes it. No other gestures (the hold-to-paste was removed for <code>paste</code>).</li><li><b>Backtick</b> toggles it from a hardware keyboard.</li></ul>
+<h2 id="rules-for-changes">Rules for changes</h2>
+<p>A change to the Console is weighed against these, in order:</p>
+<ol><li>It serves one of the four purposes: the model, the GUI, a broken start, the process.</li><li>It is a command before it is anything else. A new gesture, panel or mode needs a reason a command cannot meet.</li><li>It keeps the size fixed and adds no allocation after start.</li><li>It adds nothing to a <code>CONSOLE=0</code> build.</li><li>Terminal features go to sqterm, not here.</li></ol>
+<h2 id="open-questions">Open questions</h2>
+<ul><li>&#9744; The monitor (<code>CONSOLE=monitor</code>): still wanted, or is the bridge plus <code>make console-only</code> enough?</li><li>&#9744; Should the commands an app adds be listed apart from the built-ins in <code>help</code>?</li><li>&#9744; Does any app need a smaller scrollback than 64 KB by default?</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-20. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>
