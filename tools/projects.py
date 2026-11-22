@@ -121,7 +121,7 @@ PROJECTS = [
             ("Packages (planned)", "squared-core stays the framework every application uses, and its "
                                    "<code>math</code> stays small. Add-on packages, each in its own repository, will "
                                    "extend it in one field: squared-math, -language, -physics, -chem, -bio, -game, "
-                                   "-ai and -net. They are built when something needs one, and what nearly all of "
+                                   "-ai, -net and -tui, the first of them to be built. They are built when something needs one, and what nearly all of "
                                    "them share moves into core. See <a href=\"../index.html#sdk\">the squared SDK</a>."),
         ],
         "features": [
@@ -557,6 +557,10 @@ PACKAGES = [
     ("squared-math", "A full calculator, 3D graphics for data visualisation, discrete mathematics and "
                      "calculus, logic, cryptography and blockchain. squared-core keeps only its small "
                      "<code>math</code> module."),
+    ("squared-tui", "Character-cell programs: a screen that writes only what changed, typed input, and a "
+                    "test bench through sqterm's own emulator; the same program in a terminal or as an app. "
+                    "No curses compatibility, no terminfo. Next to be built: "
+                    "<a href=\"docs/squared/docs/design/squared-tui.html\">its design</a>."),
     ("squared-language", "Unicode, a bitmap-font packer and converter, text shaping and TrueType."),
     ("squared-physics", "squared's own physics engine: 2D first, inspired by Box2D, then the full thing."),
     ("squared-chem", "Chemistry as software: a working representation of chemical systems."),

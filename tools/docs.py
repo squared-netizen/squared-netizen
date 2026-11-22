@@ -33,7 +33,7 @@ E = html.escape
 # relative to the repository. Patterns match the whole path (fnmatch: * also
 # crosses folders).
 SOURCES = {
-    "squared": (["README.md", "packages/package.squared-core/tree/squared/docs/*.md",
+    "squared": (["README.md", "docs/*.md", "packages/package.squared-core/tree/squared/docs/*.md",
                  "templates/*/tree/*.md", "kits/*/tree/*.md"], []),
     "sqcart": (["README.md", "v3/README.md", "docs/*.md"], []),
     "sqdrive": (["README.md", "docs/*.md"], []),
