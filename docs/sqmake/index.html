@@ -19,7 +19,7 @@
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqmake</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqmake/blob/main/README.md">on GitHub</a></p><h1 id="sqmake">sqmake</h1>
 <p>The build system of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>: it builds what a project's <code>build.lua</code> describes, on its own.</p>
-<p><b>Status: phases 1 and 2 of 4 built</b> (sqmake 0.3.0, with <code>call</code>): the engine, and C++ modules with the SDK's toolchain. Conventions and building sqterm come next (<a href="docs/spec.html">docs/spec.md §11</a>).</p>
+<p><b>Status: phases 1 and 2 of 4 built, phase 3 begun</b> (sqmake 0.5.0: <code>call</code>, the toolchain found with no shell, and the conventions' building blocks): the engine, and C++ modules with the SDK's toolchain. Conventions and building sqterm come next (<a href="docs/spec.html">docs/spec.md §11</a>).</p>
 <pre><code class="lang-sh">make CXX=&quot;clang++ -stdlib=libc++&quot;     # clang and libc++ 23; make test checks it
 build/sqmake                          # builds what build.lua&#x27;s default() names
 build/sqmake --explain                # each command that would run, and why
@@ -28,11 +28,21 @@ build/sqmake clean</code></pre>
 <p>A <code>build.lua</code>:</p>
 <pre><code class="lang-lua">toolchain.cxxflags = {&quot;-std=c++23&quot;, &quot;-O2&quot;}
 exe(&quot;hello&quot;, map(glob(&quot;src/*.cpp&quot;), rules.cxx))</code></pre>
-<p>C++ modules, with the SDK's own toolchain (squared's <code>build/toolchain.sh</code>):</p>
-<pre><code class="lang-lua">toolchain.sdk(&quot;squared/build/toolchain.sh&quot;)   -- clang 23, libc++ 23, bionic
+<p>C++ modules, with the SDK's own toolchain (squared's <code>build/toolchain.lua</code>, data that sqmake resolves itself: no shell, no wrapper scripts):</p>
+<pre><code class="lang-lua">toolchain.sdk(&quot;squared/build/toolchain.lua&quot;)  -- clang 23, libc++ 23, bionic
 lib(&quot;game&quot;, map(glob(&quot;src/**/*.cpp*&quot;), rules.module))</code></pre>
+<p>Libraries with usage requirements, a native library and an APK (apkpack), in a file a template's build includes:</p>
+<pre><code class="lang-lua">local greet = library{name = &quot;greet&quot;, srcs = glob(&quot;greet/src/*.cpp&quot;),
+                      public = {flags = {&quot;-Igreet/include&quot;}}}
+local so = shlib{name = &quot;game&quot;, srcs = glob(&quot;src/*.cpp&quot;), deps = {greet}}
+local game = apk{name = &quot;game&quot;, manifest = &quot;sq_android/AndroidManifest.xml&quot;, res = &quot;sq_android/res&quot;,
+                 assets = &quot;sq_android/assets&quot;, files = {{&quot;lib/arm64-v8a/libgame.so&quot;, so}}}
+-- `sqmake install` (a verb: every project&#x27;s same word; what it does is said here,
+-- or by a platform file): built first, then this command, attached to the terminal.
+verb(&quot;install&quot;, {needs = {game}, cmd = {&quot;mydevicetool&quot;, &quot;install&quot;, game}})</code></pre>
 <p>Each source's <code>export module</code> / <code>import</code> lines order the compiles; BMIs go in <code>build/modules/&lt;fingerprint&gt;/</code>; <code>import std</code> builds libc++'s std module once. Other tools call it as the SDK's tools call each other (squared's <code>docs/developer/sdk-tools.md</code>): one JSON request, one JSON response.</p>
-<pre><code class="lang-sh">sqmake describe                                     # what it can be asked
+<pre><code class="lang-sh">sqmake toolchain                                    # what it found, where, and why
+sqmake describe                                     # what it can be asked
 echo &#x27;{&quot;sq&quot;: 1, &quot;command&quot;: &quot;build&quot;, &quot;args&quot;: {&quot;dir&quot;: &quot;game&quot;}}&#x27; | sqmake call
 # {&quot;sq&quot;: 1, &quot;ok&quot;: true, &quot;result&quot;: {&quot;ran&quot;: 4, &quot;up_to_date&quot;: 2, &quot;explained&quot;: false}}</code></pre>
 <p><code>build</code>, <code>plan</code> (every target and its command, in order) and <code>clean</code>; progress on stderr, the response alone on stdout. A target is rebuilt when an output is missing, its command changed, or an input or a header its last compile read is newer. Commands run as argument lists, without a shell, each one's output printed whole.</p>
@@ -44,7 +54,7 @@ echo &#x27;{&quot;sq&quot;: 1, &quot;command&quot;: &quot;build&quot;, &quot;arg
 <p>sqmake stands alone. It builds what a project's <code>build.lua</code> describes, and depends on no other tool of the SDK: it reads nothing of sqpg's or square's and runs none of their commands. They, and any other program, may use it through its command line or its library; it never uses them.</p>
 <h2 id="licence">Licence</h2>
 <p>MIT: see <a href="https://github.com/squared-netizen/sqmake/blob/main/LICENSE">LICENSE</a>. Security issues: see <a href="https://github.com/squared-netizen/sqmake/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
-<footer class="foot">Last updated 2026-11-20. Written from each
+<footer class="foot">Last updated 2026-11-22. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

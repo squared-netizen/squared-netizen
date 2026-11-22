@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installing and starting apps from sqterm (draft) · sqterm</title>
+<meta name="description" content="sqterm: Installing and starting apps from sqterm (draft)">
+<link rel="stylesheet" href="../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../index.html">squared-netizen</a>
+  <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
+  <a href="../../../docs/index.html">Docs</a>
+  <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqterm</a> · <code>docs/install-api.md</code> · <a href="https://github.com/squared-netizen/sqterm/blob/main/docs/install-api.md">on GitHub</a></p><h1 id="installing-and-starting-apps-from-sqterm-draft">Installing and starting apps from sqterm (draft)</h1>
+<p>Status: agreed (2026-11-22). Nothing here is built yet.</p>
+<h2 id="what-it-is-for">What it is for</h2>
+<p><code>sqmake install</code> and <code>sqmake run</code> on the phone go through <code>tools/device.sh</code>, which needs adb: Wireless debugging on, paired, connected, and connected again each time Wi-Fi drops. Without adb, <code>install</code> hands the APK to <code>termux-open</code>, which sqterm does not have, and <code>run</code> cannot work at all.</p>
+<p>sqterm is itself an Android app, and every command typed in it runs as that app's own Linux user. So sqterm can do what adb is used for here, through Android's own APIs, with nothing to pair:</p>
+<ul><li>install an APK (Android asks the person to confirm, as for any installer)</li><li>start an installed app</li><li>uninstall one (Android asks)</li></ul>
+<p>Out of scope: reading another app's log. Android gives that only to adb (or to the system); a debug build's own log already reaches sqterm through DEV_LOG and the Console, without logcat.</p>
+<h2 id="the-parts">The parts</h2>
+<pre><code>sqmake run ─► squared/build/android.lua ─► sqterm-install ─► sqterm (the app)
+                (verbs: what run means)     sqterm-launch     PackageInstaller,
+                                            (commands)        startActivity</code></pre>
+<ol><li><b>The app's side</b>, in sqterm (<code>sq_android/</code>): a small service on a Unix socket, <code>$PREFIX/var/run/sqterm.sock</code>. Only sqterm's own user can open it (it sits in the app's private files), which is exactly the user every shell and tool in sqterm runs as; nothing else on the phone can reach it. It answers one JSON request with one JSON response, as the SDK's tools do (squared's <code>docs/developer/sdk-tools.md</code>), through sq.data.</li><li><b>The commands</b>, one job each, named as Termux names its own (<code>termux-open</code>, <code>termux-usb</code>): each sends one request to the socket and prints what comes back, and each is useful without sqmake. | command | does | |---|---| | <code>sqterm-open PATH\|URL</code> | hands a file or link to Android (an APK: the installer, as <code>termux-open</code>) | | <code>sqterm-install APK</code> | installs, and waits for Android's answer | | <code>sqterm-uninstall PACKAGE</code> | Android asks, then it is gone | | <code>sqterm-launch PACKAGE</code> | starts an installed app (its launcher activity) | | <code>sqterm-usb</code> | a USB device, by Android's permission prompt (as <code>termux-usb</code>) | | <code>sqterm-adb</code> | adb to a USB device through <code>sqterm-usb</code> (as <code>termux-adb</code>): logcat with no Wi-Fi | One static C++23 program, packaged like sqedit, installed under each name (it reads <code>argv[0]</code>), so the family stays one package.</li><li><b>The platform file</b> (<code>squared/build/android.lua</code>): inside sqterm (<code>SQTERM=1</code>, the commands installed) <code>install</code> is <code>sqterm-install</code>, <code>run</code> is <code>sqterm-install</code> then <code>sqterm-launch</code>, <code>uninstall</code> is <code>sqterm-uninstall</code>; <code>logcat</code> and <code>devices</code> stay adb's (<code>tools/device.sh</code>, which can reach adb through <code>sqterm-adb</code>). Elsewhere, <code>tools/device.sh</code> as now. A project's <code>app.device</code> still wins. Nothing else changes: not sqmake, not the template.</li></ol>
+<h2 id="the-requests">The requests</h2>
+<pre><code class="lang-json">{&quot;sq&quot;: 1, &quot;command&quot;: &quot;open&quot;, &quot;args&quot;: {&quot;target&quot;: &quot;/abs/path/file.pdf&quot;}}
+{&quot;sq&quot;: 1, &quot;command&quot;: &quot;install&quot;, &quot;args&quot;: {&quot;apk&quot;: &quot;/abs/path/build/game.apk&quot;}}
+{&quot;sq&quot;: 1, &quot;command&quot;: &quot;launch&quot;, &quot;args&quot;: {&quot;package&quot;: &quot;dev.me.game&quot;}}
+{&quot;sq&quot;: 1, &quot;command&quot;: &quot;uninstall&quot;, &quot;args&quot;: {&quot;package&quot;: &quot;dev.me.game&quot;}}
+{&quot;sq&quot;: 1, &quot;command&quot;: &quot;usb&quot;, &quot;args&quot;: {&quot;device&quot;: &quot;/dev/bus/usb/001/002&quot;}}
+{&quot;sq&quot;: 1, &quot;command&quot;: &quot;status&quot;, &quot;args&quot;: {}}</code></pre>
+<p><code>install</code> answers when Android has finished: <code>{&quot;ok&quot;: true, &quot;result&quot;: {&quot;package&quot;: ..., &quot;version_code&quot;: ...}}</code>, or an error with Android's own status and message (<code>STATUS_FAILURE_CONFLICT</code>: signed with another key; <code>STATUS_FAILURE_ABORTED</code>: the person said no). <code>status</code> says whether sqterm may install at all (below), so <code>sqmake devices</code> can say what to do. <code>usb</code> answers with a file descriptor for the device, passed over the socket (SCM_RIGHTS), after Android's permission prompt: what <code>sqterm-adb</code> and libusb need.</p>
+<h2 id="how-the-app-does-each-with-no-java">How the app does each, with no Java</h2>
+<p>squared's apps have no Java: the activity is a NativeActivity from the shim dex (<code>squared/tools/dexgen</code>). Native code reaches Android through JNI, on the activity's VM.</p>
+<ul><li><b>Install</b>: <code>PackageInstaller</code> sessions. Create a session, write the APK's bytes into it (<code>openWrite</code>, from native code: no file has to be shared, so no FileProvider and no content:// URI), then commit with an IntentSender. The IntentSender is a PendingIntent to squared's shim receiver, <code>dev.squared.ResultReceiver</code>, whose <code>onReceive</code> is native: the result arrives whether or not sqterm is in front, and brings nothing to the front (the activity's <code>onNewIntent</code> would, <code>singleTask</code> as it is). <code>STATUS_PENDING_USER_ACTION</code> carries Android's confirmation screen, which sqterm starts; the final status arrives the same way, and the request is answered then.</li><li><b>Open</b>: an ACTION_VIEW intent. A file is offered through a small ContentProvider in the shim dex (one class, read-only, for the one file named), since Android gives other apps no file:// paths.</li><li><b>USB</b>: <code>UsbManager.requestPermission</code>, then <code>openDevice</code>; its file descriptor goes back over the socket.</li><li><b>Start</b>: <code>PackageManager.getLaunchIntentForPackage</code>, then <code>startActivity</code>. sqterm is in front when the person types, so Android lets it start another app.</li><li><b>Uninstall</b>: <code>PackageInstaller.uninstall</code> with the same IntentSender; Android asks.</li></ul>
+<p>What the shim dex needs: <code>dev.squared.ResultReceiver</code>, a BroadcastReceiver whose <code>onReceive(Context, Intent)</code> is native (dexgen writes it; 256 bytes more in the dex). What the manifest needs: <code>REQUEST_INSTALL_PACKAGES</code> (and <code>REQUEST_DELETE_PACKAGES</code>). The first time, Android sends the person to Settings, "Install unknown apps", to allow sqterm; <code>status</code> reports whether that has been done.</p>
+<h2 id="the-one-real-limit-a-prompt-on-every-install">The one real limit: a prompt on every install</h2>
+<p>Android 12 lets an installer update an app it installed itself without asking again (<code>setRequireUserAction(USER_ACTION_NOT_REQUIRED)</code>), but only for an installer that targets a recent SDK (30 or later; 33 and 34 tighten it). sqterm targets 28, so every <code>sqmake install</code> shows Android's "Update this app?" once, one tap. That is still no adb, nothing to pair, and works offline; moving sqterm's target SDK up removes the tap, and is its own decision (the foreground service rules, storage access).</p>
+<h2 id="order-of-work">Order of work</h2>
+<ol><li>The shim's <code>ResultReceiver</code> (squared, dexgen), and the manifest permissions and receiver.</li><li>The socket service in <code>sq_android/</code>, with <code>status</code> and <code>launch</code> first (no confirmation flow), then <code>install</code> and <code>uninstall</code>.</li><li>The commands (one package), <code>sqterm-launch</code> and <code>sqterm-install</code> first, and <code>squared/build/android.lua</code> using them inside sqterm.</li><li>On the phone: <code>sqmake run</code> with Wireless debugging off.</li><li>Later: <code>sqterm-open</code> (the ContentProvider), then <code>sqterm-usb</code> and <code>sqterm-adb</code>.</li></ol>
+<h2 id="decisions">Decisions</h2>
+<ul><li>Decided: the commands are named as Termux's are, <code>sqterm-*</code>, one job each.</li><li>Decided: one tap per install is fine for now; raising sqterm's target SDK is its own decision, later.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-22. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>
