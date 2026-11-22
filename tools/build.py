@@ -150,7 +150,9 @@ a deliberate step of its own, never part of a build.</p>
 <h2 id="sdk">The squared SDK</h2>
 <p>The <b>squared SDK</b> is a framework, the tools that create, manage and build what is written on it,
 and the command-line environment they run in. The names follow one rule: <b>squared</b> is the framework,
-<b>square</b> is the manager, and <b>squared-</b><i>name</i> are the framework's add-on packages.</p>
+<b>square</b> is the manager, and <b>squared-</b><i>name</i> are the framework's add-on packages. A <i>package</i>
+means only these: an application such as sqterm can have a template, and a kit wraps a third-party
+library. What sqterm's <code>pkg</code> installs are <i>sqterm packages</i>, programs for its prefix.</p>
 <h3>The framework</h3>
 <p><a href="projects/squared.html">squared-core</a> is what every application is written against. Add-on
 packages extend it in one field each, and are expected to be substantial; what all or nearly all of them
