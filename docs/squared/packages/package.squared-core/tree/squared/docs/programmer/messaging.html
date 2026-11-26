@@ -13,6 +13,7 @@
   <nav><a href="../../../../../../../../index.html">Main page</a><a href="../../../../../../../../index.html#projects">Projects</a>
   <a href="../../../../../../../../docs/index.html">Docs</a>
   <a href="../../../../../../../../tracker.html">Sprint tracker</a>
+  <a href="../../../../../../../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../../../../../../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
@@ -180,7 +181,7 @@ ui.drain( screens );</code></pre>
     void event( const sq::messaging::Received &amp;received ) noexcept; // an event came
 };</code></pre>
 <p>A <code>Received</code> text's bytes are its <code>data</code>, all of it, from 0; the telegram's own <code>DataRef</code> is where it was in the ring, not in <code>data</code>.</p>
-<p><b>Capacities</b> are compile-time knobs, set as make variables in a project (<code>make TELEGRAPH_RING=512</code>; the framework and the app are built with the same ones) or <code>-DSQUARED_TELEGRAPH_RING=512</code> by hand: <code>TELEGRAPH_RING</code> 256 telegrams each way, <code>TELEGRAPH_DATA</code> 8 KB of text each way, <code>TELEGRAPH_PENDING</code> 256 held states, <code>TELEGRAPH_CACHE</code> 512 values with <code>TELEGRAPH_CACHE_TEXT</code> 8 KB, <code>TELEGRAPH_LISTS</code> 16 of <code>TELEGRAPH_LIST_VIEW</code> 128 rows, <code>TELEGRAPH_WAIT_MS</code> 100 ms of waiting for room (0: never wait), <code>TELEGRAPH_NAMES</code> 8 KB of names for the dev tools (Console builds only: the table is theirs, not the line's), <code>TELEGRAPH_SNAPSHOTS</code> 4 snapshots (their buffers are not sized by a knob: they grow as the model needs), <code>TELEGRAPH_WATCHES</code> 4 watched descriptors. <code>RING</code>, <code>DATA</code>, <code>PENDING</code> and <code>CACHE</code> are powers of two; checked when the framework compiles. <code>make status</code> shows the ones set.</p>
+<p><b>Capacities</b> are compile-time knobs, set as make variables in a project (<code>-DSQUARED_TELEGRAPH_RING=512</code> in the build.lua flags; the framework and the app are built with the same ones) or <code>-DSQUARED_TELEGRAPH_RING=512</code> by hand: <code>TELEGRAPH_RING</code> 256 telegrams each way, <code>TELEGRAPH_DATA</code> 8 KB of text each way, <code>TELEGRAPH_PENDING</code> 256 held states, <code>TELEGRAPH_CACHE</code> 512 values with <code>TELEGRAPH_CACHE_TEXT</code> 8 KB, <code>TELEGRAPH_LISTS</code> 16 of <code>TELEGRAPH_LIST_VIEW</code> 128 rows, <code>TELEGRAPH_WAIT_MS</code> 100 ms of waiting for room (0: never wait), <code>TELEGRAPH_NAMES</code> 8 KB of names for the dev tools (Console builds only: the table is theirs, not the line's), <code>TELEGRAPH_SNAPSHOTS</code> 4 snapshots (their buffers are not sized by a knob: they grow as the model needs), <code>TELEGRAPH_WATCHES</code> 4 watched descriptors. <code>RING</code>, <code>DATA</code>, <code>PENDING</code> and <code>CACHE</code> are powers of two; checked when the framework compiles. <code>make status</code> shows the ones set.</p>
 <h2 id="the-models-thread">The model's thread</h2>
 <p><code>sq::messaging::ModelRunner&lt;M&gt;</code> (<code>squared/messaging/model_runner.cppm</code>) runs a model at the model's end of a line.</p>
 <pre><code class="lang-cpp">ModelRunner&lt;Shop&gt; runner( *line, std::ref( database ) );   // its own thread
@@ -203,6 +204,24 @@ void readable( Telegraph &amp;t, int fd ) {
 }</code></pre>
 <div class="tablewrap"><table><thead><tr><th>Call or hook</th><th>Does</th></tr></thead><tbody><tr><td><code>t.watch( fd )</code></td><td>wake the model when <code>fd</code> is readable, closed or in error. True when watched (or already); false for a model with no <code>readable</code>, a negative <code>fd</code>, or <code>TELEGRAPH_WATCHES</code> (4) watched already</td></tr><tr><td><code>t.unwatch( fd )</code></td><td>stop; nothing for one not watched. Before closing the descriptor</td></tr><tr><td><code>t.watching()</code></td><td>how many are watched</td></tr><tr><td><code>readable( t, fd )</code></td><td>in the next turn, after <code>receive</code>: <code>fd</code> has something to read, or has closed (a read gives 0 or <code>EIO</code>), or failed</td></tr></tbody></table></div>
 <p>The model owns the descriptor: the Telegraph only polls it, beside its own wake. A descriptor that closed stays ready, so <code>readable</code> unwatches it (or the model is called every turn). On its own thread, a model the UI keeps busy still hears from its descriptors: each turn looks at them. Inline, <code>turn()</code> looks at them once each frame. The runner forgets every watch when it ends.</p>
+<h2 id="a-model-made-of-parts">A model made of parts</h2>
+<p>An app runs one model (<code>App::run</code>). One that does several things, a shell, a list of workspaces, an editor, can be several parts, each a model of its own in its own file, put together as one: <code>sq::messaging::Composite&lt;Parts...&gt;</code> (<code>squared/messaging/composite.cppm</code>).</p>
+<pre><code class="lang-cpp">struct Shell {
+    static constexpr std::array takes{ term_input.name(), term_size.name() };
+    explicit Shell( Places places );
+    void start( Telegraph &amp;t );
+    void receive( Telegraph &amp;t, const Received &amp;r );
+    void readable( Telegraph &amp;t, int fd );
+    bool watches( int fd ) const { return fd == pty_.fd(); }
+};
+struct Workspaces { static constexpr std::array takes{ ws_open.name(), ws_new.name() }; /* ... */ };
+struct Editor { /* no takes: every name no other part takes */ };
+
+using Model = sq::messaging::Composite&lt;Shell, Workspaces, Editor&gt;;
+app.run&lt;Model&gt;( places, sq::messaging::no_args, sq::messaging::no_args );</code></pre>
+<div class="tablewrap"><table><thead><tr><th>A part has</th><th>What the composite does with it</th></tr></thead><tbody><tr><td><code>receive</code> (each part)</td><td>a telegram goes to the part whose <code>takes</code> holds its name; a saved value too</td></tr><tr><td><code>static constexpr</code> <code>takes</code>, an array of <code>Name</code>s</td><td>its names. At most one part has none: it has every name no other part takes, as a lone model does. Two parts taking one name does not compile</td></tr><tr><td><code>start</code>, <code>tick</code>, <code>low_memory</code>, <code>background</code>, <code>foreground</code>, <code>save</code></td><td>called on each part that has it, in the order the parts are named</td></tr><tr><td><code>wake_at()</code> and <code>due</code></td><td>the composite wakes at the earliest of its parts' times, and calls <code>due</code> on each part whose time has come</td></tr><tr><td><code>readable</code> and <code>bool watches( int fd ) const</code></td><td>a ready descriptor goes to the part that says it is its own; <code>watches</code> is needed when more than one part reads. One no part claims is unwatched, so it cannot wake the model for ever</td></tr></tbody></table></div>
+<p><b>Made in place.</b> <code>Composite&lt;A, B, C&gt;()</code> makes each part with no arguments; <code>Composite&lt;A, B, C&gt;( a, b, c )</code> makes each from its own, in order, <code>sq::messaging::no_args</code> for a part made with none. Parts are made where they live, so a part need not be movable (a pty, a thread's handle). They are made in order on the model's thread and destroyed in reverse. <code>model.part&lt;B&gt;()</code> reaches one by its type.</p>
+<p>Costs: nothing allocated; a telegram is matched against each part's <code>takes</code> in turn (a few names each), and the hooks a part lacks are not called at all. Tested in <code>messaging/test/composite_test.cpp</code>.</p>
 <h2 id="lists">Lists</h2>
 <p>A list of any length costs the UI only the rows on screen. The model holds the items; the list widget asks for the rows it shows, and the model sends those rows and their items' fields, nothing else. For a list named <code>inventory</code>:</p>
 <div class="tablewrap"><table><thead><tr><th>Telegram</th><th>Means</th></tr></thead><tbody><tr><td><code>state inventory.count 300</code></td><td>how many rows</td></tr><tr><td><code>do inventory.view 20 52</code></td><td>the widget shows rows 20 to 52, a screen above and below included</td></tr><tr><td><code>do inventory.view 1 0</code></td><td>a new widget, which knows nothing (last before first): the model forgets what it sent and sends the count, so the next view is answered in full</td></tr><tr><td><code>state inventory[20] 17</code></td><td>row 20 is the item with uid 17 (row 0 is written <code>inventory</code>)</td></tr><tr><td><code>state item[17].name &quot;fur coat&quot;</code></td><td>that item's fields, by its uid</td></tr></tbody></table></div>
@@ -234,7 +253,7 @@ if( const auto shot = ui.snapshot( screen ) ) {
 <p>A snapshot is bytes: the model and the actor that draws it agree on what they mean (<code>term::ScreenPublisher</code> writes a terminal's screen, <code>term::ScreenView</code> reads it). The UI may skip publishes, so each must stand alone; the newest always arrives. Neither side ever waits. Three buffers a key, each as large as the largest snapshot written into it.</p>
 <h2 id="dependencies">Dependencies</h2>
 <p>The standard library; <code>time</code> (the runner's <code>Timepiece</code> and clock); and POSIX as Linux and Android both have it: <code>eventfd</code> and <code>poll</code> for the wakes, <code>pthread_setname_np</code> for the thread's name. An app that uses <code>ModelRunner</code> links with <code>-pthread</code> (the project's make file does).</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

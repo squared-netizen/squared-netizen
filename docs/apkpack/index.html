@@ -13,6 +13,7 @@
   <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
   <a href="../../docs/index.html">Docs</a>
   <a href="../../tracker.html">Sprint tracker</a>
+  <a href="../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
@@ -25,7 +26,7 @@
 <div class="tablewrap"><table><thead><tr><th>Command</th><th>Replaces</th><th>Does</th></tr></thead><tbody><tr><td><code>apkpack keygen</code></td><td>keytool</td><td>an ECDSA P-256 key and a self-signed certificate</td></tr><tr><td><code>apkpack sign</code>, <code>apkpack verify</code></td><td>apksigner</td><td>APK Signature Scheme v2 (Android 7.0 and later)</td></tr><tr><td><code>apkpack add</code></td><td>zip, zipalign</td><td>lib/ and classes.dex, stored entries aligned (4 bytes, 16 KB for a stored .so)</td></tr><tr><td><code>apkpack link</code></td><td>aapt2, android.jar</td><td>the manifest and XML resources as binary XML, resources.arsc, assets</td></tr><tr><td><code>apkpack dump</code></td><td>aapt2 dump</td><td>the binary manifest as text</td></tr><tr><td><code>apkpack explain</code></td><td>none</td><td>what a dex shim does, its bytecode and spec references, as JSON</td></tr></tbody></table></div>
 <p>The framework attribute IDs android.jar supplied come from AOSP's public tables (Apache-2.0), pinned as a source. Dex code is never compiled here: dexgen writes squared's shims, and apkpack packs them.</p>
 <h2 id="using-it">Using it</h2>
-<pre><code class="lang-sh">make CXX=clang++                          # clang and libc++ 23; make test checks it
+<pre><code class="lang-sh">CXX=clang++ sqmake                        # clang and libc++ 23 (build.lua); sqmake test checks it
 apkpack keygen ~/.android/apkpack.pem     # a new ECDSA P-256 key and certificate
 apkpack sign KEY unsigned.apk app.apk     # APK Signature Scheme v2
 apkpack verify app.apk                    # the signature checked, the signer printed
@@ -33,16 +34,16 @@ apkpack link -o app.apk --manifest AndroidManifest.xml --res res --assets assets
              --min-sdk 28 --target-sdk 28 [--debuggable]   # in place of aapt2
 apkpack add app.apk -C build lib/arm64-v8a/libapp.so classes.dex  # in place of zip
 apkpack dump app.apk                      # the manifest, as Android reads it</code></pre>
-<p><code>link</code> compiles what squared's templates use: the manifest, <code>values/</code> (string, color, bool, integer, dimen), XML files (drawables, adaptive icons, layouts) and other files (PNG) as they are, with densities, <code>vN</code>, night, land/port and language qualifiers. Every <code>android:</code> attribute is typed from Android's own table of public attributes, generated from AOSP (<code>tools/gen_android_table.py</code>, <code>NOTICE.android</code>), so no android.jar. Every entry is stored, and aligned as zipalign aligns it (4 bytes; 16384 for a <code>.so</code>). <code>assets/</code> goes in whole: every file, hidden ones and folders starting with <code>_</code> too, which aapt2 left out without a word. When squared's asset index (<code>assets/SQ-INF/index</code>) is there, <code>link</code> checks it against the files and fails, naming each difference, when they disagree. <code>make test</code> builds a test app with apkpack and, on CI, with aapt2, and they must agree on everything Android reads.</p>
+<p><code>link</code> compiles what squared's templates use: the manifest, <code>values/</code> (string, color, bool, integer, dimen), XML files (drawables, adaptive icons, layouts) and other files (PNG) as they are, with densities, <code>vN</code>, night, land/port and language qualifiers. Every <code>android:</code> attribute is typed from Android's own table of public attributes, generated from AOSP (<code>tools/gen_android_table.py</code>, <code>NOTICE.android</code>), so no android.jar. Every entry is stored, and aligned as zipalign aligns it (4 bytes; 16384 for a <code>.so</code>). <code>assets/</code> goes in whole: every file, hidden ones and folders starting with <code>_</code> too, which aapt2 left out without a word. When squared's asset index (<code>assets/SQ-INF/index</code>) is there, <code>link</code> checks it against the files and fails, naming each difference, when they disagree. <code>sqmake test</code> builds a test app with apkpack and, on CI, with aapt2, and they must agree on everything Android reads.</p>
 <p><code>sign</code> writes only a v2 signature, which Android 7.0 and later check, so an app signed by apkpack needs Android 7.0 or later. squared's apps need Android 9.</p>
 <p><b>A new key, a new install.</b> apkpack signs with ECDSA P-256 keys it makes, not with an older key (decided 2026-11-20). Android refuses an update signed with another key, so an app installed from an older build (Termux's debug keystore) is uninstalled once and installed again.</p>
-<p>A key file is PEM: an ECDSA P-256 private key (PKCS#8 or SEC 1, not encrypted) and its certificate, as <code>keygen</code> writes it. <code>make test</code> checks every APK apkpack signs with its own <code>verify</code>, an independent checker on Python's cryptography (<code>tests/v2check.py</code>) and, where it is on PATH, the Android SDK's <code>apksigner</code>.</p>
+<p>A key file is PEM: an ECDSA P-256 private key (PKCS#8 or SEC 1, not encrypted) and its certificate, as <code>keygen</code> writes it. <code>sqmake test</code> checks every APK apkpack signs with its own <code>verify</code>, an independent checker on Python's cryptography (<code>tests/v2check.py</code>) and, where it is on PATH, the Android SDK's <code>apksigner</code>.</p>
 <h2 id="the-plan">The plan</h2>
 <ol><li><b>Sign</b> (done): keygen, sign, verify. The build no longer needs Java.</li><li><b>Package</b> (done): the zip writer with alignment.</li><li><b>Link</b> (done): binary XML, resources.arsc, the attribute table. No aapt2 or android.jar.</li><li><b>Switch</b>: squared's template calls apkpack. No SDK at all.</li></ol>
 <p>Each phase is checked against the tool it replaces, and on the phone by installing and launching the APK.</p>
 <h2 id="licence">Licence</h2>
 <p>MIT: see <a href="https://github.com/squared-netizen/apkpack/blob/main/LICENSE">LICENSE</a>. Security issues: see <a href="https://github.com/squared-netizen/apkpack/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>From a clone to the demo app · squared-pg</title>
-<meta name="description" content="squared-pg: From a clone to the demo app">
+<title>From sqterm to an app on the phone · squared-pg</title>
+<meta name="description" content="squared-pg: From sqterm to an app on the phone">
 <link rel="stylesheet" href="../../../../assets/style.css">
 </head>
 <body>
@@ -13,116 +13,51 @@
   <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
   <a href="../../../../docs/index.html">Docs</a>
   <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="../../../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared-pg</a> · <code>docs/usermanual/demo-from-scratch.md</code> · <a href="https://github.com/squared-netizen/squared-pg/blob/main/docs/usermanual/demo-from-scratch.md">on GitHub</a></p><hr>
-<p>title: From a clone to the demo app tags: [usermanual, android, demo]</p>
+<p>title: From sqterm to an app on the phone tags: [usermanual]</p>
 <hr>
-<h1 id="from-a-clone-to-the-demo-app">From a clone to the demo app</h1>
-<p>Every step from an empty Termux to the demo app running on the phone: clone, assemble, build, install the tool, generate an Android workspace, build it, and get the demo app's own code. Run each command in bash; nothing here needs a computer, adb or Wi-Fi.</p>
-<p>The network is needed for installing packages (step 1), cloning (steps 2 and</p>
-<ol><li>and <code>tools/bootstrap.sh</code> (step 3). Nothing after that uses it.</li></ol>
-<div class="tablewrap"><table><thead><tr><th>Step</th><th>What you end up with</th></tr></thead><tbody><tr><td>1. Termux packages</td><td>a compiler, <code>make</code>, git, the Android SDK and NDK, and the packaging tools</td></tr><tr><td>2. Clone</td><td><code>~/projects/squared-pg</code></td></tr><tr><td>3. Bootstrap</td><td>the framework (<code>squared</code>) and <code>sqcart</code> cloned inside it</td></tr><tr><td>4. Build</td><td><code>build/sqpg</code>, tested</td></tr><tr><td>5. Initialize</td><td><code>~/sqsysroot</code>, with <code>sqpg</code> and <code>sqcart</code> on your PATH</td></tr><tr><td>6. Generate</td><td>an Android workspace in the sandbox, built and installed</td></tr><tr><td>7. The demo app</td><td>the demo's own code from <code>squared-examples</code>, built and installed</td></tr></tbody></table></div>
-<h2 id="1-termux-packages">1. Termux packages</h2>
-<p>Termux's own repository has most of the Android tooling. The SDK, with the NDK and the platform <code>android.jar</code>, comes from the <a href="https://termuxvoid.github.io">Termux Void</a> repository, which is added once:</p>
-<pre><code class="lang-bash">curl -sL https://github.com/termuxvoid/repo/raw/main/install.sh | bash</code></pre>
-<p>That pipes a script from the network into bash. Download it and read it first if you prefer: <code>curl -sLO https://github.com/termuxvoid/repo/raw/main/install.sh</code>.</p>
-<p>Then:</p>
-<pre><code class="lang-bash">pkg install git clang make
-pkg install android-sdk ndk-sysroot aapt2 apksigner openjdk-17 netcat-openbsd</code></pre>
-<div class="tablewrap"><table><thead><tr><th>Package</th><th>From</th><th>For</th></tr></thead><tbody><tr><td><code>git</code>, <code>clang</code>, <code>make</code></td><td>Termux</td><td>building squared-pg and every workspace</td></tr><tr><td><code>android-sdk</code></td><td>Termux Void</td><td>the NDK and the platforms, under <code>$PREFIX/opt/android-sdk/</code></td></tr><tr><td><code>ndk-sysroot</code></td><td>Termux</td><td>NDK headers and libraries for Termux's own clang</td></tr><tr><td><code>aapt2</code>, <code>apksigner</code></td><td>Termux</td><td>packaging and signing the APK</td></tr><tr><td><code>openjdk-17</code></td><td>Termux</td><td><code>keytool</code>, which creates the debug signing key</td></tr><tr><td><code>netcat-openbsd</code></td><td>Termux</td><td><code>nc</code>, to read a development build's log</td></tr></tbody></table></div>
-<p>A workspace looks for the NDK and <code>android.jar</code> here, and the first match wins:</p>
-<div class="tablewrap"><table><thead><tr><th>What</th><th>Where it looks</th></tr></thead><tbody><tr><td>NDK</td><td><code>$ANDROID_NDK_HOME</code>, then <code>$PREFIX/opt/android-sdk/ndk/&lt;newest version&gt;</code>, then <code>$ANDROID_HOME/ndk/*</code>, <code>$ANDROID_SDK_ROOT/ndk/*</code></td></tr><tr><td><code>android.jar</code></td><td><code>$PREFIX/opt/android-sdk/platforms/android-*/</code>, then the same under <code>$ANDROID_HOME</code> and <code>$ANDROID_SDK_ROOT</code></td></tr></tbody></table></div>
-<p>With <code>android-sdk</code> installed, the second NDK location is the one found (<code>ndk/29.0.14206865</code> on the phone this page was written on). Step 6 runs <code>make android-status</code>, which reports what the build found and what it is missing. That is the check for this step.</p>
-<h2 id="2-clone-squared-pg">2. Clone squared-pg</h2>
-<pre><code class="lang-bash">mkdir -p ~/projects
-git clone https://github.com/squared-netizen/squared-pg ~/projects/squared-pg
-cd ~/projects/squared-pg</code></pre>
-<p><code>gh repo clone squared-netizen/squared-pg</code> does the same if you use the GitHub CLI.</p>
-<h2 id="3-bootstrap-fetch-the-framework-and-sqcart">3. Bootstrap: fetch the framework and sqcart</h2>
-<p>squared-pg is three repositories. <code>tools/bootstrap.sh</code> clones the other two into place:</p>
-<pre><code class="lang-bash">tools/bootstrap.sh</code></pre>
-<div class="tablewrap"><table><thead><tr><th>Repository</th><th>Lands in</th><th>What it is</th></tr></thead><tbody><tr><td>sqcart</td><td><code>sqcart/</code></td><td>the cartridge library and tool, compiled into the build</td></tr><tr><td>squared</td><td><code>resources/.squared/</code></td><td>the framework, templates, kits and packages</td></tr></tbody></table></div>
-<p><code>resources/templates</code>, <code>resources/kits</code>, <code>resources/packages</code> and <code>resources/assets</code> are links into <code>resources/.squared</code>.</p>
-<p>It ends with:</p>
-<pre><code class="lang-text">Assembled. Build with:
-
-  make -j4 &amp;&amp; make check</code></pre>
-<p><b>Which framework you get.</b> Each component is checked out at the revision pinned in <code>SQUARED_VERSION</code> and <code>SQCART_VERSION</code>, on a branch named <code>pin/&lt;revision&gt;</code>. If the pin is older than the framework you want (check with <code>tools/bootstrap.sh --check</code>), move both components to their latest commits:</p>
-<pre><code class="lang-bash">tools/bootstrap.sh --latest</code></pre>
-<p>That also records the new revisions in the two version files. Commit those files: they are what a fresh clone gets.</p>
-<h2 id="4-build">4. Build</h2>
-<pre><code class="lang-bash">make -j4 &amp;&amp; make check</code></pre>
-<p>This builds the engine, the <code>sqpg</code> CLI and the tests, then runs them. Progress prints as it goes. <code>make smoke</code> additionally generates a terminal project, builds it and runs it.</p>
-<h2 id="5-initialize-install-the-tool">5. Initialize: install the tool</h2>
-<p>Run this from the checkout:</p>
-<pre><code class="lang-bash">./build/sqpg initialize</code></pre>
-<pre><code class="lang-text">environment /data/data/com.termux/files/home/sqsysroot
-  project    promoted work; version controlled
-  sandbox    experiments; nothing here is irreplaceable
-  .sqpg      tools, resources and workflows
-...
-put the tool on your PATH:
-  ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqpg /data/data/com.termux/files/usr/bin/sqpg
-  ln -sf /data/data/com.termux/files/home/sqsysroot/.sqpg/bin/sqcart /data/data/com.termux/files/usr/bin/sqcart</code></pre>
-<p>Run the two <code>ln -sf</code> lines it prints. They are the only change made outside <code>~/sqsysroot</code>, and no shell profile is edited.</p>
-<pre><code class="lang-bash">ln -sf &quot;$HOME/sqsysroot/.sqpg/bin/sqpg&quot; &quot;$PREFIX/bin/sqpg&quot;
-ln -sf &quot;$HOME/sqsysroot/.sqpg/bin/sqcart&quot; &quot;$PREFIX/bin/sqcart&quot;
-sqpg doctor        # what is installed, and whether it is stale</code></pre>
-<p>The environment:</p>
-<pre><code class="lang-text">~/sqsysroot/
-  sandbox/    try things here; nothing in it is irreplaceable
-  project/    work worth keeping; version controlled
-  .sqpg/      the installed sqpg, sqcart, resources and workflows</code></pre>
-<p><code>sqpg</code> generates from <code>~/sqsysroot/.sqpg/resources</code>, which is a copy, not from the checkout. Step 8 covers keeping that copy current.</p>
-<h2 id="6-generate-the-workspace-the-demo-was-made-from">6. Generate the workspace the demo was made from</h2>
-<p>The workspace's own record, <code>.squared/metadata.json</code>, lists the template, any packages and the parameters:</p>
-<pre><code class="lang-bash">cd ~/sqsysroot/sandbox
+<h1 id="from-sqterm-to-an-app-on-the-phone">From sqterm to an app on the phone</h1>
+<p>Every step from sqterm to an app of your own running on the phone: install the tools, generate an Android workspace, build it and install it. Nothing here needs a computer, adb or Wi-Fi; the network is needed only for <code>pkg</code>.</p>
+<div class="tablewrap"><table><thead><tr><th>Step</th><th>What you end up with</th></tr></thead><tbody><tr><td>1. Install</td><td><code>sqpg</code>, <code>sqmake</code> and squared, from sqterm's package repository</td></tr><tr><td>2. Generate</td><td>an Android workspace, <code>~/projects/demo</code></td></tr><tr><td>3. Build and run</td><td>the template's starter app, installed and started</td></tr><tr><td>4. The demo app</td><td>the demo's own code from <code>squared-examples</code></td></tr></tbody></table></div>
+<p>(Working on squared-pg itself, from a clone: BUILDING.md.)</p>
+<h2 id="1-install">1. Install</h2>
+<pre><code class="lang-bash">pkg install squared-pg sqmake squared</code></pre>
+<p>sqpg and its templates, kits and packages; sqmake, which builds; and the squared framework, which every workspace builds against (<code>$PREFIX/share/squared/&lt;version&gt;</code>). sqpg keeps no environment of its own: there is nothing to initialize.</p>
+<h2 id="2-generate">2. Generate</h2>
+<pre><code class="lang-bash">mkdir -p ~/projects &amp;&amp; cd ~/projects
 sqpg plan demo -t template.android.cpp -p package_name=com.example.demo
 sqpg new  demo -t template.android.cpp -p package_name=com.example.demo</code></pre>
 <p><code>plan</code> prints every file that would be written and who owns it, and changes nothing. <code>new</code> writes the workspace to <code>./demo</code>.</p>
-<div class="tablewrap"><table><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>demo</code></td><td>the project name: library name (<code>libdemo.so</code>), C++ namespace and log tag; a C identifier</td></tr><tr><td><code>-t template.android.cpp</code></td><td>the shape: NativeActivity, C++20, no Java, no Gradle</td></tr><tr><td><code>--package package.squared-core</code></td><td>optional: vendors the framework into <code>demo/squared/</code>, for a workspace that changes squared itself, or that builds with make. Without it, sqmake builds against the installed squared (<code>$PREFIX/share/squared/&lt;version&gt;</code>; in sqterm, <code>pkg install squared</code>), and its compiles are shared with every other workspace through sqmake's cache</td></tr><tr><td><code>-p package_name=com.example.demo</code></td><td>the Android application id; must be unique on the device</td></tr></tbody></table></div>
-<p>Optional: <code>-p app_label=&quot;Squared Demo&quot;</code> sets the launcher label, which otherwise defaults to the project name. Leave out <code>--platform</code>. It only filters resources, and the demo was generated without it.</p>
-<p>Build and install:</p>
+<div class="tablewrap"><table><thead><tr><th>Part</th><th>Meaning</th></tr></thead><tbody><tr><td><code>demo</code></td><td>the project name: library name (<code>libdemo.so</code>), C++ namespace and log tag; a C identifier</td></tr><tr><td><code>-t template.android.cpp</code></td><td>the shape: NativeActivity, C++23, no Java, no Gradle</td></tr><tr><td><code>-p package_name=com.example.demo</code></td><td>the Android application id; must be unique on the device</td></tr><tr><td><code>--package package.squared-core</code></td><td>optional: vendors the framework into <code>demo/squared/</code>, for a workspace that changes squared itself</td></tr></tbody></table></div>
+<p>Optional: <code>-p app_label=&quot;Squared Demo&quot;</code> sets the launcher label, which otherwise defaults to the project name.</p>
+<p>The workspace is a cartridge folder: <code>SQ-INF/manifest.json</code> says what it was made from and where its parts are (square reads it), and <code>SQ-INF/files.json</code> lists every generated file with its class and checksum.</p>
+<h2 id="3-build-and-run">3. Build and run</h2>
 <pre><code class="lang-bash">cd demo
 sqmake                  # build/libdemo.so, packaged and signed into build/demo.apk
-sqmake install          # hand the APK to Android&#x27;s installer
-sqmake run              # install, then start it
+sqmake install          # hand the APK to Android&#x27;s installer (sqterm-install)
+sqmake run              # install, then start it (sqterm-launch)
 sqmake --debug run      # the build you debug with, in build/debug/</code></pre>
-<p><code>app.squared</code> in <code>build.lua</code> picks the squared it builds against: a version (<code>&quot;1.0.0&quot;</code>) for that installed copy, or a folder for a vendored one; unset, <code>./squared</code> when there is one, else the newest installed. With <code>--package package.squared-core</code> the workspace also builds with make (<code>make apk</code>, <code>make install</code>); without it, make says to use sqmake.</p>
-<p>What runs is the template's starter app. The screen is dark green if the bundled skin was found and dark red if not, and the colour changes when you touch it. That proves the whole chain: window, EGL, events, update, render, assets. The demo's screens are not in the template. They live in the <code>squared-examples</code> repository (step 7).</p>
-<p><b>A name is used once.</b> <code>sqpg new</code> refuses a directory that already exists. To generate again, remove the old one or pick a new name:</p>
-<pre><code class="lang-bash">cd ~/sqsysroot/sandbox &amp;&amp; sqpg new test1 -t template.android.cpp -p package_name=com.example.test1</code></pre>
-<h2 id="7-the-demo-app-itself">7. The demo app itself</h2>
+<p>Android asks once per install; the first time, it sends you to Settings, Install unknown apps, to allow sqterm.</p>
+<p><code>app.squared</code> in <code>build.lua</code> picks the squared it builds against: a version (<code>&quot;1.0.0&quot;</code>) for that installed copy, or a folder for a vendored one; unset, <code>./squared</code> when there is one, else the newest installed. Its compiles are shared with every other workspace through sqmake's cache.</p>
+<p>What runs is the template's starter app. The screen is dark green if the bundled skin was found and dark red if not, and the colour changes when you touch it. That proves the whole chain: window, EGL, events, update, render, assets.</p>
+<p><b>A name is used once.</b> <code>sqpg new</code> refuses a folder that already exists. To generate again, remove the old one or pick a new name.</p>
+<h2 id="4-the-demo-app-itself">4. The demo app itself</h2>
 <p>The demo is kept in <code>squared-examples</code>, with its framework copy committed beside it, so a clone builds with nothing else:</p>
-<pre><code class="lang-bash">cd ~/sqsysroot/project
+<pre><code class="lang-bash">cd ~/projects
 git clone https://github.com/squared-netizen/squared-examples
 cd squared-examples/demo
-make apk &amp;&amp; make install</code></pre>
-<p>A development build sends its log, a crash backtrace and frame-allocation reports to a port on this device. Start the listener first, in a second Termux session:</p>
-<pre><code class="lang-bash">nc -klu 5555</code></pre>
-<p>Then build and install in one step:</p>
-<pre><code class="lang-bash">make DEV_LOG=1 install</code></pre>
-<blockquote><p>[!warning] <code>make DEV_LOG=1 apk &amp;&amp; make install</code> installs the wrong build <code>install</code> rebuilds with the flags it is given. Without <code>DEV_LOG=1</code> on the <code>install</code> line it quietly rebuilds a plain APK and installs that, and <code>nc</code> receives nothing. Put <code>DEV_LOG=1</code> on the command that installs.</p></blockquote>
-<p>Updating the demo's framework copy from the package, and committing it, is a maintainer task: <code>squared-examples/MAINTAINING.md</code>.</p>
-<h2 id="8-after-changing-a-template-kit-or-the-framework">8. After changing a template, kit or the framework</h2>
-<p>The installed copy does not follow the checkout. Re-install from the checkout:</p>
-<pre><code class="lang-bash">cd ~/projects/squared-pg &amp;&amp; ./build/sqpg initialize</code></pre>
-<p>Running the <i>installed</i> <code>sqpg initialize</code> reports success and copies nothing.</p>
-<p>A re-install copies over the old files but does not delete files that were removed upstream. For a clean install, remove the installed tool first:</p>
-<pre><code class="lang-bash">rm -rf ~/sqsysroot/.sqpg
-cd ~/projects/squared-pg &amp;&amp; ./build/sqpg initialize</code></pre>
-<blockquote><p>[!danger] <code>sqpg selfdestruct --environment</code> deletes <code>project/</code> too It removes everything in <code>sandbox/</code>, <b>everything in <code>project/</code></b>, and <code>.sqpg</code>. That includes <code>~/sqsysroot/project/squared-examples</code>. To start clean, use the two commands above, and <code>sqpg selfdestruct --sandbox</code> if you also want the sandbox emptied.</p></blockquote>
-<p>Existing workspaces are not updated. squared-pg generates new workspaces only, so generate a fresh one to see a template change.</p>
-<h2 id="9-keeping-a-workspace">9. Keeping a workspace</h2>
-<pre><code class="lang-bash">sqpg promote demo      # sandbox/demo -&gt; project/demo, and git init</code></pre>
+sqmake install</code></pre>
+<p>A development build sends its log, a crash backtrace and frame-allocation reports to a port on this device: start <code>nc -klu 5555</code> in a second session, then <code>sqmake --debug install</code> (the debug build: its log, the Console, debuggable).</p>
 <h2 id="when-something-goes-wrong">When something goes wrong</h2>
-<div class="tablewrap"><table><thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead><tbody><tr><td><code>no workflow &#x27;…&#x27; on the workflow search path</code></td><td><code>sqpg</code> cannot find its installation: re-run step 5, or run it from the checkout as <code>./build/sqpg</code></td></tr><tr><td><code>error: the output location already exists</code></td><td>the workspace name is taken; remove it or use another name</td></tr><tr><td><code>No Android NDK found</code></td><td>see step 1; <code>make android-status</code> lists the paths searched</td></tr><tr><td>a template change does not show up in a new workspace</td><td>the installed copy is stale: step 8</td></tr><tr><td><code>nc</code> shows nothing</td><td>the installed APK is not a <code>DEV_LOG</code> build (step 7), or <code>nc</code> was started after the app</td></tr><tr><td>the app opens and closes at once</td><td>build with <code>DEV_LOG=1</code>; the crash backtrace arrives at <code>nc</code>. If nothing arrives, take an Android bug report</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>Symptom</th><th>Cause and fix</th></tr></thead><tbody><tr><td><code>sqpg: command not found</code></td><td><code>pkg install squared-pg</code></td></tr><tr><td><code>error: the output location already exists</code></td><td>the workspace name is taken; remove it or use another name</td></tr><tr><td><code>sqmake: ... squared</code> not found</td><td><code>pkg install squared</code></td></tr><tr><td><code>nc</code> shows nothing</td><td>the installed APK is not a <code>DEV_LOG</code> build, or <code>nc</code> was started after the app</td></tr><tr><td>the app opens and closes at once</td><td>build with <code>sqmake --debug run</code>; its log reaches the Console and <code>nc</code></td></tr></tbody></table></div>
 <h2 id="see-also">See also</h2>
-<ul><li>[[usermanual/getting-started]]: the same tool from the terminal-template side</li><li>[[usermanual/workspace]]: which files in a workspace are yours</li><li><code>squared/docs/programmer/dev.md</code>, inside any workspace: the log sink, the crash reporter and the frame-allocation counter</li></ul></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<ul><li>[[usermanual/getting-started]]: the same tool, in short</li><li>[[usermanual/workspace]]: which files in a workspace are yours</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>
