@@ -13,6 +13,7 @@
   <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
   <a href="../../docs/index.html">Docs</a>
   <a href="../../tracker.html">Sprint tracker</a>
+  <a href="../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
@@ -20,43 +21,38 @@
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">sqterm</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/sqterm/blob/main/README.md">on GitHub</a></p><h1 id="sqterm">sqterm</h1>
 <p>A terminal for Android, written as a <a href="https://github.com/squared-netizen/squared">squared</a> app: a shell in a pseudo-terminal, drawn by squared, with no Java of its own. Inspired by Termux. Side-loaded (target SDK 28, minimum 22), never on Google Play.</p>
 <p>Where it stands (Sprint 12 of the squared plan):</p>
-<ul><li>12.3d, this: the first APK. Android's own shell (<code>/system/bin/sh</code>) in a pty on the model's thread, its screen drawn with JetBrains Mono from one glyph texture, typing (a keyboard's Ctrl, Alt, arrows, F-keys, Page Up and Down), a drag to scroll back, rotation. When the shell exits it says so as Termux does (<code>[Process completed (code 0) - press Enter]</code>), and Enter closes sqterm.</li><li>12.4, copy and paste, as Termux does: a long press selects the word under the finger and a drag that follows moves its end; two handles move either end, and dragged to the top or bottom edge they scroll, so a selection runs through the whole scrollback; a bar above it has Copy and Paste; a long press on blank space shows Paste alone; a tap elsewhere or a key puts it away. A paste goes in as Termux sends one (escapes out, newlines as Enter, bracketed when the program asks).</li><li>12.6, running in the background, as Termux does: while the shell runs, a notification ("1 session") keeps sqterm's process alive off the screen; tapped, it opens sqterm; Exit ends the shell and closes sqterm; Acquire wakelock keeps it running with the screen off. A swipe from the recent apps leaves the shell running.</li><li>12.6b, pinch zoom, as Termux does: two fingers scale the font, from 50% to 300% in steps of 5, and the grid follows; the size is kept for the next launch. (Every squared app zooms its whole UI with a pinch; the terminal takes the pinch for its font instead.)</li><li>12.5a, zsh: sqterm's own prefix (<code>files/usr</code>, Termux's way), filled from packages the APK carries. <code>make packages</code> builds ncurses 6.6 and zsh 5.9.2 for it on the phone, with the NDK, for API 22 (<code>packages/</code>); the app unpacks them the first time it starts and runs zsh, with PATH, HOME, TERM and a starting <code>$PREFIX/etc/zshrc</code>. A build without them runs Android's sh, as before.</li><li>Next: 12.5 goes on (<code>pkg</code>, bash, the GNU tools, the clang stack, neovim; the recipes into GitHub Actions), then 12.7 Android from the shell.</li></ul>
+<ul><li>12.3d, this: the first APK. Android's own shell (<code>/system/bin/sh</code>) in a pty on the model's thread, its screen drawn with JetBrains Mono from one glyph texture, typing (a keyboard's Ctrl, Alt, arrows, F-keys, Page Up and Down), a drag to scroll back, rotation. When the shell exits it says so as Termux does (<code>[Process completed (code 0) - press Enter]</code>), and Enter closes sqterm.</li><li>12.4, copy and paste, as Termux does: a long press selects the word under the finger and a drag that follows moves its end; two handles move either end, and dragged to the top or bottom edge they scroll, so a selection runs through the whole scrollback; a bar above it has Copy and Paste; a long press on blank space shows Paste alone; a tap elsewhere or a key puts it away. A paste goes in as Termux sends one (escapes out, newlines as Enter, bracketed when the program asks).</li><li>12.6, running in the background, as Termux does: while the shell runs, a notification ("1 session") keeps sqterm's process alive off the screen; tapped, it opens sqterm; Exit ends the shell and closes sqterm; Acquire wakelock keeps it running with the screen off. A swipe from the recent apps leaves the shell running.</li><li>12.6b, pinch zoom, as Termux does: two fingers scale the font, from 50% to 300% in steps of 5, and the grid follows; the size is kept for the next launch. (Every squared app zooms its whole UI with a pinch; the terminal takes the pinch for its font instead.)</li><li>The soft keyboard (2026-11-23): a two-finger tap brings it up or puts it away; touching the terminal (a scroll, a selection) never does. It comes back when sqterm comes back to the front if it was up, and put away with Back it stays away.</li><li>The drawer, as Termux's: a swipe right from the left edge brings it in, with a Keyboard button; a swipe left or a tap beside it puts it away. Settings will go in it.</li><li>12.5a, zsh: sqterm's own prefix (<code>files/usr</code>, Termux's way), filled from packages the APK carries. <code>sqmake packages</code> builds ncurses 6.6 and zsh 5.9.2 for it on the phone, with the NDK, for API 22 (<code>packages/</code>); the app unpacks them the first time it starts and runs zsh, with PATH, HOME, TERM and a starting <code>$PREFIX/etc/zshrc</code>. A build without them runs Android's sh, as before.</li><li>Next: 12.5 goes on (<code>pkg</code>, bash, the GNU tools, the clang stack, neovim; the recipes into GitHub Actions), then 12.7 Android from the shell.</li></ul>
 <h2 id="build-and-install">Build and install</h2>
-<p>On the phone, in Termux, from this folder:</p>
-<pre><code class="lang-sh">make packages # the prefix&#x27;s packages (once, and when a recipe changes)
-make dev      # a debug build with the Console, installed
-make apk      # a plain APK in build/</code></pre>
-<p><code>make packages</code> needs curl, xz and zstd in Termux (<code>pkg install curl xz-utils zstd</code>) and the NDK the APK builds use; see <code>packages/README.md</code>.</p>
-<p>The Makefile's head lists every target.</p>
-<p>Or with sqmake, the SDK's build tool, in sqterm itself (<code>pkg install sqmake --from repo</code> brings the rest of the toolchain), from <code>build.lua</code>:</p>
+<p>With sqmake, the SDK's build tool, in sqterm itself (<code>pkg install sqmake</code> brings the rest of the toolchain), from <code>build.lua</code>. There is no Makefile.</p>
 <pre><code class="lang-sh">sqmake           # build/sqterm.apk, signed with ~/.android/apkpack.pem
 sqmake install   # install it (with adb on this phone: no prompt)
 sqmake run       # install, then start it (adb)
 sqmake logcat    # its log, and Android&#x27;s crash lines (adb)
 sqmake devices   # what adb reaches, and how to connect
-sqmake --debug install   # make dev&#x27;s build: the Console, DEV_LOG, debuggable
+sqmake --debug install   # the debug build: the Console, DEV_LOG, debuggable
                          # (in build/debug, so switching rebuilds neither)
-sqmake console           # that build&#x27;s Console, here (sqconsole)</code></pre>
-<p>It builds the same APK as <code>make apk</code> and reaches the device the same way (tools/device.sh); <code>sq/build/template.lua</code> says how.</p>
+sqmake console           # that build&#x27;s Console, here (sqconsole)
+sqmake packages          # the prefix&#x27;s packages, built here (packages/README.md);
+                         # or tools/fetch_packages.sh takes CI&#x27;s</code></pre>
+<p>It reaches the device through tools/device.sh; <code>sq/build/template.lua</code> says how.</p>
 <h2 id="layout">Layout</h2>
 <pre><code>sq_app/src/         the app (yours): main.cpp, shell.cpp (the model),
                     terminal_view.cpp (the widget), glyphs.cpp (the fonts),
                     prefix.cpp (the packages, unpacked)
 sq_app/third_party/ zstd&#x27;s decoder, for the packages
 sq_android/         the platform layer, from the template; assets/fonts/, and
-                    assets/packages/ once make packages has run (not in git)
+                    assets/packages/ once sqmake packages or tools/fetch_packages.sh has run (not in git)
 packages/           the prefix&#x27;s recipes and their build: build.sh, ncurses/, zsh/
 terminfo/sqterm.ti  TERM=sqterm: what the emulator implements (in the ncurses package)
 squared/            the framework, vendored: never edited here
-mk/                 the template&#x27;s and the package&#x27;s make fragments
 tools/              vendor_framework.sh: squared from the package</code></pre>
 <h2 id="the-framework">The framework</h2>
 <p><code>squared/</code> is the package's, copied at the commit in <code>SQUARED_REV</code>. To take the package's latest:</p>
 <pre><code class="lang-sh">tools/vendor_framework.sh --latest</code></pre>
-<p>then commit <code>squared/</code>, <code>SQUARED_REV</code> and <code>mk/</code>.</p>
+<p>then commit <code>squared/</code> and <code>SQUARED_REV</code>.</p>
 <h2 id="licences">Licences</h2>
 <p>See <a href="https://github.com/squared-netizen/sqterm/blob/main/NOTICE.md">NOTICE.md</a>: JetBrains Mono (SIL Open Font License 1.1) and FreeType (the FreeType Project License) ship in the APK.</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

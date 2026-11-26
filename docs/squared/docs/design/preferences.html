@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preferences and the Settings screen · squared</title>
+<meta name="description" content="squared: Preferences and the Settings screen">
+<link rel="stylesheet" href="../../../../assets/style.css">
+</head>
+<body>
+<header class="top"><div class="top-inner">
+  <a class="brand" href="../../../../index.html">squared-netizen</a>
+  <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
+  <a href="../../../../docs/index.html">Docs</a>
+  <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="../../../../todo.html">To do</a>
+  <a href="https://github.com/squared-netizen">GitHub</a></nav>
+  <form class="search" action="../../../../docs/search.html" method="get" role="search">
+    <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
+</div></header>
+<main><article class="doc"><p class="crumbs"><a href="../../../index.html">Docs</a> · <a href="../../index.html">squared</a> · <code>docs/design/preferences.md</code> · <a href="https://github.com/squared-netizen/squared/blob/main/docs/design/preferences.md">on GitHub</a></p><h1 id="preferences-and-the-settings-screen">Preferences and the Settings screen</h1>
+<p>Status: decided (2026-11-25).</p>
+<p>Every squared app has settings, and most of them are the same few: the skin, the font (one of the skin's bitmap fonts, or a TTF/OTF file), its size, the colours, whether the keyboard comes up at the start. squared gives them once: <b>a preferences cartridge</b> that holds everything an app keeps, and <b>a Settings screen</b> that shows the invariants and whatever the app adds, with import and export built in. sqterm and sqIDE are the first two users; sqIDE's Settings (docs/design.md there) is this screen.</p>
+<h2 id="1-the-preferences-cartridge">1. The preferences cartridge</h2>
+<p>An app's preferences are one squared cartridge (sqcart 3.0), as every workspace is one, and held the same way: <b>exploded</b> while in use, packed only to travel.</p>
+<pre><code>&lt;app Local storage&gt;/preferences/
+  SQ-INF/manifest.json     kind &quot;preferences&quot;, id &quot;preferences.&lt;app id&gt;&quot;
+  tree/
+    settings.json          the typed settings (below)
+    ...                    anything else the app keeps: any file type</code></pre>
+<ul><li><b>kind</b> <code>preferences</code>; <b>id</b> <code>preferences.</code> and the app's id (<code>preferences.dev.squared.sqide</code>); <b>version</b> the schema's (below), so an import from an older app can be migrated.</li><li><b>settings.json</b>: one JSON object (sq.data), keys dotted by section: <code>ui.skin</code>, <code>ui.font.file</code>, <code>ui.font.size</code>, <code>ui.theme.0</code> ... <code>ui.theme.19</code>, <code>ui.zoom</code>, <code>ui.zoom.pinch</code>, <code>ui.zoom.least</code>, <code>ui.zoom.most</code>, <code>input.keyboard_on_start</code>, and the app's own (<code>terminal.scrollback</code>). Only what differs from the default is written.</li><li><b>Any other file</b>: a TTF the person added (<code>fonts/</code>), a skin of their own (<code>skins/NAME.json</code> with its atlas), a key, a history, an app's own <code>theme.json</code>. The cartridge does not know what they are; the app does.</li></ul>
+<h3 id="sqpreferences"><code>sq.preferences</code></h3>
+<p>A module of squared's, on the UI thread (the model reads a copy it is sent, as a part's argument or a telegram; it never opens the files).</p>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><code>Preferences::open(files, app_id)</code></td><td>the cartridge, made with the defaults when it is not there</td></tr><tr><td><code>get&lt;T&gt;(key, fallback)</code>, <code>set(key, value)</code>, <code>reset(key)</code></td><td>a typed setting; <code>set</code> writes settings.json at once (whole, atomically: a new file renamed over the old)</td></tr><tr><td><code>path(name)</code>, <code>read(name)</code>, <code>write(name, bytes)</code>, <code>remove(name)</code></td><td>a file of the app's, under <code>tree/</code></td></tr><tr><td><code>generation()</code></td><td>counts changes, as <code>term.theme_generation</code> does: what draws from a setting reads it again when it moves</td></tr><tr><td><code>export_to(file)</code></td><td>the cartridge packed into one <code>.sq</code> (sq.drive's pack)</td></tr><tr><td><code>import_from(file, Replace or Merge)</code></td><td>a <code>.sq</code> of kind preferences: checked, exploded into a staging folder beside the cartridge, then swapped in (Replace) or its files and keys laid over (Merge)</td></tr></tbody></table></div>
+<p>Import refuses a cartridge of another kind; one of another app's id is offered with a warning (a theme moves between sqterm and sqIDE). A newer schema than the app knows is refused; an older one is migrated by the app's own step (<code>on_migrate(from, settings)</code>).</p>
+<p>squared gets the cartridge I/O by vendoring <b>sqdrive</b> (<code>third_party/ sqdrive</code>, as square does): sqcart is the format, sqdrive the I/O, and squared adds only what a preferences cartridge is. The module is not part of <code>import squared;</code> for an app that wants none of it.</p>
+<h2 id="2-the-settings-screen">2. The Settings screen</h2>
+<p><code>sq::SettingsScreen</code>, in squared (sq.stage, drawn with sq.gui): one screen, made from <b>sections</b>, each a list of <b>entries</b>, each bound to one key of the preferences. A change is written at once and published; there is no Save button.</p>
+<h3 id="what-every-app-gets">What every app gets</h3>
+<div class="tablewrap"><table><thead><tr><th>Section</th><th>Entries</th></tr></thead><tbody><tr><td>Appearance</td><td>Skin: the app's bundled skins and the ones in <code>tree/skins/</code> (a skin added brings the bitmap fonts it names)</td></tr><tr><td>Zoom</td><td>Zoom: the UI's size, a slider from the least to the most, in the Stage's steps (5%), applied live · Pinch to zoom: on or off · Least and Most: the range a pinch and the slider keep to, within squared's 50% to 300%</td></tr><tr><td>Text</td><td>Font: the skin's bitmap fonts, or a TTF/OTF file (the bundled ones and <code>tree/fonts/</code>, or Add font..., which copies one in) · Size</td></tr><tr><td>Colours</td><td>the theme's palette, when the app declares one (16 + 4 for a terminal)</td></tr><tr><td>Input</td><td>Keyboard on start</td></tr><tr><td>Preferences</td><td>Export..., Import..., Reset all</td></tr></tbody></table></div>
+<p>An app turns any of these off, and adds its own.</p>
+<h3 id="an-apps-own-sections">An app's own sections</h3>
+<p>Declared as data, in code or as JSON next to the app's layouts (sqgui's editor can show it later):</p>
+<pre><code class="lang-json">{&quot;section&quot;: &quot;Terminal&quot;, &quot;entries&quot;: [
+  {&quot;key&quot;: &quot;terminal.scrollback&quot;, &quot;type&quot;: &quot;number&quot;, &quot;label&quot;: &quot;Scrollback&quot;, &quot;min&quot;: 100, &quot;max&quot;: 100000, &quot;default&quot;: 5000},
+  {&quot;key&quot;: &quot;terminal.bell&quot;, &quot;type&quot;: &quot;choice&quot;, &quot;label&quot;: &quot;Bell&quot;, &quot;choices&quot;: [&quot;off&quot;, &quot;flash&quot;, &quot;vibrate&quot;], &quot;default&quot;: &quot;flash&quot;},
+  {&quot;key&quot;: &quot;terminal.shell&quot;, &quot;type&quot;: &quot;file&quot;, &quot;label&quot;: &quot;Shell&quot;, &quot;kinds&quot;: [&quot;program&quot;], &quot;default&quot;: &quot;zsh&quot;}
+]}</code></pre>
+<p>Entry types: <code>bool</code>, <code>number</code> (a range: a slider, or a field), <code>text</code>, <code>choice</code>, <code>colour</code>, <code>file</code> (one of a folder's, or added), <code>action</code> (a button that calls the app). A <code>file</code> entry for a font, a skin or a sound copies what is added into the cartridge, so an export carries it.</p>
+<h3 id="export-and-import">Export and import</h3>
+<ul><li><b>Export...</b> opens squared's file dialog (<code>sq.dialogs</code>, decided 2026-11-25: the person chooses where), in shared storage (FileType::External: the folder sqterm already uses for packages), with <code>&lt;app id&gt;-preferences-&lt;date&gt;.sq</code> to save as, and writes it there.</li><li><b>Import...</b> opens the same dialog on <code>.sq</code> files, then Replace or Merge. After an import, every setting is applied again (the generation moves).</li><li>Until phase 1b writes and reads the cartridge, the app gives the two (<code>Settings::set_transfer</code>); the buttons show when it has.</li></ul>
+<h3 id="the-file-dialog">The file dialog</h3>
+<p><code>sq::FileDialog</code> (<code>sq.dialogs</code>, a module of its own, outside <code>import squared;</code>): any app, any screen, a modal pane in the middle (<code>FileDialogPane</code>). Open a file, save one (a name typed, given the ending asked for, and said when it would replace a file), or choose a folder. The app's places as buttons (its files, shared storage, the files it was given, the top), up, the folder's folders then its files by name in any case (hidden names left out unless asked; files by ending), and the choice given to the app through a callback, or an empty path for Cancel.</p>
+<h3 id="the-uis-zoom">The UI's zoom</h3>
+<p>The Stage has it now: <code>zoom()</code>, <code>set_zoom(percent)</code> (50 to 300, steps of 5), <code>pinch_zoom(on)</code>, and it keeps the zoom in <code>squared/zoom</code>. For the screen:</p>
+<ul><li><b>Least and Most</b> become the Stage's to set, at run time (<code>set_zoom_range(least, most)</code>, within <code>least_zoom</code> and <code>most_zoom</code>, which stay the hard limits): a pinch and the slider keep to them.</li><li><b>Pinch to zoom</b> is <code>pinch_zoom</code>, made live (today it is set in <code>squared_main</code> only).</li><li>The zoom itself stays the Stage's (<code>squared/zoom</code>), which a pinch and the slider both keep: a <code>ui.zoom</code> the screen wrote would be left behind by the next pinch, and applied at a start it would undo it (changed 2026-11-25, from "the zoom moves into the preferences"). An export does not carry the zoom until the Stage reads it from the preferences itself.</li><li>An app that never zooms (a game's canvas) turns the section off.</li></ul>
+<p>Done (2026-11-25): <code>set_zoom_range</code>, <code>zoom_least()</code>, <code>zoom_most()</code>, and <code>pinch_zoom</code> at any time (off mid-pinch, the pinch ends with the zoom it reached and its fingers reach nothing until lifted).</p>
+<h2 id="3-sqterm-and-sqide">3. sqterm and sqIDE</h2>
+<ul><li>What they keep today moves into the cartridge on first start: <code>~/.config/sqterm/theme.json</code> -&gt; <code>tree/theme.json</code> (and its colours to <code>ui.theme.*</code>), <code>files/terminal.font</code> -&gt; <code>ui.font.*</code>. The old files stay read for one release, then go.</li><li>sqterm gets the screen as its first screen besides the terminal (its drawer: Settings); sqIDE's left drawer: Settings, on every screen.</li><li>Their own sections: Terminal (scrollback, bell, the shell), and sqIDE's Workspaces (where they are kept; the default template).</li></ul>
+<h2 id="4-phases">4. Phases</h2>
+<ol><li><code>sq.preferences</code>: the cartridge, typed settings, files, export and import (sqdrive vendored); tests on the host, round trip through a <code>.sq</code>.</li><li>The Stage: <code>set_zoom_range</code>, a live <code>pinch_zoom</code>. Then <code>sq::SettingsScreen</code>: sections and entries, the invariants, data-declared sections; the keyboard as the wizard's fields have it. <b>First cut (2026-11-25)</b>: <code>sq.settings</code> (its own module, outside <code>import squared;</code>): <code>Settings</code> and <code>SettingsScreen</code> (<code>push settings</code>), the app's sections declared in code (<code>SettingEntry::toggle</code>, <code>number</code>, <code>choice</code>, <code>text</code>, <code>action</code>) and squared's Zoom, Input and Preferences (Reset all). Still to come: Appearance, Text and Colours (the Stage switching skins and fonts live first), Export and Import (phase 1b), sections declared as JSON, the colour and file entries.</li><li>sqterm and sqIDE: their settings moved in, the screen in their drawers.</li><li>sqgui: sections shown and edited in the GUI editor.</li></ol>
+<h2 id="decided-2026-11-25">Decided (2026-11-25)</h2>
+<ul><li>The zoom, and every other setting, applies live: no restart.</li><li>A skin of the person's own brings the bitmap fonts it names (its JSON, atlas and fonts are copied into <code>tree/skins/NAME/</code>).</li><li>An export is dated (<code>&lt;app id&gt;-preferences-YYYY-MM-DD.sq</code>, with <code>-2</code> and on for a second the same day); none is overwritten.</li><li>The UI's zoom is in Settings: the zoom, pinch on or off, its least and most.</li></ul></article></main>
+<footer class="foot">Last updated 2026-11-26. Written from each
+repository's own documentation and, where it was thin or disagreed with itself, its code.
+Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
+</body>
+</html>

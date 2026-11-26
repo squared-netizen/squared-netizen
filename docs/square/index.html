@@ -13,13 +13,27 @@
   <nav><a href="../../index.html">Main page</a><a href="../../index.html#projects">Projects</a>
   <a href="../../docs/index.html">Docs</a>
   <a href="../../tracker.html">Sprint tracker</a>
+  <a href="../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../index.html">Docs</a> · <a href="index.html">square</a> · <code>README.md</code> · <a href="https://github.com/squared-netizen/square/blob/main/README.md">on GitHub</a></p><h1 id="square">square</h1>
 <p>The workspace manager of the <a href="https://squared-netizen.github.io/squared-netizen/">squared SDK</a>, and the one tool that knows what a workspace is. sqpg creates a workspace once; from then on square answers every question about it and makes every change to its shape.</p>
-<p><b>Status: specified, not yet built.</b> <a href="docs/spec.html">docs/spec.md</a>, draft 0.1 (2026-11-20).</p>
+<p><b>Status: phases 1 and 2 built</b> (0.3.0, 2026-11-24): <code>info</code>, <code>where</code>, <code>owner</code>, <code>verify</code>, <code>resources</code> and <code>show</code>, as words and as <code>square call</code>, on the workspaces sqpg writes and the cartridges it installs; and every template and kit builds with sqmake from Lua in the workspace (<code>sq/build/template.lua</code>, <code>sq/build/kit_&lt;name&gt;.lua</code>: spec §4). Manifests are read through sqcart (vendored in <code>third_party/sqcart</code>). libsquare (<code>build/libsquare.a</code> and the module <code>square</code>, built by <code>sqmake</code>) gives sqpg and sqgui the same calls in process. Next: changing a workspace (<code>add</code>, <code>update</code>, phase 4). <a href="docs/spec.html">docs/spec.md</a>, draft 0.1 (2026-11-20).</p>
+<pre><code class="lang-sh">CXX=clang++ sqmake test             # clang and libc++ 23, `import std` (build.lua)
+cd my-workspace/sq_app
+square info                          # what it is, what it was made from, its roles
+square where layouts                 # sq_app/layouts
+square owner ../build.lua            # build.lua  seeded  from template.android.cpp
+square verify                        # what changed since it was written (non-zero if anything)
+square roles                         # each role: its path, its files and their class
+square find ~                        # the workspaces under a folder, exploded or .sq, newest first
+square pack                          # this workspace into one .sq to share (build/ left out)
+square explode demo.sq ~/work        # a .sq workspace out as ~/work/demo
+square resources kit                 # the kits installed (--resources PATH, $SQUARE_RESOURCES)
+square show kit.terminal             # one of them: what it is, what it needs
+echo &#x27;{&quot;sq&quot;: 1, &quot;command&quot;: &quot;where&quot;, &quot;args&quot;: {&quot;role&quot;: &quot;app&quot;}}&#x27; | square call</code></pre>
 <h2 id="what-it-will-do">What it will do</h2>
 <ul><li><b>Answer questions, in JSON.</b> <code>square info</code>, <code>square where &lt;role&gt;</code> (the app, its layouts, its docs), <code>square owner &lt;path&gt;</code>, <code>square verify</code>, <code>square explain &lt;shim&gt;</code> for sqgui: the SDK's tool protocol (<code>square call</code>, <code>square describe</code>), and the same in process through <code>libsquare</code>. No daemon.</li><li><b>Keep a workspace's record.</b> A workspace is an exploded cartridge (<code>SQ-INF/manifest.json</code>, kind <code>workspace</code>): its template, kits and packages, each path's role and ownership. People write Lua (<code>build.lua</code>); square writes the JSON.</li><li><b>Leave the build to the workspace.</b> A template's and a kit's build conventions are Lua files in the workspace (<code>sq/build/*.lua</code>) that <code>build.lua</code> includes, so sqmake builds it asking square nothing.</li><li><b>Ask sqcart, never read manifests itself.</b> Every manifest is defined by the Squared Cartridge Specification; square reads the sections addressed to it through sqcart, so a change in the format touches sqcart and square alone.</li><li><b>Change a workspace safely.</b> Adding a kit or a package and updating a resource run as plan, decide, apply: a plan the developer reads, an answer for every conflict, and a journalled transaction that a crash cannot leave half done. Ownership classes decide the rest: a <code>seeded</code> or <code>user</code> file is never touched.</li><li><b>Extract.</b> Turn a workspace that has grown to suit its developer into a template, kits or packages for the next project, through a plan file the developer edits.</li></ul>
 <h2 id="where-it-sits">Where it sits</h2>
@@ -32,7 +46,7 @@
 sqmake builds the workspace from its build.lua, and asks square nothing.</code></pre>
 <h2 id="licence">Licence</h2>
 <p>MIT: see <a href="https://github.com/squared-netizen/square/blob/main/LICENSE">LICENSE</a>. Security issues: see <a href="https://github.com/squared-netizen/square/blob/main/SECURITY.md">SECURITY.md</a>.</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

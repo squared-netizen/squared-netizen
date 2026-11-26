@@ -38,6 +38,7 @@ def layout(title, body, depth=0, description=""):
   <nav><a href="{up}index.html">Main page</a><a href="{up}index.html#projects">Projects</a>
   <a href="{up}docs/index.html">Docs</a>
   <a href="{up}tracker.html">Sprint tracker</a>
+  <a href="{up}todo.html">To do</a>
   <a href="https://github.com/{projects.OWNER}">GitHub</a></nav>
   <form class="search" action="{up}docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
@@ -198,10 +199,31 @@ progress, what is blocked on a red check, what is ready, and what each sprint fi
     return layout("squared-netizen", body, description="squared-netizen's projects, plans and sprint tracker")
 
 
+def todo_page():
+    def item(t):
+        about = f' <span class="note">{E(t["about"])}</span>' if t.get("about") else ""
+        title = f"<s>{E(t['title'])}</s>" if t.get("done") else E(t["title"])
+        box = "&#x2611;" if t.get("done") else "&#x2610;"
+        return f"<li>{box} {title}{about}</li>"
+    left = [t for t in projects.TODO if not t.get("done")]
+    done = [t for t in projects.TODO if t.get("done")]
+    body = f"""<article class="article">
+<h1>To do</h1>
+<p class="tagline">What is to be done: not yet a project or a pull request</p>
+<h2 id="open">Open ({len(left)})</h2>
+<ul class="todo">{"".join(item(t) for t in left) or "<li>Nothing.</li>"}</ul>
+{f'<h2 id="done">Done ({len(done)})</h2><ul class="todo">' + "".join(item(t) for t in done) + "</ul>" if done else ""}
+<p class="note">Kept in <code>tools/projects.py</code> (<code>TODO</code>); <code>tools/build.py</code> writes this page.</p>
+</article>"""
+    return layout("To do - squared-netizen", body, description="squared-netizen's to do list")
+
+
 def main():
     os.makedirs(os.path.join(ROOT, "projects"), exist_ok=True)
     with open(os.path.join(ROOT, "index.html"), "w") as f:
         f.write(index_page())
+    with open(os.path.join(ROOT, "todo.html"), "w") as f:
+        f.write(todo_page())
     for p in projects.PROJECTS:
         with open(os.path.join(ROOT, "projects", p["id"] + ".html"), "w") as f:
             f.write(project_page(p))

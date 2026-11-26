@@ -13,6 +13,7 @@
   <nav><a href="../../../../index.html">Main page</a><a href="../../../../index.html#projects">Projects</a>
   <a href="../../../../docs/index.html">Docs</a>
   <a href="../../../../tracker.html">Sprint tracker</a>
+  <a href="../../../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
@@ -22,31 +23,24 @@
 <hr>
 <h1 id="getting-started">Getting started</h1>
 <h2 id="install-the-tool">Install the tool</h2>
-<p>squared-pg installs into an environment directory, <code>~/sqsysroot</code> by default (override with <code>$SQSYSROOT</code>). From a built checkout:</p>
-<pre><code class="lang-sh">./build/sqpg initialize</code></pre>
-<p>That creates the environment and copies the tool and its resources into <code>~/sqsysroot/.sqpg</code>. It then prints two <code>ln -sf</code> commands to put <code>sqpg</code> and <code>sqcart</code> on your PATH. Run them; <b>nothing edits a shell profile</b>, and removing the tool later is <code>rm</code> on two links.</p>
-<h2 id="the-environment">The environment</h2>
-<pre><code>~/sqsysroot/
-  project/    promoted work; version controlled
-  sandbox/    experiments; nothing here is irreplaceable
-  .sqpg/      the installed tool, its resources and workflows</code></pre>
-<p>Generate into <code>sandbox/</code> while you are trying things. <code>sqpg promote &lt;name&gt;</code> moves a workspace to <code>project/</code> when it is worth keeping.</p>
+<p>In sqterm, from its package repository:</p>
+<pre><code class="lang-sh">pkg install squared-pg</code></pre>
+<p>That installs <code>sqpg</code> and <code>sqcart</code>, with the templates, kits and packages sqpg generates from (<code>$PREFIX/share/squared-pg</code>). To build what it generates, also <code>pkg install sqmake squared</code>. sqpg keeps no environment of its own: there is nothing to initialize, and a workspace lives wherever you make it.</p>
 <h2 id="generate-a-workspace">Generate a workspace</h2>
-<pre><code class="lang-sh">cd ~/sqsysroot/sandbox
-sqpg new hello -t template.terminal.cpp -k kit.terminal
-cd hello &amp;&amp; make &amp;&amp; ./build/hello</code></pre>
-<p><code>-t</code> selects the template — the project's shape. <code>-k</code> selects a kit, and may be repeated. <code>sqpg list template</code> and <code>sqpg list kit</code> show what is available.</p>
+<pre><code class="lang-sh">mkdir -p ~/projects &amp;&amp; cd ~/projects
+sqpg new hello -t template.android.cpp -p package_name=dev.me.hello
+cd hello &amp;&amp; sqmake run</code></pre>
+<p><code>-t</code> selects the template — the project's shape. <code>-k</code> selects a kit, and may be repeated; <code>-p key=value</code> sets a template parameter. <code>sqpg list template</code> and <code>sqpg list kit</code> show what is available, and <code>sqpg show &lt;id&gt;</code> one of them with its parameters. <code>-o PATH</code> puts the workspace somewhere other than <code>./&lt;name&gt;</code>.</p>
+<p>A workspace is a cartridge folder: <code>SQ-INF/manifest.json</code> (kind <code>workspace</code>) says what it was made from and where its parts are, and <code>SQ-INF/files.json</code> lists each generated file with its class and checksum. square reads them; <code>square --workspace hello pack</code> packs the workspace into one <code>.sq</code> file (and <code>square explode</code> makes it a folder again).</p>
 <h2 id="see-before-you-commit">See before you commit</h2>
-<pre><code class="lang-sh">sqpg plan hello -t template.terminal.cpp -k kit.terminal</code></pre>
+<pre><code class="lang-sh">sqpg plan hello -t template.android.cpp -p package_name=dev.me.hello</code></pre>
 <p><code>plan</code> prints every file that would be written, its origin and whether it is yours or the generator's. It creates nothing.</p>
 <h2 id="your-project-does-not-need-squared-pg">Your project does not need squared-pg</h2>
-<p>Once generated, a workspace builds with <code>make</code> and a compiler. The generator is not a build dependency and does not need to be installed to build a project it produced.</p>
+<p>Once generated, a workspace builds with sqmake, from its <code>build.lua</code> (with the framework installed, or vendored by <code>--package package.squared-core</code>). It has no make files. The generator is not a build dependency.</p>
 <h2 id="useful-commands">Useful commands</h2>
-<div class="tablewrap"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>sqpg list [template\|kit\|package\|asset]</code></td><td>what is available</td></tr><tr><td><code>sqpg show &lt;id&gt;</code></td><td>describe one resource</td></tr><tr><td><code>sqpg plan &lt;name&gt; -t &lt;id&gt;</code></td><td>what would be generated</td></tr><tr><td><code>sqpg new &lt;name&gt; -t &lt;id&gt;</code></td><td>generate it</td></tr><tr><td><code>sqpg inspect &lt;workspace&gt;</code></td><td>read a workspace's record</td></tr><tr><td><code>sqpg verify [workspace]</code></td><td>check it against that record</td></tr><tr><td><code>sqpg doctor</code></td><td>what is installed and what is stale</td></tr></tbody></table></div>
-<p>Run <code>sqpg</code> with no arguments for the full list.</p>
-<h2 id="if-something-looks-stale">If something looks stale</h2>
-<p><code>sqpg</code> reads its resources from <code>~/sqsysroot/.sqpg/resources</code>, not from a source checkout. If you have changed a template or kit in a checkout, re-run <code>./build/sqpg initialize</code> <b>from that checkout</b> — running the installed <code>sqpg initialize</code> will report success and do nothing. This is a known rough edge (Q-31, Q-32).</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<div class="tablewrap"><table><thead><tr><th>Command</th><th>What it does</th></tr></thead><tbody><tr><td><code>sqpg list [template\|kit\|package\|asset]</code></td><td>what is available</td></tr><tr><td><code>sqpg show &lt;id&gt;</code></td><td>describe one resource</td></tr><tr><td><code>sqpg plan &lt;name&gt; -t &lt;id&gt;</code></td><td>what would be generated</td></tr><tr><td><code>sqpg new &lt;name&gt; -t &lt;id&gt;</code></td><td>generate it</td></tr></tbody></table></div>
+<p>Run <code>sqpg</code> with no arguments for the full list. Questions about a workspace are square's (<code>pkg install square</code>): <code>square info</code>, <code>where</code>, <code>owner</code>, <code>verify</code>; changing one (<code>add</code>, <code>update</code>) will be too.</p></article></main>
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>

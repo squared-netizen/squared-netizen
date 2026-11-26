@@ -586,3 +586,11 @@ OTHER = [
     ("sandbox", "not described here yet."),
     ("learncpp-pdfs", "not described here yet."),
 ]
+
+
+# The To do list (todo.html): what is to be done, not yet a project or a PR.
+# Each item: title, and optionally what it is about (one sentence) and
+# done=True once it is.
+TODO = [
+    {"title": "Research ways to eliminate static casting"},
+]

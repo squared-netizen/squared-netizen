@@ -13,14 +13,16 @@
   <nav><a href="../../../index.html">Main page</a><a href="../../../index.html#projects">Projects</a>
   <a href="../../../docs/index.html">Docs</a>
   <a href="../../../tracker.html">Sprint tracker</a>
+  <a href="../../../todo.html">To do</a>
   <a href="https://github.com/squared-netizen">GitHub</a></nav>
   <form class="search" action="../../../docs/search.html" method="get" role="search">
     <input type="search" name="q" placeholder="Search the docs" aria-label="Search the docs"></form>
 </div></header>
 <main><article class="doc"><p class="crumbs"><a href="../../index.html">Docs</a> · <a href="../index.html">sqterm</a> · <code>packages/README.md</code> · <a href="https://github.com/squared-netizen/sqterm/blob/main/packages/README.md">on GitHub</a></p><h1 id="packages-sqterms-prefix">packages: sqterm's prefix</h1>
 <p>sqterm runs its programs from its own folder, <code>/data/data/dev.squared.sqterm/files/usr</code> (<code>$PREFIX</code> in its shell), as Termux runs its own. What is in it comes from packages built here, carried in the APK (<code>sq_android/assets/packages/</code>), and unpacked by the app the first time it starts. Decided in Sprint 12 (the plan's 12.0 and 12.5): squared's own recipes, each tool's latest stable release, only the tools in use, C, C++ or Lua only. GitHub Actions builds them with the same script (<code>.github/workflows/packages.yml</code>, decided 2026-11-04) and publishes them as a release.</p>
+<p><b>Another app's folder.</b> Packages are built once, for sqterm's folder, and some keep it (zsh's <code>/etc/zshrc</code>, git's exec path, <code>#!</code> lines). sqIDE, which has its own folder, installs the same packages: the unpacker (the app's and <code>pkg</code>'s, <code>sq_app/src/unpack.cpp</code>) rewrites sqterm's folder to the app's in each file as it lands. A program is patched in place, so the app's folder must be no longer than sqterm's (<code>/data/data/dev.squared.sqide/files/usr</code> is one shorter).</p>
 <p><b>Two kinds of package.</b> What <code>pkg</code> installs here are <i>sqterm packages</i>: programs and files for sqterm's prefix (zsh, llvm, sqmake, sqedit, and <code>squared</code>, which carries squared's sources for every workspace to build against). In squared, a <i>package</i> means only the framework, squared-core, and its add-on packages, <code>squared-</code><i>name</i>. The <code>squared</code> sqterm package is how the framework reaches the phone; it is not itself a squared package.</p>
-<p><b>Offline.</b> No build makes a network request: <code>make packages</code> and <code>packages/build.sh</code> work from what is already on disk. The one step that downloads is <code>tools/fetch_packages.sh</code>, run on purpose: CI's packages, or the sources to build them here.</p>
+<p><b>Offline.</b> No build makes a network request: <code>sqmake packages</code> and <code>packages/build.sh</code> work from what is already on disk. The one step that downloads is <code>tools/fetch_packages.sh</code>, run on purpose: CI's packages, or the sources to build them here.</p>
 <pre><code class="lang-text">build.sh          checks the sources, builds and packs every recipe, writes the
                   index; offline
 ../tools/fetch_packages.sh  the download step: CI&#x27;s packages, or --sources
@@ -58,15 +60,19 @@ apkpack/          apkpack 0.2.0 (MIT): the APK built and signed with no Java
 sqedit/           sqedit 0.1.0 (MIT): the text tool squared&#x27;s build and
                   sqterm&#x27;s scripts use in place of sed, grep and awk; C++23
                   modules, built as sqdrive is
-sqmake/           sqmake 0.9.1 (MIT): the SDK&#x27;s build system, build.lua in
+sqmake/           sqmake 0.11.0 (MIT): the SDK&#x27;s build system, build.lua in
                   Lua 5.4; finds the toolchain itself from squared&#x27;s
                   build/toolchain.lua (sqmake toolchain); C++23 modules,
                   built as sqdrive is
-sqgen/            squared&#x27;s layout compiler (MIT): names.json and layouts/
-                  into C++ for an app&#x27;s build; built with sqmake (its own
-                  build, for the build machine, first) from squared/
+sqgui/            sqgui 0.2.1 (MIT): sqgui-gen, the layout compiler an app&#x27;s
+                  build runs on names.json and layouts/ (once squared&#x27;s
+                  sqgen), and sqgui, the editor&#x27;s viewer (sqgui view: the
+                  layouts in the terminal); built with sqmake (0.10.0, built first for the
+                  build machine) against the squared sqterm carries
+sqgen/            sqgen 0.2.0: bin/sqgen, a link to sqgui-gen, for a
+                  workspace whose build still runs sqgen
 sqconsole/        squared&#x27;s Console client (MIT): a debug build&#x27;s Console in
-                  this terminal (sqmake console); built as sqgen is
+                  this terminal (sqmake console); built with sqmake from squared/
 squared/          the squared framework&#x27;s sources (MIT), for every workspace to
                   build with: share/squared/VERSION/squared (sq/build/template.lua)
 sqterm-tools/     sqterm&#x27;s own: the sqterm-* commands (sqterm-launch, ...),
@@ -75,7 +81,17 @@ neovim/           neovim 0.12.6 (Apache-2.0 and Vim): nvim, its runtime
                   files and tree-sitter parsers, its libraries built in
                   (cmake.deps, from the recipe&#x27;s `extra` files); CMake on the
                   build machine, so CI builds it (not in the APK: pkg install
-                  neovim)</code></pre>
+                  neovim)
+squared-pg/       sqpg 0.1.0-alpha.4 (MIT): the SDK&#x27;s workspace generator
+                  (sqpg new), with sqcart and squared&#x27;s templates, kits and
+                  packages at the commits squared-pg pins (`extra` files);
+                  in share/squared-pg, linked from bin (not in the APK: pkg
+                  install squared-pg)
+square/           square 0.5.1 (MIT): the SDK&#x27;s workspace manager (square
+                  info, where, owner, verify, roles, find, pack, explode,
+                  resources, show, call); C++23 modules with sqdrive and
+                  sqcart vendored, built as sqedit is (not in the APK: pkg
+                  install square)</code></pre>
 <h2 id="as-cartridges-from-2026-11-19">As cartridges (from 2026-11-19)</h2>
 <p>Each package is also a squared cartridge, 3.0 (sqcart's spec, Appendix B.2: kind <code>package</code>), packed from the same install by <code>tools/pack_cartridges.sh</code> into <code>build/packages/cartridges/&lt;name&gt;-&lt;version&gt;.sq</code> (offline; not in any key). Its packer, <code>tools/cartridge</code> (<code>sqterm-pack</code>), is built for the build machine with sqcart's library (<code>third_party/sqcart</code>, copied by <code>tools/vendor_sqcart.sh</code>) and clang 23:</p>
 <ul><li>a file is an entry, flags <code>r</code>, and <code>x</code> when it was executable;</li><li>a symbolic link is no entry: the manifest's <code>consumers.sqterm.links</code> names it and its target, for pkg to make (a cartridge holds no link);</li><li>the manifest is <code>format_version</code> 3, and <code>case_sensitive: true</code> when two paths collide under case folding (the sysroot's Linux headers: a package unpacks to <code>$PREFIX</code>, which does not fold case);</li><li>many small files are compressed with a zstd dictionary trained on them.</li></ul>
@@ -84,12 +100,12 @@ neovim/           neovim 0.12.6 (Apache-2.0 and Vim): nvim, its runtime
 <p>On the phone, in Termux, from sqterm's folder. Either CI's packages:</p>
 <pre><code class="lang-sh">pkg install curl                  # once
 tools/fetch_packages.sh           # the network step: CI&#x27;s release for these recipes
-make dev                          # offline: the APK, with them</code></pre>
+sqmake --debug install            # offline: the APK, with them, installed</code></pre>
 <p>or the sources, built here (a recipe changed here has no release until CI builds it from <code>main</code>):</p>
 <pre><code class="lang-sh">pkg install curl xz-utils zstd    # once
 tools/fetch_packages.sh --sources # the network step: the recipes&#x27; sources
-make packages                     # offline; or: bash packages/build.sh [name...]
-make dev</code></pre>
+sqmake packages                   # offline; or: bash packages/build.sh [name...]
+sqmake --debug install</code></pre>
 <p><b>One key a package.</b> <code>bash packages/build.sh --keys</code> prints each package's name, version and key: 16 hex digits of a sha256 over its recipe folder (not the READMEs), the files outside it the recipe names in <code>inputs</code> (ncurses: <code>terminfo/sqterm.ti</code>), <code>build.sh</code>, its line in <code>sources.lock</code>, the API level, and the keys of what it depends on. A recipe changed changes that package's key and the keys of what depends on it, nothing else.</p>
 <p><code>tools/fetch_packages.sh</code> downloads <code>&lt;name&gt;-&lt;version&gt;-&lt;key&gt;.tar.zst</code> for each recipe as it is in this folder, from the GitHub release named <code>packages</code>, checks each against the <code>.sha256</code> beside it, and only once all have arrived and matched replaces what was in <code>sq_android/assets/packages/</code> (not kept in git; the APK build packs it) and writes the index. The repository is public: no token. Those sha256s guard against a broken download; they come from the same release, so they are not a signature. <code>--dry-run</code> says what it would download.</p>
 <p>CI builds only the packages whose archive the release lacks, when a change to <code>packages/</code> or <code>terminfo/sqterm.ti</code> reaches <code>main</code>, or when started by hand, and adds them to the release. Finished builds are kept in the Actions cache, and <code>build.sh</code> skips a package whose key, archive and install are already there (here as on CI), so an up-to-date package is not built again for one that depends on it. A pull request builds too, and keeps the result as a workflow artifact without publishing it. CI runs the same two steps: the sources first, then the offline build.</p>
@@ -145,7 +161,7 @@ pkg upgrade --from repo           # the release&#x27;s index and fresh downloads
 <p><b>API 28.</b> The packages are built for Android 9 and later (2026-11-15: the Android 5.1 tablet is no longer a target). 28 is also sqterm's target SDK, which it keeps so it may run programs from its own files.</p>
 <h2 id="the-packages">The packages</h2>
 <p>Each is a ustar archive compressed with zstd (a 1 MB window: what the app's decoder holds while it unpacks), its files' paths relative to the prefix, sorted and dated at the epoch, so two builds of the same source give the same bytes. Executables are stripped. The index, <code>sqterm packages 1</code> and a line a package (<code>name version file sha</code>), is what the app compares with the one it last installed: when they differ, it unpacks them all again.</p></article></main>
-<footer class="foot">Last updated 2026-11-22. Written from each
+<footer class="foot">Last updated 2026-11-26. Written from each
 repository's own documentation and, where it was thin or disagreed with itself, its code.
 Generated by <code>tools/build.py</code> from <code>tools/projects.py</code>.</footer>
 </body>
