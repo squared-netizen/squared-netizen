@@ -593,4 +593,6 @@ OTHER = [
 # done=True once it is.
 TODO = [
     {"title": "Research ways to eliminate static casting"},
+    {"title": "Polish the apps' pkg install",
+     "about": "sqterm and sqIDE: it works, but could use some polish."},
 ]
